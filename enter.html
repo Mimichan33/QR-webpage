@@ -1,4 +1,10 @@
-<script>
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>入店記録</title>
+  <script>
   window.onload = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const tableId = urlParams.get('table');
@@ -10,4 +16,8 @@
     // 後に Firebase/Supabase へ送信する想定
   }
 </script>
-
+</head>
+<body>
+  <h1>ご来店ありがとうございます！</h1>
+  <p>ただいま入店が記録されました。</p>
+</body>
