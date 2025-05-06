@@ -1,20 +1,13 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>入店記録</title>
-  <script>
-    // デバイス情報と時刻をコンソールに出力（発展ではサーバ送信）
-    window.onload = () => {
-      const now = new Date().toISOString();
-      const userAgent = navigator.userAgent;
-      console.log("入店記録:", now, userAgent);
-      // 発展：fetchでFirebaseなどに送信できるようにもできる
-    }
-  </script>
-</head>
-<body>
-  <h1>ご来店ありがとうございます！</h1>
-  <p>ただいま入店が記録されました。</p>
-</body>
-</html>
+<script>
+  window.onload = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tableId = urlParams.get('table');
+    const now = new Date().toISOString();
+    const userAgent = navigator.userAgent;
+
+    console.log("入店記録:", { tableId, now, userAgent });
+
+    // 後に Firebase/Supabase へ送信する想定
+  }
+</script>
+
