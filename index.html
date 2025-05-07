@@ -22,33 +22,26 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    async function countVisitors() {
-      try {
-        const snapshot = await db.collection("logs").get();
+    function countVisitors(snapshot) {
+    let entries = 0;
+    let exits = 0;
 
-        let entries = 0;
-        let exits = 0;
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      console.log("リアルタイム読み込み:", data);
 
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          console.log("読み込んだデータ:", data);
-
-          if (data.type === "enter") entries++;
-          if (data.type === "exit") exits++;
-        });
+      if (data.type === "enter") entries++;
+      if (data.type === "exit") exits++;
+    });
 
         const current = entries - exits;
         document.getElementById("count").textContent = current;
         document.getElementById("entries").textContent = entries;
         document.getElementById("exits").textContent = exits;
-      } catch (error) {
-        console.error("読み取り失敗:", error);
-        document.getElementById("count").textContent = "エラー";
-      }
-    }
-
+    } 
+    
     window.onload = () => {
-      countVisitors();
+       db.collection("logs").onSnapshot(countVisitors);
     };
   </script>
 </head>
