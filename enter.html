@@ -1,23 +1,53 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <title>入店記録</title>
+
+  <!-- Firebase SDK 読み込み -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+
+  <!-- あなたのfirebaseConfigに置き換えてください -->
   <script>
-  window.onload = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tableId = urlParams.get('table');
-    const now = new Date().toISOString();
-    const userAgent = navigator.userAgent;
+    const firebaseConfig = {
+    apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+    authDomain: "qr-visitor-log.firebaseapp.com",
+    projectId: "qr-visitor-log",
+    storageBucket: "qr-visitor-log.firebasestorage.app",
+    messagingSenderId: "304250341939",
+    appId: "1:304250341939:web:b8d5b946590d1f852cf146",
+    measurementId: "G-K614HNZEV0"
+  };
 
-    console.log("入店記録:", { tableId, now, userAgent });
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(app);
+  </script>
 
-    // 後に Firebase/Supabase へ送信する想定
-  }
-</script>
+  <!-- 入店記録処理 -->
+  <script>
+    window.onload = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const table = params.get("table") || "unknown";
+      const timestamp = new Date().toISOString();
+      const device = navigator.userAgent;
+
+      try {
+        await db.collection("logs").add({
+          type: "entry",
+          table: table,
+          timestamp: timestamp,
+          device: device
+        });
+        console.log("入店記録完了");
+      } catch (error) {
+        console.error("入店記録失敗:", error);
+      }
+    };
+  </script>
 </head>
 <body>
   <h1>ご来店ありがとうございます！</h1>
-  <p>ただいま入店が記録されました。</p>
+  <p>入店が記録されました。</p>
 </body>
+</html>
