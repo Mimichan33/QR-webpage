@@ -47,9 +47,43 @@
   </script>
 </head>
   <body>
-  <h1>現在の混雑状況</h1>
-  <p>現在の入店者数: <span id="count">読み込み中...</span></p>
-  <p>累計入店数: <span id="entries">-</span></p>
-  <p>累計退店数: <span id="exits">-</span></p>
+  <h1>現在のテーブル使用状況</h1>
+  <p>テーブル1：<span id="table1-status">読み込み中...</span></p>
+  <p>テーブル2：<span id="table2-status">読み込み中...</span></p>
 </body>
+
+<script>
+  function updateStatus(count, elementId) {
+    const status = count > 0 ? "使用中" : "空き";
+    document.getElementById(elementId).textContent = status;
+  }
+
+  function countVisitorsByTable(snapshot) {
+    const counts = {
+      "1": { enter: 0, exit: 0 },
+      "2": { enter: 0, exit: 0 }
+    };
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const table = data.table || "unknown";
+      if (!(table in counts)) return;
+
+      if (data.type === "enter") counts[table].enter++;
+      if (data.type === "exit") counts[table].exit++;
+    });
+
+    const current1 = counts["1"].enter - counts["1"].exit;
+    const current2 = counts["2"].enter - counts["2"].exit;
+
+    updateStatus(current1, "table1-status");
+    updateStatus(current2, "table2-status");
+
+    console.log("テーブル1:", current1, "テーブル2:", current2);
+  }
+
+  window.onload = () => {
+    db.collection("logs").onSnapshot(countVisitorsByTable);
+  };
+</script>
 </html>
