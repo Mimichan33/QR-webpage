@@ -27,7 +27,7 @@
       const timestamp = new Date().toISOString();
       const device = navigator.userAgent;
 
-      console.log("送信データ:", { type: "entry", table, timestamp, device });
+      console.log("送信データ:", { type: "enter", table, timestamp, device });
 
       try {
         await addDoc(collection(db, "logs"), {
