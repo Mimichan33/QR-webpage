@@ -35,6 +35,7 @@
     });
 
         const current = entries - exits;
+       console.log("計算結果 → 入店:", entries, "退店:", exits, "現在:", current);
         document.getElementById("count").textContent = current;
         document.getElementById("entries").textContent = entries;
         document.getElementById("exits").textContent = exits;
