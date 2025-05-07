@@ -2,32 +2,54 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>実験ページ</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background-color: #f0f8ff;
-      text-align: center;
-      padding: 30px;
+  <title>混雑状況</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(app);
+
+    async function countVisitors() {
+      try {
+        const logsSnapshot = await db.collection("logs").get();
+        let entries = 0;
+        let exits = 0;
+
+        logsSnapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.type === "entry") entries++;
+          if (data.type === "exit") exits++;
+        });
+
+        const current = entries - exits;
+        document.getElementById("count").textContent = current;
+        document.getElementById("entries").textContent = entries;
+        document.getElementById("exits").textContent = exits;
+
+      } catch (error) {
+        console.error("カウント取得エラー:", error);
+      }
     }
-    .button {
-      background-color: #4CAF50;
-      color: white;
-      padding: 15px 30px;
-      text-decoration: none;
-      font-size: 16px;
-      border-radius: 10px;
-    }
-  </style>
+
+    window.onload = () => {
+      countVisitors();
+    };
+  </script>
 </head>
 <body>
-  <h1>ようこそ！</h1>
-  <p>このページは実験用のサンプルです。</p>
-
-  <!-- 画像 -->
-  <img src="myimage.png" alt="自分の画像" style="margin: 20px; border-radius: 10px;">
-
-  <!-- 実験開始ボタン（リンク） -->
-  <a href="experiment.html" class="button">体験ページへ</a>
+  <h1>現在の混雑状況</h1>
+  <p>現在の入店者数: <strong id="count">読み込み中...</strong></p>
+  <p>累計入店数: <span id="entries">-</span></p>
+  <p>累計退店数: <span id="exits">-</span></p>
 </body>
 </html>
