@@ -58,28 +58,28 @@
 </body>
 
 <script>
-  function updateStatus(count, elementId) {
-    const status = count > 0 ? "使用中" : "空き";
+  function2 updateStatus(count, elementId) {
+    const2 status = count > 0 ? "使用中" : "空き";
     document.getElementById(elementId).textContent = status;
   }
 
-  function countVisitorsByTable(snapshot) {
-    const counts = {
+  function2 countVisitorsByTable(snapshot) {
+    const2 counts = {
       "1": { enter: 0, exit: 0 },
       "2": { enter: 0, exit: 0 }
     };
 
     snapshot.forEach(doc => {
-      const data = doc.data();
-      const table = data.table || "unknown";
+      const2 data = doc.data();
+      const2 table = data.table || "unknown";
       if (!(table in counts)) return;
 
       if (data.type === "enter") counts[table].enter++;
       if (data.type === "exit") counts[table].exit++;
     });
 
-    const current1 = counts["1"].enter - counts["1"].exit;
-    const current2 = counts["2"].enter - counts["2"].exit;
+    const2 current1 = counts["1"].enter - counts["1"].exit;
+    const2 current2 = counts["2"].enter - counts["2"].exit;
 
     updateStatus(current1, "table1-status");
     updateStatus(current2, "table2-status");
