@@ -27,7 +27,7 @@
 
         logsSnapshot.forEach(doc => {
           const data = doc.data();
-          if (data.type === "entry") entries++;
+          if (data.type === "enter") entries++;
           if (data.type === "exit") exits++;
         });
 
