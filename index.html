@@ -3,23 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <title>混雑状況</title>
+
+  <!-- ✅ 非モジュール対応のFirebase SDK（古いv9互換形式） -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
+
+    // ✅ Firebase 初期化
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function countVisitors(snapshot) {
+    let entries = 0;
+    let exits = 0;
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      console.log("リアルタイム読み込み:", data);
+
+      if (data.type === "enter") entries++;
+      if (data.type === "exit") exits++;
+    });
+
+        const current = entries - exits;
+       console.log("計算結果 → 入店:", entries, "退店:", exits, "現在:", current);
+        document.getElementById("count").textContent = current;
+        document.getElementById("entries").textContent = entries;
+        document.getElementById("exits").textContent = exits;
+    } 
+    
+    window.onload = () => {
+       db.collection("logs").onSnapshot(countVisitors);
+    };
+  </script>
 </head>
-<body>
-  <h1>混雑状況（テーブル別）</h1>
+  <body>
+  <h1>現在の混雑状況</h1>
+  <p>現在の入店者数: <span id="count">読み込み中...</span></p>
+  <p>累計入店数: <span id="entries">-</span></p>
+  <p>累計退店数: <span id="exits">-</span></p>
+</body>
+</html>
 
-  <ul>
-    <li>テーブル1: <span id="table1-count">-</span> 人</li>
-    <li>テーブル2: <span id="table2-count">-</span> 人</li>
-  </ul>
+enter
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>入店記録</title>
 
-  <h2>最近の記録（最新10件）</h2>
-  <ul id="log-list"></ul>
-
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK 読み込み -->
   <script type="module">
-    // Firebaseの初期化
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
@@ -33,48 +78,30 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const q = query(collection(db, "log"), orderBy("timestamp", "asc"));
-    onSnapshot(q, (snapshot) => {
-      updateLogList(snapshot);
-      updateTableCounts(snapshot);
+    window.addEventListener("load", async () => {
+      const params = new URLSearchParams(window.location.search);
+      const table = params.get("table") || "unknown";
+      const timestamp = new Date().toISOString();
+      const device = navigator.userAgent;
+
+      console.log("送信データ:", { type: "enter", table, timestamp, device });
+
+      try {
+        await addDoc(collection(db, "logs"), {
+          type: "enter",
+          table,
+          timestamp,
+          device
+        });
+        console.log("✅ 入店記録完了");
+      } catch (error) {
+        console.error("❌ 入店記録失敗:", error);
+      }
     });
-
-    function updateLogList(snapshot) {
-      const logList = document.getElementById("log-list");
-      logList.innerHTML = "";
-      const sorted = [...snapshot.docs].sort((a, b) => b.data().timestamp?.seconds - a.data().timestamp?.seconds).slice(0, 10);
-      sorted.forEach(doc => {
-        const data = doc.data();
-        const li = document.createElement("li");
-        const time = data.timestamp?.toDate().toLocaleString("ja-JP") || "不明";
-        li.textContent = `${time} - ${data.type} - ${data.device || 'unknown'} - ${data.table || 'unknown'}`;
-        logList.appendChild(li);
-      });
-    }
-
-    function updateTableCounts(snapshot) {
-      const tableCounts = {};
-
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const table = data.table || "unknown";
-        if (!tableCounts[table]) {
-          tableCounts[table] = { enter: 0, exit: 0 };
-        }
-
-        if (data.type === "enter") tableCounts[table].enter++;
-        if (data.type === "exit") tableCounts[table].exit++;
-      });
-
-      // テーブルごとに現在人数を更新
-      Object.keys(tableCounts).forEach(table => {
-        const current = tableCounts[table].enter - tableCounts[table].exit;
-        const el = document.getElementById(`${table}-count`);
-        if (el) {
-          el.textContent = current;
-        }
-      });
-    }
   </script>
+</head>
+<body>
+  <h1>ご来店ありがとうございます！</h1>
+  <p>入店が記録されました。</p>
 </body>
 </html>
