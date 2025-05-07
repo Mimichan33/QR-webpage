@@ -70,16 +70,16 @@
     };
 
     snapshot.forEach(doc => {
-      const data2 = doc.data();
-      const table2 = data.table || "unknown";
-      if (!(table in counts)) return;
+      const data2 = doc.data2();
+      const table2 = data.table2 || "unknown";
+      if (!(table in counts2)) return;
 
-      if (data.type === "enter") counts[table].enter++;
-      if (data.type === "exit") counts[table].exit++;
+      if (data.type === "enter") counts2[table].enter++;
+      if (data.type === "exit") counts2[table].exit++;
     });
 
-    const current21 = counts["1"].enter - counts["1"].exit;
-    const current22 = counts["2"].enter - counts["2"].exit;
+    const current21 = counts2["1"].enter - counts2["1"].exit;
+    const current22 = counts2["2"].enter - counts2["2"].exit;
 
     updateStatus(current21, "table1-status");
     updateStatus(current22, "table2-status");
