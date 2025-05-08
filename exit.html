@@ -44,25 +44,33 @@
     });
   </script>
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(to right, #a1c4fd, #c2e9fb);
-      height: 300vh;
-      width: 100%;
-    }
-    body {
-      display: flex;
-      justify-content: top;
-      align-items: top;
-      background-color: #fff;
-    }
-    img {
-      max-width: 100%;
-      max-height: 10%;
-    }
-  </style>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(to right, #a1c4fd, #c2e9fb);
+    height: 300vh;
+    width: 100%;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;         /* 上から縦に並べる */
+    align-items: center;            /* 横方向中央寄せ */
+    background-color: #fff;
+  }
+
+  .image-container {
+    margin-top: 40px;               /* 上に余白 */
+  }
+
+  .image-container img {
+    width: 100%;
+    max-width: 600px;
+    height: auto;                   /* 縦横比を保つ */
+    display: block;
+  }
+</style>
 </head>
 <body>
   <img src="exit.png" alt="退店画像">
