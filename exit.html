@@ -49,18 +49,14 @@
       margin: 0;
       padding: 0;
       background: linear-gradient(to right, #a1c4fd, #c2e9fb);
+      height: 100%;
       width: 100%;
-      min-height: 100vh; /* スクロール対応のため */
     }
     body {
-      background-color: #fff;
-    }
-    .content {
       display: flex;
       justify-content: center;
       align-items: center;
-      flex-direction: column;
-      padding: 200px;
+      background-color: #fff;
     }
     img {
       max-width: 100%;
@@ -69,9 +65,6 @@
   </style>
 </head>
 <body>
-  <div class="content">
-    <img src="exit.png" alt="退店画像">
-    <!-- 必要なら他の要素をここに追加可能 -->
-  </div>
+  <img src="exit.png" alt="退店画像">
 </body>
 </html>
