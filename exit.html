@@ -3,48 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>退店記録</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      height: 100vh;
-      background: linear-gradient(to right, #f9f9f9, #e6f0ff);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: 'Helvetica Neue', sans-serif;
-      color: #333;
-      text-align: center;
-    }
-
-    .container {
-      background-color: rgba(255, 255, 255, 0.9);
-      padding: 50px 30px;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-      max-width: 600px;
-      width: 90%;
-    }
-
-    .thankyou-main {
-      font-size: 36px;
-      font-weight: bold;
-      color: #2c3e50;
-      margin-bottom: 10px;
-    }
-
-    .thankyou-sub {
-      font-size: 24px;
-      color: #2980b9;
-      margin-bottom: 30px;
-    }
-
-    .message {
-      font-size: 18px;
-      line-height: 1.8;
-      white-space: pre-line;
-    }
-  </style>
 
   <!-- Firebase SDK 読み込み -->
   <script type="module">
@@ -84,17 +42,23 @@
       }
     });
   </script>
+
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f9f9f9;
+    }
+    img {
+      max-width: 90%;
+      height: auto;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <div class="thankyou-main">THANK YOU</div>
-    <div class="thankyou-sub">For you</div>
-    <div class="message">
-      この度は当店をご利用いただきまして<br>
-      誠にありがとうございました。<br><br>
-      またのご利用を心よりお待ちしております
-    </div>
-  </div>
+  <img src="exit.png" alt="退店画像">
 </body>
 </html>
-
