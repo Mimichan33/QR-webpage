@@ -3,46 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>入店記録</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      height: 300vh;
-      background: linear-gradient(to right, #a1c4fd, #c2e9fb);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: 'Helvetica Neue', sans-serif;
-      color: #333;
-      text-align: center;
-    }
 
-    .container {
-      background-color: rgba(255, 255, 255, 0.85);
-      padding: 40px;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    }
-
-    .icon {
-      font-size: 64px;
-      margin-bottom: 20px;
-    }
-
-    h1 {
-      font-size: 28px;
-      margin-bottom: 10px;
-    }
-
-    p {
-      font-size: 18px;
-    }
-  </style>
-
-  <!-- Firebase SDK 読み込み -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
@@ -62,16 +26,37 @@
       const timestamp = new Date().toISOString();
       const device = navigator.userAgent;
 
-      console.log("送信データ:", { type: "enter", table, timestamp, device });
-
       try {
-        await addDoc(collection(db, "logs"), {
+        // 🔍 そのテーブルのログだけ取得
+        const logsRef = collection(db, "logs");
+        const q = query(logsRef, where("table", "==", table));
+        const snapshot = await getDocs(q);
+
+        let enterCount = 0;
+        let exitCount = 0;
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.type === "enter") enterCount++;
+          if (data.type === "exit") exitCount++;
+        });
+
+        if (enterCount > exitCount) {
+          // 🛑 すでに使用中 → already.html に移動
+          console.warn("このテーブルはすでに使用中です");
+          window.location.href = "already.html";
+          return;
+        }
+
+        // ✅ 使用中ではないので入店記録
+        await addDoc(logsRef, {
           type: "enter",
           table,
           timestamp,
           device
         });
         console.log("✅ 入店記録完了");
+
       } catch (error) {
         console.error("❌ 入店記録失敗:", error);
       }
@@ -79,10 +64,7 @@
   </script>
 </head>
 <body>
-  <div class="container">
-    <div class="icon">🛍️</div>
-    <h1>ご来店ありがとうございます！</h1>
-    <p>入店が記録されました。</p>
-  </div>
+  <h1>ご来店ありがとうございます！</h1>
+  <p>入店が記録されました。</p>
 </body>
 </html>
