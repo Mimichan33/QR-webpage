@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>混雑状況</title>
 
-  <!-- Firebase SDK（v9互換形式） -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
@@ -21,41 +20,42 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    function updateTableStatus(currentCount, elementId) {
+    // 日付を YYYY-MM-DD HH:mm 形式に整形
+    function formatTimestamp(isoString) {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return "-";
+      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")} ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
+    }
+
+    function updateTableStatus(currentCount, timestamp, elementId) {
       const status = currentCount > 0 ? "利用中" : "空席";
-      document.getElementById(elementId).textContent = status;
+      const timeText = formatTimestamp(timestamp);
+      document.getElementById(elementId).textContent = `${status}（${timeText}）`;
     }
 
     function countVisitors(snapshot) {
       let entries = 0;
       let exits = 0;
 
-      const tableCounts = {
-        "1": { enter: 0, exit: 0 },
-        "2": { enter: 0, exit: 0 },
-        "3": { enter: 0, exit: 0 },
-        "4": { enter: 0, exit: 0 },
-        "5": { enter: 0, exit: 0 },
-      　"6": { enter: 0, exit: 0 },
-        "7": { enter: 0, exit: 0 },
-      　"8": { enter: 0, exit: 0 },
-        "9": { enter: 0, exit: 0 },
-        "10": { enter: 0, exit: 0 }
-      
-      };
+      const tableCounts = {};
+      for (let i = 1; i <= 10; i++) {
+        tableCounts[i.toString()] = { enter: 0, exit: 0, lastTimestamp: null };
+      }
 
       snapshot.forEach(doc => {
         const data = doc.data();
         const table = data.table;
-        console.log("リアルタイム読み込み:", data);
+        const timestamp = data.timestamp;
 
         if (data.type === "enter") entries++;
         if (data.type === "exit") exits++;
 
-        // ✅ ここが前回抜けていた部分です
         if (tableCounts[table]) {
           if (data.type === "enter") tableCounts[table].enter++;
           if (data.type === "exit") tableCounts[table].exit++;
+          if (!tableCounts[table].lastTimestamp || tableCounts[table].lastTimestamp < timestamp) {
+            tableCounts[table].lastTimestamp = timestamp;
+          }
         }
       });
 
@@ -67,8 +67,7 @@
       Object.keys(tableCounts).forEach(tableNum => {
         const t = tableCounts[tableNum];
         const currentCount = t.enter - t.exit;
-        updateTableStatus(currentCount, `table${tableNum}-status`);
-        console.log(`テーブル${tableNum}:`, currentCount > 0 ? "利用中" : "空席");
+        updateTableStatus(currentCount, t.lastTimestamp, `table${tableNum}-status`);
       });
     }
 
@@ -83,16 +82,18 @@
   <p>累計入店数: <span id="entries">-</span></p>
   <p>累計退店数: <span id="exits">-</span></p>
 
-  <h2>テーブル別 使用状況</h2>
-  <p>テーブル1：<span id="table1-status">読み込み中...</span></p>
-  <p>テーブル2：<span id="table2-status">読み込み中...</span></p>
-  <p>テーブル3：<span id="table3-status">読み込み中...</span></p>
-  <p>テーブル4：<span id="table4-status">読み込み中...</span></p>
-  <p>テーブル5：<span id="table5-status">読み込み中...</span></p>
-  <p>テーブル6：<span id="table6-status">読み込み中...</span></p>
-  <p>テーブル7：<span id="table7-status">読み込み中...</span></p>
-  <p>テーブル8：<span id="table8-status">読み込み中...</span></p>
-  <p>テーブル9：<span id="table9-status">読み込み中...</span></p>
-  <p>テーブル10：<span id="table10-status">読み込み中...</span></p>
+  <h2>テーブル別 使用状況（時刻）</h2>
+  <div id="tables">
+    <p>テーブル1：<span id="table1-status">読み込み中...</span></p>
+    <p>テーブル2：<span id="table2-status">読み込み中...</span></p>
+    <p>テーブル3：<span id="table3-status">読み込み中...</span></p>
+    <p>テーブル4：<span id="table4-status">読み込み中...</span></p>
+    <p>テーブル5：<span id="table5-status">読み込み中...</span></p>
+    <p>テーブル6：<span id="table6-status">読み込み中...</span></p>
+    <p>テーブル7：<span id="table7-status">読み込み中...</span></p>
+    <p>テーブル8：<span id="table8-status">読み込み中...</span></p>
+    <p>テーブル9：<span id="table9-status">読み込み中...</span></p>
+    <p>テーブル10：<span id="table10-status">読み込み中...</span></p>
+  </div>
 </body>
 </html>
