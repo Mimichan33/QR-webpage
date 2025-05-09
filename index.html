@@ -77,7 +77,8 @@
       Object.keys(tableCounts).forEach(tableNum => {
         const t = tableCounts[tableNum];
         const currentCount = t.enter - t.exit;
-        updateTableStatus(currentCount, t.lastTimestamp, `table${tableNum}-status`);
+       updateTableStatus(currentCount, currentCount > 0 ? t.lastEnterTime : null, `table${tableNum}-status`);
+
       });
     }
 
