@@ -13,23 +13,34 @@
       margin: 0;
       padding: 0;
     }
+
     header {
-      background-color: #2c3e50;
+      background-color: #2c3e50; /* 藍色 */
       color: white;
-      padding: 10px 20px;
     }
+
+    .header-title {
+      padding: 10px 20px;
+      font-size: 1.5em;
+    }
+
     nav {
+      background-color: #3498db; /* 明るい青 */
       display: flex;
       gap: 20px;
+      padding: 10px 20px;
     }
+
     nav a {
       color: white;
       text-decoration: none;
       font-weight: bold;
     }
+
     nav a:hover {
       text-decoration: underline;
     }
+
     #tables {
       padding: 20px;
     }
@@ -47,6 +58,8 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+
+    const tableCounts = {};
 
     function formatTimestamp(isoString) {
       if (!isoString || typeof isoString !== "string") return "ー";
@@ -69,18 +82,25 @@
       return hours > 0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
     }
 
-    function updateTableStatus(currentCount, timestamp, elementId) {
-      const status = currentCount > 0 ? "利用中" : "空席";
-      const timeText = formatTimestamp(timestamp);
-      const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timestamp)}` : "";
-      document.getElementById(elementId).textContent = `${status}（${timeText}${elapsed}）`;
+    function updateTableDisplays() {
+      Object.keys(tableCounts).forEach(tableNum => {
+        const t = tableCounts[tableNum];
+        const currentCount = t.enter - t.exit;
+        const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
+        const status = currentCount > 0 ? "利用中" : "空席";
+        const timeText = formatTimestamp(timeToShow);
+        const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
+        const element = document.getElementById(`table${tableNum}-status`);
+        if (element) {
+          element.textContent = `${status}（${timeText}${elapsed}）`;
+        }
+      });
     }
 
     function countVisitors(snapshot) {
       let entries = 0;
       let exits = 0;
 
-      const tableCounts = {};
       for (let i = 1; i <= 10; i++) {
         tableCounts[i.toString()] = {
           enter: 0,
@@ -120,23 +140,21 @@
       document.getElementById("entries").textContent = entries;
       document.getElementById("exits").textContent = exits;
 
-      Object.keys(tableCounts).forEach(tableNum => {
-        const t = tableCounts[tableNum];
-        const currentCount = t.enter - t.exit;
-        const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
-        updateTableStatus(currentCount, timeToShow, `table${tableNum}-status`);
-      });
+      updateTableDisplays(); // 初回表示
     }
 
     window.onload = () => {
       db.collection("logs").onSnapshot(countVisitors);
+
+      // ⏱ 毎分経過時間を再描画
+      setInterval(updateTableDisplays, 60 * 1000);
     };
   </script>
 </head>
 
 <body>
   <header>
-    <h1>店内管理システム</h1>
+    <div class="header-title">店内管理システム</div>
     <nav>
       <a href="#">ホーム</a>
       <a href="#">店内マップ</a>
