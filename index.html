@@ -30,23 +30,19 @@
     font-size: 1.5em;
   }
 
-  .header-buttons {
+   .header-links {
     display: flex;
-    gap: 10px;
+    gap: 20px;
+    font-size: 0.95em;
   }
 
-  .header-buttons button {
-    background-color: white;
-    color: #2c3e50;
-    border: none;
-    padding: 6px 12px;
-    font-weight: bold;
-    border-radius: 4px;
-    cursor: pointer;
+  .header-links a {
+    color: white;
+    text-decoration: none;
   }
 
-  .header-buttons button:hover {
-    background-color: #ddd;
+  .header-links a:hover {
+    text-decoration: underline;
   }
 
   nav {
@@ -189,10 +185,10 @@
 <body>
   <header>
     <div class="header-title">店内管理システム</div>
-    <nav>
+    <div class="header-links">
       <a href="#">マニュアル</a>
       <a href="#">ログアウト</a>
-    </nav>
+    </div>
     <br>
     <nav>
      <a href="index.html" class="active">ホーム</a>
