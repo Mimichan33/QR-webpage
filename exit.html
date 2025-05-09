@@ -8,7 +8,14 @@
   <!-- Firebase SDK 読み込み -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      query,
+      where,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
@@ -65,7 +72,7 @@
     });
   </script>
 
- <style>
+  <style>
     html, body {
       margin: 0;
       padding: 0;
@@ -84,16 +91,11 @@
       max-height: 100%;
     }
   </style>
-
+</head>
 
 <body>
   <div class="image-container">
-     <img src="exit.png" alt="退店画像">
+    <img src="exit.png" alt="退店画像">
   </div>
-</body>
-
-</head>
-<body>
- 
 </body>
 </html>
