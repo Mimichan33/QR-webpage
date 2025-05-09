@@ -8,44 +8,77 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
   <style>
-    body {
-      font-family: sans-serif;
-      margin: 0;
-      padding: 0;
-    }
+  body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+  }
 
-    header {
-      background-color: #2c3e50; /* 藍色 */
-      
-      color: white;
-    }
+  header {
+    background-color: #2c3e50; /* 藍色 */
+    color: white;
+  }
 
-    .header-title {
-      padding: 10px 20px;
-      font-size: 1.5em;
-    }
+  .header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+  }
 
-    nav {
-      background-color: #3498db; /* 明るい青 */
-      display: flex;
-      gap: 20px;
-      padding: 10px 20px;
-    }
+  .header-title {
+    font-size: 1.5em;
+  }
 
-    nav a {
-      color: white;
-      text-decoration: none;
-      font-weight: bold;
-    }
+  .header-buttons {
+    display: flex;
+    gap: 10px;
+  }
 
-    nav a:hover {
-      text-decoration: underline;
-    }
+  .header-buttons button {
+    background-color: white;
+    color: #2c3e50;
+    border: none;
+    padding: 6px 12px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+  }
 
-    #tables {
-      padding: 20px;
-    }
-  </style>
+  .header-buttons button:hover {
+    background-color: #ddd;
+  }
+
+  nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    background-color: #3498db; /* 青色 */
+    text-align: center;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+  }
+
+  nav a {
+    padding: 12px 0;
+    display: block;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-right: 1px solid #fff;
+  }
+
+  nav a:last-child {
+    border-right: none;
+  }
+
+  nav a.active {
+    background-color: #1f618d; /* 現在選択中のタブ：濃い青 */
+  }
+
+  nav a:hover {
+    background-color: #2980b9;
+  }
+</style>
 
   <script>
     const firebaseConfig = {
@@ -156,11 +189,15 @@
 <body>
   <header>
     <div class="header-title">店内管理システム</div>
+    <div class="header-buttons">
+      <button onclick="alert('マニュアルを開きます')">マニュアル</button>
+      <button onclick="alert('ログアウトします')">ログアウト</button>
+    </div>
     <br>
     <nav>
-      <a href="#">ホーム</a>
-      <a href="#">店内マップ</a>
-      <a href="#">ログ一覧</a>
+     <a href="index.html" class="active">ホーム</a>
+    <a href="map.html">店内マップ</a>
+    <a href="log.html">ログ一覧</a>
     </nav>
   </header>
 
