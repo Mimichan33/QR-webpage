@@ -31,13 +31,34 @@
       console.log("送信データ:", { type: "exit", table, timestamp, device });
 
       try {
-        await addDoc(collection(db, "logs"), {
+        const logsRef = collection(db, "logs");
+        const q = query(logsRef, where("table", "==", table));
+        const snapshot = await getDocs(q);
+
+        let enterCount = 0;
+        let exitCount = 0;
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.type === "enter") enterCount++;
+          if (data.type === "exit") exitCount++;
+        });
+
+        if (exitCount >= enterCount) {
+          console.warn("このテーブルはすでに退店済みです");
+          window.location.href = "already-exit.html";
+          return;
+        }
+
+        // ✅ 正常に退店記録
+        await addDoc(logsRef, {
           type: "exit",
           table,
           timestamp,
           device
         });
         console.log("✅ 退店記録完了");
+
       } catch (error) {
         console.error("❌ 退店記録失敗:", error);
       }
