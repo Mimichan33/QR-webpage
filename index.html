@@ -40,8 +40,12 @@
       let exits = 0;
 
       const tableCounts = {};
-      for (let i = 1; i <= 10; i++) {
-        tableCounts[i.toString()] = { enter: 0, exit: 0, lastTimestamp: null };
+  for (let i = 1; i <= 10; i++) {
+    tableCounts[i.toString()] = {
+      enter: 0,
+      exit: 0,
+      lastEnterTime: null, // ✅ 入店のみに絞る
+    };
       }
 
       snapshot.forEach(doc => {
@@ -53,12 +57,15 @@
         if (data.type === "exit") exits++;
 
         if (tableCounts[table]) {
-          if (data.type === "enter") tableCounts[table].enter++;
-          if (data.type === "exit") tableCounts[table].exit++;
-          if (!tableCounts[table].lastTimestamp || tableCounts[table].lastTimestamp < timestamp) {
-            tableCounts[table].lastTimestamp = timestamp;
-          }
+      if (data.type === "enter") {
+        tableCounts[table].enter++;
+        if (!tableCounts[table].lastEnterTime || tableCounts[table].lastEnterTime < timestamp) {
+          tableCounts[table].lastEnterTime = timestamp;
         }
+      }
+      if (data.type === "exit") {
+        tableCounts[table].exit++;
+      }
       });
 
       const current = entries - exits;
