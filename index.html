@@ -20,14 +20,12 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 日付を YYYY-MM-DD HH:mm 形式に整形
     function formatTimestamp(isoString) {
       if (!isoString || typeof isoString !== "string") return "ー";
       const date = new Date(isoString);
       if (isNaN(date.getTime()) || date.getFullYear() === 1970) return "ー";
       return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")} ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
-   }
-
+    }
 
     function updateTableStatus(currentCount, timestamp, elementId) {
       const status = currentCount > 0 ? "利用中" : "空席";
@@ -40,12 +38,12 @@
       let exits = 0;
 
       const tableCounts = {};
-  for (let i = 1; i <= 10; i++) {
-    tableCounts[i.toString()] = {
-      enter: 0,
-      exit: 0,
-      lastEnterTime: null, // ✅ 入店のみに絞る
-    };
+      for (let i = 1; i <= 10; i++) {
+        tableCounts[i.toString()] = {
+          enter: 0,
+          exit: 0,
+          lastEnterTime: null
+        };
       }
 
       snapshot.forEach(doc => {
@@ -53,19 +51,24 @@
         const table = data.table;
         const timestamp = data.timestamp;
 
+        if (!table || !timestamp) return;
+
         if (data.type === "enter") entries++;
         if (data.type === "exit") exits++;
 
         if (tableCounts[table]) {
-      if (data.type === "enter") {
-        tableCounts[table].enter++;
-        if (!tableCounts[table].lastEnterTime || tableCounts[table].lastEnterTime < timestamp) {
-          tableCounts[table].lastEnterTime = timestamp;
-        }
-      }
-      if (data.type === "exit") {
-        tableCounts[table].exit++;
-      }
+          if (data.type === "enter") {
+            tableCounts[table].enter++;
+            if (
+              !tableCounts[table].lastEnterTime ||
+              new Date(tableCounts[table].lastEnterTime) < new Date(timestamp)
+            ) {
+              tableCounts[table].lastEnterTime = timestamp;
+            }
+          }
+          if (data.type === "exit") {
+            tableCounts[table].exit++;
+          }
         }
       });
 
@@ -77,8 +80,8 @@
       Object.keys(tableCounts).forEach(tableNum => {
         const t = tableCounts[tableNum];
         const currentCount = t.enter - t.exit;
-       updateTableStatus(currentCount, currentCount > 0 ? t.lastEnterTime : null, `table${tableNum}-status`);
-
+        const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
+        updateTableStatus(currentCount, timeToShow, `table${tableNum}-status`);
       });
     }
 
