@@ -31,27 +31,38 @@
     }
 
     /* 猫風ローディングバー */
-    .loading-bar {
+    .loading-wrapper {
       position: relative;
-      width: 200px;
+      width: 220px;
+      margin-bottom: 20px;
+    }
+
+    .loading-bar {
+      width: 100%;
       height: 20px;
       border: 2px solid #999;
       border-radius: 10px;
       overflow: hidden;
-      margin-bottom: 20px;
     }
 
     .loading-fill {
-      position: absolute;
       height: 100%;
       width: 0%;
       background-color: #7baaf7;
-      animation: loading-animation 3s ease-in-out forwards;
+      animation: loading-animation 3s forwards;
     }
 
     @keyframes loading-animation {
       0% { width: 0%; }
       100% { width: 100%; }
+    }
+
+    .loading-text {
+      position: absolute;
+      top: -24px;
+      right: 0;
+      font-size: 14px;
+      color: #555;
     }
 
     /* welcome画像 */
@@ -130,7 +141,12 @@
 
   <!-- 🔄 ローディング画面 -->
   <div class="loader" id="loader03">
-    <div class="loading-bar"><div class="loading-fill"></div></div>
+    <div class="loading-wrapper">
+      <div class="loading-text" id="loadingLabel">Now Loading...</div>
+      <div class="loading-bar">
+        <div class="loading-fill"></div>
+      </div>
+    </div>
     <img src="welcome.png" alt="店員" class="welcome-img" id="welcomeImg" />
     <p class="txt">いらっしゃいませ！</p>
   </div>
@@ -147,9 +163,13 @@
   <!-- jQuery 制御 -->
   <script>
     $(document).ready(function () {
-      function showImageAndText() {
+      function showWelcome() {
         $('#welcomeImg').fadeIn(600);
         $('.txt').fadeIn(600);
+      }
+
+      function updateLoadingLabel() {
+        $('#loadingLabel').text("Completion!");
       }
 
       function end_loader() {
@@ -158,8 +178,10 @@
         });
       }
 
-      setTimeout(showImageAndText, 3500);  // バーが進んだあとに表示
-      setTimeout(end_loader, 5500);        // 少し待ってから本体へ
+      // 処理の流れ
+      setTimeout(updateLoadingLabel, 3100);  // バー終了後に文字切り替え
+      setTimeout(showWelcome, 3500);        // 少し後に画像とテキスト表示
+      setTimeout(end_loader, 5500);         // 全体非表示→本体へ
     });
   </script>
 
