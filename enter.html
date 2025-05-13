@@ -15,7 +15,7 @@
       color: #333;
     }
 
-    /* ローダー画面 */
+    /* 🔄 ローダー画面 */
     .loader {
       position: fixed;
       width: 100%;
@@ -30,54 +30,53 @@
       flex-direction: column;
     }
 
-    .loader .txt {
-      font-size: 32px;
-      font-weight: bold;
-      color: rgb(30, 50, 93);
-      margin-top: 20px;
-      display: none;
-      animation: fade-slide 1s ease-out;
-    }
-
-    /* 店員アイコン */
-    .clerk {
-      font-size: 48px;
-      display: none;
-      animation: bow 1.5s ease-in-out infinite alternate;
-    }
-
-    @keyframes bow {
-      0%   { transform: rotate(0deg); }
-      100% { transform: rotateX(25deg); }
-    }
-
-    .looping-rhombuses-spinner {
+    /* 猫風ローディングバー */
+    .loading-bar {
       position: relative;
-      width: 80px;
-      height: 80px;
-      display: none;
-    }
-
-    .rhombus {
-      width: 20px;
+      width: 200px;
       height: 20px;
-      background-color: #2c3e50;
-      transform: rotate(45deg);
+      border: 2px solid #999;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .loading-fill {
       position: absolute;
-      top: 30px;
-      left: 30px;
-      animation: rhombus-move 1.2s infinite ease-in-out;
+      height: 100%;
+      width: 0%;
+      background-color: #7baaf7;
+      animation: loading-animation 3s ease-in-out forwards;
     }
 
-    .rhombus:nth-child(2) { animation-delay: 0.2s; }
-    .rhombus:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes rhombus-move {
-      0%   { transform: rotate(45deg) translate(0, 0); }
-      50%  { transform: rotate(45deg) translate(30px, 30px); }
-      100% { transform: rotate(45deg) translate(0, 0); }
+    @keyframes loading-animation {
+      0% { width: 0%; }
+      100% { width: 100%; }
     }
 
+    /* welcome画像 */
+    .welcome-img {
+      display: none;
+      width: 100px;
+      height: auto;
+      margin-bottom: 10px;
+      animation: fade-slide 1s ease-in-out;
+    }
+
+    .loader .txt {
+      font-size: 28px;
+      font-weight: bold;
+      color: #2c3e50;
+      display: none;
+      animation: fade-slide 1s ease-in-out;
+    }
+
+    @keyframes fade-slide {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ✅ 本文表示 */
     .main-content {
       display: none;
       height: 100vh;
@@ -110,17 +109,6 @@
       font-size: 18px;
     }
 
-    /* 追加アニメーション */
-    @keyframes fade-slide {
-      0% { opacity: 0; transform: translateY(20px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-10px); }
-    }
-
     @keyframes fade-zoom-in {
       from {
         opacity: 0;
@@ -131,18 +119,19 @@
         transform: scale(1);
       }
     }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-10px); }
+    }
   </style>
 </head>
 <body>
 
-  <!-- 🔄 ローダー -->
+  <!-- 🔄 ローディング画面 -->
   <div class="loader" id="loader03">
-    <div class="looping-rhombuses-spinner">
-      <div class="rhombus"></div>
-      <div class="rhombus"></div>
-      <div class="rhombus"></div>
-    </div>
-    <div class="clerk" id="clerk">🙇‍♀️</div>
+    <div class="loading-bar"><div class="loading-fill"></div></div>
+    <img src="welcome.png" alt="店員" class="welcome-img" id="welcomeImg" />
     <p class="txt">いらっしゃいませ！</p>
   </div>
 
@@ -158,17 +147,9 @@
   <!-- jQuery 制御 -->
   <script>
     $(document).ready(function () {
-      function show_load() {
-        $('.looping-rhombuses-spinner').fadeIn(400);
-      }
-
-      function hide_load() {
-        $('.looping-rhombuses-spinner').fadeOut(400);
-      }
-
-      function show_txt() {
-        $('.txt').fadeIn(400);
-        $('#clerk').fadeIn(400);
+      function showImageAndText() {
+        $('#welcomeImg').fadeIn(600);
+        $('.txt').fadeIn(600);
       }
 
       function end_loader() {
@@ -177,10 +158,8 @@
         });
       }
 
-      setTimeout(show_load, 500);
-      setTimeout(hide_load, 3000);
-      setTimeout(show_txt, 3500);
-      setTimeout(end_loader, 5000);
+      setTimeout(showImageAndText, 3500);  // バーが進んだあとに表示
+      setTimeout(end_loader, 5500);        // 少し待ってから本体へ
     });
   </script>
 
