@@ -128,15 +128,6 @@
       50% { transform: translateY(-10px); }
     }
 
-    /* 🦋 チョウチョのアニメーション */
-    .butterfly {
-      position: absolute;
-      top: 20px;
-      left: -50px;
-      font-size: 24px;
-      animation: flyAcross 8s linear infinite;
-    }
-
     @keyframes flyAcross {
       0%   { left: -50px; top: 20px; transform: rotate(10deg); }
       25%  { top: 50px; }
@@ -150,7 +141,6 @@
 
   <!-- 🔄 ローディング画面 -->
   <div class="loader" id="loader03">
-    <div class="butterfly">🦋</div>
     <div class="loading-wrapper" id="loadingWrapper">
       <div class="loading-text" id="loadingLabel">Now Loading...</div>
       <div class="loading-bar">
