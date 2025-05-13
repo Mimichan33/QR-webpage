@@ -179,9 +179,10 @@
       }
 
       // 処理の流れ
-      setTimeout(updateLoadingLabel, 3100);  // バー終了後に文字切り替え
-      setTimeout(showWelcome, 3500);        // 少し後に画像とテキスト表示
-      setTimeout(end_loader, 5500);         // 全体非表示→本体へ
+      setTimeout(show_load, 500);
+      setTimeout(hide_load, 3000);
+      setTimeout(show_txt, 3500);
+      setTimeout(end_loader, 5000);
     });
   </script>
 
