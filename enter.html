@@ -15,7 +15,6 @@
       color: #333;
     }
 
-    /* 🔄 ローダー画面 */
     .loader {
       position: fixed;
       width: 100%;
@@ -30,7 +29,6 @@
       flex-direction: column;
     }
 
-    /* 猫風ローディングバー */
     .loading-wrapper {
       position: relative;
       width: 220px;
@@ -65,7 +63,6 @@
       color: #555;
     }
 
-    /* welcome画像 */
     .welcome-img {
       display: none;
       width: 100px;
@@ -87,7 +84,6 @@
       100% { opacity: 1; transform: translateY(0); }
     }
 
-    /* ✅ 本文表示 */
     .main-content {
       display: none;
       height: 100vh;
@@ -121,19 +117,13 @@
     }
 
     @keyframes fade-zoom-in {
-      from {
-        opacity: 0;
-        transform: scale(0.9);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
     }
 
     @keyframes bounce {
       0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-10px); }
+      50% { transform: translateY(-10px); }
     }
   </style>
 </head>
@@ -141,14 +131,14 @@
 
   <!-- 🔄 ローディング画面 -->
   <div class="loader" id="loader03">
-    <div class="loading-wrapper">
+    <div class="loading-wrapper" id="loadingWrapper">
       <div class="loading-text" id="loadingLabel">Now Loading...</div>
       <div class="loading-bar">
         <div class="loading-fill"></div>
       </div>
     </div>
     <img src="welcome.png" alt="店員" class="welcome-img" id="welcomeImg" />
-    <p class="txt">いらっしゃいませ！</p>
+    <p class="txt" id="welcomeText">いらっしゃいませ！</p>
   </div>
 
   <!-- ✅ 本体 -->
@@ -163,25 +153,28 @@
   <!-- jQuery 制御 -->
   <script>
     $(document).ready(function () {
-      function showWelcome() {
-        $('#welcomeImg').fadeIn(600);
-        $('.txt').fadeIn(600);
-      }
-
-      function updateLoadingLabel() {
+      // 「Completion!」に変更
+      setTimeout(() => {
         $('#loadingLabel').text("Completion!");
-      }
+      }, 3100);
 
-      function end_loader() {
+      // ローディングバー全体を非表示
+      setTimeout(() => {
+        $('#loadingWrapper').fadeOut(400);
+      }, 3600);
+
+      // welcome画像とテキストを表示
+      setTimeout(() => {
+        $('#welcomeImg').fadeIn(600);
+        $('#welcomeText').fadeIn(600);
+      }, 4200);
+
+      // 最後に本体に遷移
+      setTimeout(() => {
         $('#loader03').fadeOut(600, function () {
           $('#main-content').fadeIn(600);
         });
-      }
-
-      // 処理の流れ
-      setTimeout(updateLoadingLabel, 3100);  // バー終了後に文字切り替え
-      setTimeout(showWelcome, 3500);        // 少し後に画像とテキスト表示
-      setTimeout(end_loader, 5500);         // 全体非表示→本体へ
+      }, 6000);
     });
   </script>
 
