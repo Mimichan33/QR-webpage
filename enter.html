@@ -163,17 +163,13 @@
   <!-- jQuery 制御 -->
   <script>
     $(document).ready(function () {
-      function show_load() {
-        $('.looping-rhombuses-spinner').fadeIn(400);
+      function showWelcome() {
+        $('#welcomeImg').fadeIn(600);
+        $('.txt').fadeIn(600);
       }
 
-      function hide_load() {
-        $('.looping-rhombuses-spinner').fadeOut(400);
-      }
-
-      function show_txt() {
-        $('.txt').fadeIn(400);
-        $('#clerk').fadeIn(400);
+      function updateLoadingLabel() {
+        $('#loadingLabel').text("Completion!");
       }
 
       function end_loader() {
@@ -183,10 +179,9 @@
       }
 
       // 処理の流れ
-      setTimeout(show_load, 500);
-      setTimeout(hide_load, 3000);
-      setTimeout(show_txt, 3500);
-      setTimeout(end_loader, 5000);
+      setTimeout(updateLoadingLabel, 3100);  // バー終了後に文字切り替え
+      setTimeout(showWelcome, 3500);        // 少し後に画像とテキスト表示
+      setTimeout(end_loader, 5500);         // 全体非表示→本体へ
     });
   </script>
 
