@@ -8,7 +8,7 @@
     body {
       margin: 0;
       padding: 0;
-      height: 300vh;
+      height: 100vh;
       background: linear-gradient(to right, #a1c4fd, #c2e9fb);
       display: flex;
       justify-content: center;
@@ -43,7 +43,7 @@
   <!-- Firebase SDK 読み込み -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, query, where, getDocs /*, addDoc*/ } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
@@ -64,7 +64,6 @@
       const device = navigator.userAgent;
 
       try {
-        // 🔍 そのテーブルのログだけ取得
         const logsRef = collection(db, "logs");
         const q = query(logsRef, where("table", "==", table));
         const snapshot = await getDocs(q);
@@ -79,13 +78,13 @@
         });
 
         if (enterCount > exitCount) {
-          // 🛑 すでに使用中 → already.html に移動
           console.warn("このテーブルはすでに使用中です");
           window.location.href = "already.html";
           return;
         }
 
-        // ✅ 使用中ではないので入店記録
+        // ✅ 本来ここで入店記録を保存
+        /*
         await addDoc(logsRef, {
           type: "enter",
           table,
@@ -93,6 +92,7 @@
           device
         });
         console.log("✅ 入店記録完了");
+        */
 
       } catch (error) {
         console.error("❌ 入店記録失敗:", error);
@@ -106,6 +106,5 @@
     <h1>ご来店ありがとうございます！</h1>
     <p>入店が記録されました。</p>
   </div>
-
 </body>
 </html>
