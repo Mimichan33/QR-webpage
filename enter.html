@@ -13,6 +13,7 @@
       font-family: 'Helvetica Neue', sans-serif;
       background: linear-gradient(to right, #a1c4fd, #c2e9fb);
       color: #333;
+      overflow: hidden;
     }
 
     .loader {
@@ -65,9 +66,9 @@
 
     .welcome-img {
       display: none;
-      width: 100px;
+      width: 140px; /* 少し大きめに変更 */
       height: auto;
-      margin-bottom: 50px;
+      margin-bottom: 10px;
       animation: fade-slide 1s ease-in-out;
     }
 
@@ -91,6 +92,7 @@
       justify-content: center;
       align-items: center;
       text-align: center;
+      position: relative;
     }
 
     .container {
@@ -125,6 +127,23 @@
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-10px); }
     }
+
+    /* 🦋 チョウチョのアニメーション */
+    .butterfly {
+      position: absolute;
+      top: 20px;
+      left: -50px;
+      font-size: 24px;
+      animation: flyAcross 8s linear infinite;
+    }
+
+    @keyframes flyAcross {
+      0%   { left: -50px; top: 20px; transform: rotate(10deg); }
+      25%  { top: 50px; }
+      50%  { left: 50%; top: 30px; transform: rotate(-10deg); }
+      75%  { top: 60px; }
+      100% { left: 110%; top: 40px; transform: rotate(15deg); }
+    }
   </style>
 </head>
 <body>
@@ -143,6 +162,7 @@
 
   <!-- ✅ 本体 -->
   <div class="main-content" id="main-content">
+    <div class="butterfly">🦋</div>
     <div class="container">
       <div class="icon">🛍️</div>
       <h1>ご来店ありがとうございます！</h1>
@@ -153,23 +173,19 @@
   <!-- jQuery 制御 -->
   <script>
     $(document).ready(function () {
-      // 「Completion!」に変更
       setTimeout(() => {
         $('#loadingLabel').text("Completion!");
       }, 3100);
 
-      // ローディングバー全体を非表示
       setTimeout(() => {
         $('#loadingWrapper').fadeOut(400);
       }, 3600);
 
-      // welcome画像とテキストを表示
       setTimeout(() => {
         $('#welcomeImg').fadeIn(600);
         $('#welcomeText').fadeIn(600);
       }, 4200);
 
-      // 最後に本体に遷移
       setTimeout(() => {
         $('#loader03').fadeOut(600, function () {
           $('#main-content').fadeIn(600);
