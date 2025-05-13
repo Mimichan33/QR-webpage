@@ -163,13 +163,17 @@
   <!-- jQuery 制御 -->
   <script>
     $(document).ready(function () {
-      function showWelcome() {
-        $('#welcomeImg').fadeIn(600);
-        $('.txt').fadeIn(600);
+      function show_load() {
+        $('.looping-rhombuses-spinner').fadeIn(400);
       }
 
-      function updateLoadingLabel() {
-        $('#loadingLabel').text("Completion!");
+      function hide_load() {
+        $('.looping-rhombuses-spinner').fadeOut(400);
+      }
+
+      function show_txt() {
+        $('.txt').fadeIn(400);
+        $('#clerk').fadeIn(400);
       }
 
       function end_loader() {
