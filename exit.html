@@ -11,7 +11,7 @@
       margin: 0;
       padding: 0;
       font-family: 'Helvetica Neue', sans-serif;
-      background: linear-gradient(to right, #a1c4fd, #c2e9fb);
+      background: linear-gradient(to right, #a1c4fd, #c2e9fb); /* ✅ グラデ背景をbodyに適用 */
       color: #333;
       overflow: hidden;
     }
@@ -71,12 +71,18 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background-color: #fff;
+      background: linear-gradient(to right, #a1c4fd, #c2e9fb); /* ✅ ローディング後も同じ背景を継続 */
     }
 
     .main-content img {
       max-width: 100%;
       max-height: 100%;
+      animation: fade-in 1s ease-in-out;
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
     }
   </style>
 </head>
@@ -92,7 +98,7 @@
     </div>
   </div>
 
-  <!-- ✅ ローディング後に表示する画像 -->
+  <!-- ✅ ローディング後に画像だけ表示 -->
   <div class="main-content" id="main-content">
     <img src="exit.png" alt="退店画像">
   </div>
