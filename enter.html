@@ -7,16 +7,21 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
   <style>
-    body {
+    * {
+      box-sizing: border-box;
+    }
+
+    body, html {
       margin: 0;
       padding: 0;
+      width: 100%;
+      height: 100%;
       font-family: 'Helvetica Neue', sans-serif;
       background: linear-gradient(to right, #a1c4fd, #c2e9fb);
       color: #333;
     }
 
-    /* 🔄 ローディング画面 */
-    .loader, .welcome-stage, .main-content {
+    .stage {
       position: fixed;
       width: 100%;
       height: 100%;
@@ -26,20 +31,11 @@
       justify-content: center;
       align-items: center;
       flex-direction: column;
-      background-color: #fff;
-    }
-
-    .loader {
-      z-index: 3;
-    }
-
-    .welcome-stage {
-      z-index: 2;
-      display: none;
-    }
-
-    .main-content {
+      background: linear-gradient(to right, #a1c4fd, #c2e9fb);
       z-index: 1;
+    }
+
+    .stage.hidden {
       display: none;
     }
 
@@ -82,7 +78,7 @@
     .welcome-img {
       width: 140px;
       height: auto;
-      margin-bottom: 10px;
+      margin-bottom: 20px;
       animation: fade-slide 1s ease-in-out;
     }
 
@@ -98,7 +94,6 @@
       100% { opacity: 1; transform: translateY(0); }
     }
 
-    /* ✅ 本文表示 */
     .container {
       background-color: rgba(255, 255, 255, 0.85);
       padding: 40px;
@@ -142,8 +137,8 @@
 </head>
 <body>
 
-  <!-- 🔄 ステージ①：ローディング -->
-  <div class="loader" id="loader">
+  <!-- ステージ①：ローディング -->
+  <div class="stage" id="stage-loading">
     <div class="loading-wrapper">
       <div class="loading-text" id="loadingLabel">Now Loading...</div>
       <div class="loading-bar">
@@ -152,14 +147,14 @@
     </div>
   </div>
 
-  <!-- 🙇 ステージ②：いらっしゃいませ -->
-  <div class="welcome-stage" id="welcomeStage">
+  <!-- ステージ②：いらっしゃいませ -->
+  <div class="stage hidden" id="stage-welcome">
     <img src="welcome.png" alt="店員" class="welcome-img" />
     <p class="welcome-text">いらっしゃいませ！</p>
   </div>
 
-  <!-- 🛍️ ステージ③：本体 -->
-  <div class="main-content" id="mainContent">
+  <!-- ステージ③：入店メッセージ -->
+  <div class="stage hidden" id="stage-main">
     <div class="container">
       <div class="icon">🛍️</div>
       <h1>ご来店ありがとうございます！</h1>
@@ -167,25 +162,24 @@
     </div>
   </div>
 
-  <!-- 🧠 制御 -->
   <script>
     $(document).ready(function () {
-      // バー満タンで Completion に変更
+      // ステージ① → Completion! に変える
       setTimeout(() => {
         $('#loadingLabel').text('Completion!');
       }, 3100);
 
-      // ローディング非表示 → いらっしゃいませ画面へ
+      // ステージ① → ステージ②
       setTimeout(() => {
-        $('#loader').fadeOut(600, () => {
-          $('#welcomeStage').fadeIn(800);
+        $('#stage-loading').fadeOut(600, () => {
+          $('#stage-welcome').removeClass('hidden').hide().fadeIn(800);
         });
       }, 3500);
 
-      // いらっしゃいませ非表示 → 本文へ
+      // ステージ② → ステージ③
       setTimeout(() => {
-        $('#welcomeStage').fadeOut(600, () => {
-          $('#mainContent').fadeIn(800);
+        $('#stage-welcome').fadeOut(600, () => {
+          $('#stage-main').removeClass('hidden').hide().fadeIn(800);
         });
       }, 6000);
     });
