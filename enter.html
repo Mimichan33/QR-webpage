@@ -5,8 +5,68 @@
   <title>入店記録</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, query, where, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.addEventListener("load", async () => {
+      const params = new URLSearchParams(window.location.search);
+      const table = params.get("table") || "unknown";
+      const timestamp = new Date().toISOString();
+      const device = navigator.userAgent;
+
+      try {
+        const logsRef = collection(db, "logs");
+        const q = query(logsRef, where("table", "==", table));
+        const snapshot = await getDocs(q);
+
+        let enterCount = 0;
+        let exitCount = 0;
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.type === "enter") enterCount++;
+          if (data.type === "exit") exitCount++;
+        });
+
+        if (enterCount > exitCount) {
+          // すでに入店済み（退店していない） → already.html に遷移
+          window.location.href = "already.html";
+          return;
+        }
+
+        // ✅ 入店記録を保存
+        await addDoc(logsRef, {
+          type: "enter",
+          table,
+          timestamp,
+          device
+        });
+
+        console.log("✅ 入店記録完了");
+
+      } catch (error) {
+        console.error("❌ Firebase記録エラー:", error);
+      }
+    });
+  </script>
 
   <style>
+    /* （CSSはそのまま、前回送っていただいた完成版と同じ） */
     body {
       margin: 0;
       padding: 0;
@@ -66,7 +126,7 @@
 
     .welcome-img {
       display: none;
-      width: 140px; /* 少し大きめに変更 */
+      width: 140px;
       height: auto;
       margin-bottom: 10px;
       animation: fade-slide 1s ease-in-out;
@@ -127,19 +187,11 @@
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-10px); }
     }
-
-    @keyframes flyAcross {
-      0%   { left: -50px; top: 20px; transform: rotate(10deg); }
-      25%  { top: 50px; }
-      50%  { left: 50%; top: 30px; transform: rotate(-10deg); }
-      75%  { top: 60px; }
-      100% { left: 110%; top: 40px; transform: rotate(15deg); }
-    }
   </style>
 </head>
 <body>
 
-  <!-- 🔄 ローディング画面 -->
+  <!-- ローディング -->
   <div class="loader" id="loader03">
     <div class="loading-wrapper" id="loadingWrapper">
       <div class="loading-text" id="loadingLabel">Now Loading...</div>
@@ -148,10 +200,10 @@
       </div>
     </div>
     <img src="welcome.png" alt="店員" class="welcome-img" id="welcomeImg" />
-    <p class="txt" id="welcomeText">いらっしゃいませ！<br>　　Welcome!</p>
+    <p class="txt" id="welcomeText">いらっしゃいませ！<br>Welcome!</p>
   </div>
 
-  <!-- ✅ 本体 -->
+  <!-- メイン -->
   <div class="main-content" id="main-content">
     <div class="container">
       <div class="icon">🛍️</div>
@@ -162,7 +214,7 @@
     </div>
   </div>
 
-  <!-- jQuery 制御 -->
+  <!-- アニメーション制御 -->
   <script>
     $(document).ready(function () {
       setTimeout(() => {
