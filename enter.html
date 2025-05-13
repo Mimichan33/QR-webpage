@@ -7,91 +7,84 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body, html {
+    body {
       margin: 0;
       padding: 0;
-      width: 100%;
-      height: 100%;
       font-family: 'Helvetica Neue', sans-serif;
       background: linear-gradient(to right, #a1c4fd, #c2e9fb);
       color: #333;
     }
 
-    .stage {
+    /* ローダー画面 */
+    .loader {
       position: fixed;
       width: 100%;
       height: 100%;
+      background-color: #fff;
+      z-index: 9999;
       top: 0;
       left: 0;
       display: flex;
       justify-content: center;
       align-items: center;
       flex-direction: column;
-      background: linear-gradient(to right, #a1c4fd, #c2e9fb);
-      z-index: 1;
     }
 
-    .stage.hidden {
+    .loader .txt {
+      font-size: 32px;
+      font-weight: bold;
+      color: rgb(30, 50, 93);
+      margin-top: 20px;
+      display: none;
+      animation: fade-slide 1s ease-out;
+    }
+
+    /* 店員アイコン */
+    .clerk {
+      font-size: 48px;
+      display: none;
+      animation: bow 1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes bow {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotateX(25deg); }
+    }
+
+    .looping-rhombuses-spinner {
+      position: relative;
+      width: 80px;
+      height: 80px;
       display: none;
     }
 
-    /* ローディングバー */
-    .loading-wrapper {
-      position: relative;
-      width: 220px;
-      margin-bottom: 20px;
-    }
-
-    .loading-bar {
-      width: 100%;
+    .rhombus {
+      width: 20px;
       height: 20px;
-      border: 2px solid #999;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    .loading-fill {
-      height: 100%;
-      width: 0%;
-      background-color: #7baaf7;
-      animation: loading-animation 3s forwards;
-    }
-
-    @keyframes loading-animation {
-      0% { width: 0%; }
-      100% { width: 100%; }
-    }
-
-    .loading-text {
+      background-color: #2c3e50;
+      transform: rotate(45deg);
       position: absolute;
-      top: -24px;
-      left: 0;
-      font-size: 14px;
-      color: #555;
+      top: 30px;
+      left: 30px;
+      animation: rhombus-move 1.2s infinite ease-in-out;
     }
 
-    /* welcome画像 */
-    .welcome-img {
-      width: 140px;
-      height: auto;
-      margin-bottom: 20px;
-      animation: fade-slide 1s ease-in-out;
+    .rhombus:nth-child(2) { animation-delay: 0.2s; }
+    .rhombus:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes rhombus-move {
+      0%   { transform: rotate(45deg) translate(0, 0); }
+      50%  { transform: rotate(45deg) translate(30px, 30px); }
+      100% { transform: rotate(45deg) translate(0, 0); }
     }
 
-    .welcome-text {
-      font-size: 32px;
-      font-weight: bold;
-      color: #2c3e50;
-      animation: fade-slide 1s ease-in-out;
-    }
-
-    @keyframes fade-slide {
-      0% { opacity: 0; transform: translateY(20px); }
-      100% { opacity: 1; transform: translateY(0); }
+    .main-content {
+      display: none;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
     }
 
     .container {
@@ -100,7 +93,6 @@
       border-radius: 20px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
       animation: fade-zoom-in 0.8s ease-in-out;
-      text-align: center;
     }
 
     .icon {
@@ -118,6 +110,17 @@
       font-size: 18px;
     }
 
+    /* 追加アニメーション */
+    @keyframes fade-slide {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-10px); }
+    }
+
     @keyframes fade-zoom-in {
       from {
         opacity: 0;
@@ -128,33 +131,23 @@
         transform: scale(1);
       }
     }
-
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-10px); }
-    }
   </style>
 </head>
 <body>
 
-  <!-- ステージ①：ローディング -->
-  <div class="stage" id="stage-loading">
-    <div class="loading-wrapper">
-      <div class="loading-text" id="loadingLabel">Now Loading...</div>
-      <div class="loading-bar">
-        <div class="loading-fill"></div>
-      </div>
+  <!-- 🔄 ローダー -->
+  <div class="loader" id="loader03">
+    <div class="looping-rhombuses-spinner">
+      <div class="rhombus"></div>
+      <div class="rhombus"></div>
+      <div class="rhombus"></div>
     </div>
+    <div class="clerk" id="clerk">🙇‍♀️</div>
+    <p class="txt">いらっしゃいませ！</p>
   </div>
 
-  <!-- ステージ②：いらっしゃいませ -->
-  <div class="stage hidden" id="stage-welcome">
-    <img src="welcome.png" alt="店員" class="welcome-img" />
-    <p class="welcome-text">いらっしゃいませ！</p>
-  </div>
-
-  <!-- ステージ③：入店メッセージ -->
-  <div class="stage hidden" id="stage-main">
+  <!-- ✅ 本体 -->
+  <div class="main-content" id="main-content">
     <div class="container">
       <div class="icon">🛍️</div>
       <h1>ご来店ありがとうございます！</h1>
@@ -162,26 +155,32 @@
     </div>
   </div>
 
+  <!-- jQuery 制御 -->
   <script>
     $(document).ready(function () {
-      // ステージ① → Completion! に変える
-      setTimeout(() => {
-        $('#loadingLabel').text('Completion!');
-      }, 3100);
+      function show_load() {
+        $('.looping-rhombuses-spinner').fadeIn(400);
+      }
 
-      // ステージ① → ステージ②
-      setTimeout(() => {
-        $('#stage-loading').fadeOut(600, () => {
-          $('#stage-welcome').removeClass('hidden').hide().fadeIn(800);
-        });
-      }, 3500);
+      function hide_load() {
+        $('.looping-rhombuses-spinner').fadeOut(400);
+      }
 
-      // ステージ② → ステージ③
-      setTimeout(() => {
-        $('#stage-welcome').fadeOut(600, () => {
-          $('#stage-main').removeClass('hidden').hide().fadeIn(800);
+      function show_txt() {
+        $('.txt').fadeIn(400);
+        $('#clerk').fadeIn(400);
+      }
+
+      function end_loader() {
+        $('#loader03').fadeOut(600, function () {
+          $('#main-content').fadeIn(600);
         });
-      }, 6000);
+      }
+
+      setTimeout(show_load, 500);
+      setTimeout(hide_load, 3000);
+      setTimeout(show_txt, 3500);
+      setTimeout(end_loader, 5000);
     });
   </script>
 
