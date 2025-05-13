@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>退店記録</title>
 
-  <!-- Firebase SDK 読み込み -->
+  <!-- Firebase SDK 読み込み（将来用に保持） -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
@@ -35,8 +35,10 @@
       const timestamp = new Date().toISOString();
       const device = navigator.userAgent;
 
-      console.log("送信データ:", { type: "exit", table, timestamp, device });
+      console.log("送信データ（退店）:", { type: "exit", table, timestamp, device });
 
+      // 🔧 Firebase処理は現在無効化中（開発用）
+      /*
       try {
         const logsRef = collection(db, "logs");
         const q = query(logsRef, where("table", "==", table));
@@ -57,7 +59,6 @@
           return;
         }
 
-        // ✅ 正常に退店記録
         await addDoc(logsRef, {
           type: "exit",
           table,
@@ -69,6 +70,7 @@
       } catch (error) {
         console.error("❌ 退店記録失敗:", error);
       }
+      */
     });
   </script>
 
