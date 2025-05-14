@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>順番待ち確認</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Helvetica Neue', sans-serif;
+      background: linear-gradient(to right, #a1c4fd, #c2e9fb);
+      color: #2c3e50;
+      text-align: center;
+    }
+
+    .loader {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .loading-bar {
+      width: 220px;
+      height: 20px;
+      border: 2px solid #999;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .loading-fill {
+      height: 100%;
+      width: 0%;
+      background-color: #7baaf7;
+      animation: loading-animation 3s forwards;
+    }
+
+    .loading-text {
+      font-size: 16px;
+      margin-top: 10px;
+    }
+
+    @keyframes loading-animation {
+      0% { width: 0%; }
+      100% { width: 100%; }
+    }
+
+    .wait-section {
+      display: none;
+      padding: 60px 20px;
+    }
+
+    .wait-section h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .status-box {
+      background: white;
+      padding: 20px;
+      margin: 20px auto;
+      border-radius: 15px;
+      max-width: 300px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .highlight {
+      font-size: 32px;
+      font-weight: bold;
+      color: #e74c3c;
+    }
+
+    .notice {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 50px;
+      color: #27ae60;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 🔄 ローディング -->
+  <div class="loader" id="loader">
+    <div class="loading-text" id="loadingLabel">Now Loading...</div>
+    <div class="loading-bar">
+      <div class="loading-fill"></div>
+    </div>
+  </div>
+
+  <!-- ⏳ 待機セクション -->
+  <div class="wait-section" id="waitSection">
+    <h1>少々お待ちください</h1>
+
+    <div class="status-box">
+      <p>あなたの前に待っている人数：</p>
+      <p class="highlight" id="peopleAhead">--</p>
+      <p>予想待ち時間：</p>
+      <p class="highlight" id="estimatedTime">--</p>
+    </div>
+
+    <div class="notice" id="yourTurn" style="display: none;">
+      あなたの番です！すぐに入店してください。
+    </div>
+  </div>
+
+  <!-- 🔧 Firebase & ロジック -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let myDocId = null;
+
+    // ローディング終了処理
+    setTimeout(() => {
+      $('#loadingLabel').text("Completion!");
+    }, 3000);
+
+    setTimeout(() => {
+      $('#loader').fadeOut(600);
+      $('#waitSection').fadeIn(800);
+    }, 4000);
+
+    // 自分をキューに追加
+    async function registerQueue() {
+      const docRef = await db.collection("queue").add({
+        timestamp: new Date().toISOString(),
+        status: "waiting"
+      });
+      myDocId = docRef.id;
+    }
+
+    // 待ち状況を監視
+    function watchQueue() {
+      db.collection("queue")
+        .orderBy("timestamp")
+        .onSnapshot(snapshot => {
+          let waitingList = [];
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.status === "waiting") {
+              waitingList.push({ id: doc.id, ...data });
+            }
+          });
+
+          const myIndex = waitingList.findIndex(entry => entry.id === myDocId);
+          const peopleAhead = myIndex;
+          const estimated = peopleAhead * 30; // 仮に1人30分
+
+          if (peopleAhead === 0) {
+            document.getElementById("yourTurn").style.display = "block";
+          }
+
+          document.getElementById("peopleAhead").textContent = peopleAhead >= 0 ? peopleAhead : "--";
+          document.getElementById("estimatedTime").textContent = peopleAhead >= 0 ? `${estimated}分` : "--";
+        });
+    }
+
+    window.onload = async () => {
+      await registerQueue();
+      watchQueue();
+    };
+  </script>
+</body>
+</html>
