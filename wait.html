@@ -85,11 +85,17 @@
       margin-top: 50px;
       color: #27ae60;
     }
+
+    .ticket-number {
+      font-size: 22px;
+      font-weight: bold;
+      margin-top: 10px;
+      color: #34495e;
+    }
   </style>
 </head>
 <body>
 
-  <!-- 🔄 ローディング -->
   <div class="loader" id="loader">
     <div class="loading-text" id="loadingLabel">Now Loading...</div>
     <div class="loading-bar">
@@ -97,9 +103,9 @@
     </div>
   </div>
 
-  <!-- ⏳ 待機セクション -->
   <div class="wait-section" id="waitSection">
     <h1>少々お待ちください</h1>
+    <p class="ticket-number" id="ticketNumber">番号札: --</p>
 
     <div class="status-box">
       <p>あなたの前に待っている人数：</p>
@@ -113,7 +119,6 @@
     </div>
   </div>
 
-  <!-- 🔧 Firebase & ロジック -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
@@ -128,8 +133,9 @@
     const db = firebase.firestore();
 
     let myDocId = null;
+    let myIndex = -1;
+    let timeoutTimer = null;
 
-    // ローディング終了処理
     setTimeout(() => {
       $('#loadingLabel').text("Completion!");
     }, 3000);
@@ -139,7 +145,6 @@
       $('#waitSection').fadeIn(800);
     }, 4000);
 
-    // 自分をキューに追加
     async function registerQueue() {
       const docRef = await db.collection("queue").add({
         timestamp: new Date().toISOString(),
@@ -148,7 +153,24 @@
       myDocId = docRef.id;
     }
 
-    // 待ち状況を監視
+    function startTimeoutCheck() {
+      timeoutTimer = setInterval(() => {
+        if (myIndex === 0) return; // 自分の番ならスキップ
+        const now = new Date();
+        db.collection("queue").doc(myDocId).get().then(doc => {
+          const data = doc.data();
+          const registered = new Date(data.timestamp);
+          const diff = (now - registered) / 1000 / 60; // 分換算
+          if (diff > 5) {
+            db.collection("queue").doc(myDocId).update({ status: "expired" });
+            clearInterval(timeoutTimer);
+            alert("5分以上経過したためキャンセルされました。再度お試しください。");
+            location.reload();
+          }
+        });
+      }, 30000); // 30秒ごとチェック
+    }
+
     function watchQueue() {
       db.collection("queue")
         .orderBy("timestamp")
@@ -161,23 +183,26 @@
             }
           });
 
-          const myIndex = waitingList.findIndex(entry => entry.id === myDocId);
+          myIndex = waitingList.findIndex(entry => entry.id === myDocId);
           const peopleAhead = myIndex;
-          const estimated = peopleAhead * 30; // 仮に1人30分
+          const estimated = peopleAhead * 2;
+
+          document.getElementById("ticketNumber").textContent = `番号札: ${myIndex + 1}`;
+          document.getElementById("peopleAhead").textContent = peopleAhead >= 0 ? peopleAhead : "--";
+          document.getElementById("estimatedTime").textContent = peopleAhead >= 0 ? `${estimated}分` : "--";
 
           if (peopleAhead === 0) {
             document.getElementById("yourTurn").style.display = "block";
           }
-
-          document.getElementById("peopleAhead").textContent = peopleAhead >= 0 ? peopleAhead : "--";
-          document.getElementById("estimatedTime").textContent = peopleAhead >= 0 ? `${estimated}分` : "--";
         });
     }
 
     window.onload = async () => {
       await registerQueue();
       watchQueue();
+      startTimeoutCheck();
     };
   </script>
 </body>
 </html>
+
