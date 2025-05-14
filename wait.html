@@ -155,20 +155,20 @@
 
     function startTimeoutCheck() {
       timeoutTimer = setInterval(() => {
-        if (myIndex === 0) return; // 自分の番ならスキップ
+        if (myIndex === 0) return;
         const now = new Date();
         db.collection("queue").doc(myDocId).get().then(doc => {
           const data = doc.data();
           const registered = new Date(data.timestamp);
-          const diff = (now - registered) / 1000 / 60; // 分換算
-          if (diff > 5) {
+          const diff = (now - registered) / 1000 / 60;
+          if (diff > 5 && data.status === "waiting") {
             db.collection("queue").doc(myDocId).update({ status: "expired" });
             clearInterval(timeoutTimer);
             alert("5分以上経過したためキャンセルされました。再度お試しください。");
             location.reload();
           }
         });
-      }, 30000); // 30秒ごとチェック
+      }, 30000);
     }
 
     function watchQueue() {
@@ -205,4 +205,5 @@
   </script>
 </body>
 </html>
+
 
