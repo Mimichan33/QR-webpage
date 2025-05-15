@@ -65,32 +65,30 @@
 
     function renderQueue() {
       db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
+        const waitingList = snapshot.docs.filter(doc => doc.data().status === "waiting");
         const list = document.getElementById("queueList");
         list.innerHTML = "";
-        let position = 1;
-        snapshot.forEach(doc => {
+
+        waitingList.forEach((doc, index) => {
           const data = doc.data();
-          if (data.status === "waiting") {
-            const item = document.createElement("div");
-            item.className = "queue-item";
-            item.innerHTML = `
-              <p><strong>番号札:</strong> ${position}</p>
-              <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
-              <div class="btn-group">
-                <button class="btn-enter">入店確定</button>
-                <button class="btn-exit">退店</button>
-              </div>
-            `;
-            // ボタンに処理をバインド
-            item.querySelector(".btn-enter").onclick = () => {
-              db.collection("queue").doc(doc.id).update({ status: "entered" });
-            };
-            item.querySelector(".btn-exit").onclick = () => {
-              db.collection("queue").doc(doc.id).update({ status: "expired" });
-            };
-            list.appendChild(item);
-            position++;
-          }
+          const item = document.createElement("div");
+          item.className = "queue-item";
+          item.innerHTML = `
+            <p><strong>番号札:</strong> ${index + 1}</p>
+            <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
+            <div class="btn-group">
+              <button class="btn-enter">入店確定</button>
+              <button class="btn-exit">退店</button>
+            </div>
+          `;
+          // ボタンに処理をバインド
+          item.querySelector(".btn-enter").onclick = () => {
+            db.collection("queue").doc(doc.id).update({ status: "entered" });
+          };
+          item.querySelector(".btn-exit").onclick = () => {
+            db.collection("queue").doc(doc.id).update({ status: "expired" });
+          };
+          list.appendChild(item);
         });
       });
     }
