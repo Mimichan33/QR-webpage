@@ -58,6 +58,9 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // 全体の番号割り当てテーブル
+    const ticketMap = {};
+
     function formatTime(iso) {
       const d = new Date(iso);
       return d.toLocaleString("ja-JP", { hour: '2-digit', minute: '2-digit' });
@@ -65,16 +68,27 @@
 
     function renderQueue() {
       db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
-        const waitingList = snapshot.docs.filter(doc => doc.data().status === "waiting");
+        const allDocs = snapshot.docs;
+        const waitingList = allDocs.filter(doc => doc.data().status === "waiting");
+
         const list = document.getElementById("queueList");
         list.innerHTML = "";
 
-        waitingList.forEach((doc, index) => {
+        // 一度だけ全体の順番を決めて保持
+        allDocs.forEach((doc, index) => {
+          if (!(doc.id in ticketMap)) {
+            ticketMap[doc.id] = index + 1;
+          }
+        });
+
+        waitingList.forEach(doc => {
           const data = doc.data();
+          const ticketNumber = ticketMap[doc.id] || "?";
+
           const item = document.createElement("div");
           item.className = "queue-item";
           item.innerHTML = `
-            <p><strong>番号札:</strong> ${index + 1}</p>
+            <p><strong>番号札:</strong> ${ticketNumber}</p>
             <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
             <div class="btn-group">
               <button class="btn-enter">入店確定</button>
