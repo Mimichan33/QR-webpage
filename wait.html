@@ -134,7 +134,6 @@
 
     let myDocId = null;
     let myIndex = -1;
-    let timeoutTimer = null;
 
     setTimeout(() => {
       $('#loadingLabel').text("Completion!");
@@ -153,38 +152,27 @@
       myDocId = docRef.id;
     }
 
-    function startTimeoutCheck() {
-      timeoutTimer = setInterval(() => {
-        if (myIndex === 0) return;
-        const now = new Date();
-        db.collection("queue").doc(myDocId).get().then(doc => {
-          const data = doc.data();
-          const registered = new Date(data.timestamp);
-          const diff = (now - registered) / 1000 / 60;
-          if (diff > 5 && data.status === "waiting") {
-            db.collection("queue").doc(myDocId).update({ status: "expired" });
-            clearInterval(timeoutTimer);
-            alert("5分以上経過したためキャンセルされました。再度お試しください。");
-            location.reload();
-          }
-        });
-      }, 30000);
-    }
-
     function watchQueue() {
       db.collection("queue")
         .orderBy("timestamp")
         .onSnapshot(snapshot => {
-          let waitingList = [];
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.status === "waiting") {
-              waitingList.push({ id: doc.id, ...data });
-            }
-          });
+          const waitingList = snapshot.docs
+            .filter(doc => doc.data().status === "waiting")
+            .map(doc => ({ id: doc.id, ...doc.data() }));
 
-          myIndex = waitingList.findIndex(entry => entry.id === myDocId);
-          const peopleAhead = myIndex;
+          // 🔒 番号札の確定化：登録時のインデックスを保持
+          if (myIndex === -1 && myDocId) {
+            myIndex = waitingList.findIndex(entry => entry.id === myDocId);
+          }
+
+          const self = snapshot.docs.find(doc => doc.id === myDocId);
+          if (self && self.data().status === "expired") {
+            alert("5分以内に来店されなかったためキャンセルされました。\n再度QRコードを読み込んでください。");
+            location.href = "expired.html";
+            return;
+          }
+
+          const peopleAhead = waitingList.slice(0, myIndex).length;
           const estimated = peopleAhead * 2;
 
           document.getElementById("ticketNumber").textContent = `番号札: ${myIndex + 1}`;
@@ -200,12 +188,7 @@
     window.onload = async () => {
       await registerQueue();
       watchQueue();
-      startTimeoutCheck();
     };
   </script>
 </body>
 </html>
-
-
-
-
