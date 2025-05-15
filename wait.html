@@ -69,12 +69,12 @@
       padding: 20px;
       margin: 20px auto;
       border-radius: 15px;
-      max-width: 300px;
+      max-width: 320px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     .highlight {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: bold;
       color: #e74c3c;
     }
@@ -104,13 +104,13 @@
   </div>
 
   <div class="wait-section" id="waitSection">
-    <h1>少々お待ちください</h1>
-    <p class="ticket-number" id="ticketNumber">番号札: --</p>
+    <h1>少々お待ちください<br><span style="font-size:16px;">Please wait a moment</span></h1>
+    <p class="ticket-number" id="ticketNumber">番号札: --<br><span style="font-size:14px;">Ticket No.</span></p>
 
     <div class="status-box">
-      <p>あなたの前に待っている人数：</p>
+      <p>あなたの前に待っている人数：<br><span style="font-size:14px;">People ahead of you</span></p>
       <p class="highlight" id="peopleAhead">--</p>
-      <p>予想待ち時間：</p>
+      <p>予想待ち時間：<br><span style="font-size:14px;">Estimated waiting time</span></p>
       <p class="highlight" id="estimatedTime">--</p>
     </div>
   </div>
@@ -176,9 +176,10 @@
         myIndex = ticketMap[myDocId];
         const peopleAhead = waitingList.filter(doc => ticketMap[doc.id] < myIndex).length;
 
-        const estimated = peopleAhead * 2;
+        // 🔁 予想待ち時間 = 人数×30 + 基本30分
+        const estimated = (peopleAhead * 30) + 30;
 
-        document.getElementById("ticketNumber").textContent = `番号札: ${myIndex}`;
+        document.getElementById("ticketNumber").textContent = `番号札: ${myIndex}\nTicket No. ${myIndex}`;
         document.getElementById("peopleAhead").textContent = peopleAhead;
         document.getElementById("estimatedTime").textContent = `${estimated}分`;
       });
