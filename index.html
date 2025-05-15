@@ -249,7 +249,7 @@
     window.onload = () => {
       db.collection("logs").onSnapshot(countVisitors);
       setInterval(updateTableDisplays, 60000);
-    };
+    
      // ✅ ローディングバー制御
       setTimeout(() => {
         $('#loadingLabel').text("Completion!");
