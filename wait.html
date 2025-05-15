@@ -113,10 +113,6 @@
       <p>予想待ち時間：</p>
       <p class="highlight" id="estimatedTime">--</p>
     </div>
-
-    <div class="notice" id="yourTurn" style="display: none;">
-      あなたの番です！すぐに入店してください。
-    </div>
   </div>
 
   <script>
@@ -134,6 +130,7 @@
 
     let myDocId = null;
     let myIndex = -1;
+    let ticketMap = {};
 
     setTimeout(() => {
       $('#loadingLabel').text("Completion!");
@@ -153,36 +150,38 @@
     }
 
     function watchQueue() {
-      db.collection("queue")
-        .orderBy("timestamp")
-        .onSnapshot(snapshot => {
-          const waitingList = snapshot.docs
-            .filter(doc => doc.data().status === "waiting")
-            .map(doc => ({ id: doc.id, ...doc.data() }));
+      db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
+        const allDocs = snapshot.docs;
+        const waitingList = allDocs.filter(doc => doc.data().status === "waiting");
+        const selfDoc = snapshot.docs.find(doc => doc.id === myDocId);
 
-          // 🔒 番号札の確定化：登録時のインデックスを保持
-          if (myIndex === -1 && myDocId) {
-            myIndex = waitingList.findIndex(entry => entry.id === myDocId);
-          }
+        if (!selfDoc) return;
+        const selfData = selfDoc.data();
 
-          const self = snapshot.docs.find(doc => doc.id === myDocId);
-          if (self && self.data().status === "expired") {
-            alert("5分以内に来店されなかったためキャンセルされました。\n再度QRコードを読み込んでください。");
-            location.href = "expired.html";
-            return;
-          }
+        if (selfData.status === "expired") {
+          location.href = "expired.html";
+          return;
+        } else if (selfData.status === "entered") {
+          location.href = "admit.html";
+          return;
+        }
 
-          const peopleAhead = waitingList.slice(0, myIndex).length;
-          const estimated = peopleAhead * 2;
-
-          document.getElementById("ticketNumber").textContent = `番号札: ${myIndex + 1}`;
-          document.getElementById("peopleAhead").textContent = peopleAhead >= 0 ? peopleAhead : "--";
-          document.getElementById("estimatedTime").textContent = peopleAhead >= 0 ? `${estimated}分` : "--";
-
-          if (peopleAhead === 0) {
-            document.getElementById("yourTurn").style.display = "block";
+        // 番号札固定
+        allDocs.forEach((doc, index) => {
+          if (!(doc.id in ticketMap)) {
+            ticketMap[doc.id] = index + 1;
           }
         });
+
+        myIndex = ticketMap[myDocId];
+        const peopleAhead = waitingList.filter(doc => ticketMap[doc.id] < myIndex).length;
+
+        const estimated = peopleAhead * 2;
+
+        document.getElementById("ticketNumber").textContent = `番号札: ${myIndex}`;
+        document.getElementById("peopleAhead").textContent = peopleAhead;
+        document.getElementById("estimatedTime").textContent = `${estimated}分`;
+      });
     }
 
     window.onload = async () => {
