@@ -314,5 +314,24 @@
       <p>テーブル7：<span id="table7-status">読み込み中...</span></p>
     </section>
   </main>
+  <!-- jQuery アニメーション制御 -->
+  <script>
+    $(document).ready(function () {
+      setTimeout(() => {
+        $('#loadingLabel').text("Completion!");
+      }, 3100);
+
+      setTimeout(() => {
+        $('#loadingWrapper').fadeOut(400);
+      }, 3600);
+
+      setTimeout(() => {
+        $('#loader03').fadeOut(600, function () {
+          $('#main-content').fadeIn(600);
+        });
+      }, 4800);
+    });
+  </script>
+
 </body>
 </html>
