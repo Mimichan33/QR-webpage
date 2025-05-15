@@ -6,15 +6,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <style>
     body {
       font-family: sans-serif;
       margin: 0;
-      padding: 20px;
+      padding: 0;
       background: linear-gradient(to right, #c2e9fb, #a1c4fd);
+    }
+    .loader {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 9999;
+    }
+    .loading-bar {
+      width: 220px;
+      height: 20px;
+      border: 2px solid #999;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .loading-fill {
+      height: 100%;
+      width: 0%;
+      background-color: #7baaf7;
+      animation: loading-animation 3s forwards;
+    }
+    @keyframes loading-animation {
+      0% { width: 0%; }
+      100% { width: 100%; }
     }
     h1 {
       text-align: center;
+      padding: 20px;
     }
     .queue-item {
       background: #fff;
@@ -42,7 +72,14 @@
   </style>
 </head>
 <body>
-  <h1>順番待ち管理（店員用）</h1>
+  <div class="loader" id="loader">
+    <p>Now Loading...</p>
+    <div class="loading-bar">
+      <div class="loading-fill"></div>
+    </div>
+  </div>
+
+  <h1 style="display:none;" id="mainTitle">順番待ち管理（店員用）</h1>
   <div id="queueList"></div>
 
   <script>
@@ -54,11 +91,9 @@
       messagingSenderId: "304250341939",
       appId: "1:304250341939:web:b8d5b946590d1f852cf146"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 全体の番号割り当てテーブル
     const ticketMap = {};
 
     function formatTime(iso) {
@@ -70,11 +105,9 @@
       db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
         const allDocs = snapshot.docs;
         const waitingList = allDocs.filter(doc => doc.data().status === "waiting");
-
         const list = document.getElementById("queueList");
         list.innerHTML = "";
 
-        // 一度だけ全体の順番を決めて保持
         allDocs.forEach((doc, index) => {
           if (!(doc.id in ticketMap)) {
             ticketMap[doc.id] = index + 1;
@@ -95,7 +128,6 @@
               <button class="btn-exit">退店</button>
             </div>
           `;
-          // ボタンに処理をバインド
           item.querySelector(".btn-enter").onclick = () => {
             db.collection("queue").doc(doc.id).update({ status: "entered" });
           };
@@ -107,7 +139,13 @@
       });
     }
 
-    window.onload = renderQueue;
+    window.onload = () => {
+      setTimeout(() => {
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("mainTitle").style.display = "block";
+        renderQueue();
+      }, 3600);
+    };
   </script>
 </body>
 </html>
