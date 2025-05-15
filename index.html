@@ -7,6 +7,7 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
   <style>
     body {
       font-family: 'Helvetica Neue', sans-serif;
@@ -100,7 +101,7 @@
 
     nav {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: 1fr 1fr 1fr;
       background-color: #3498db;
       text-align: center;
       border-top: 1px solid #fff;
@@ -189,7 +190,7 @@
       const minutes = Math.floor(diffMs / 60000);
       const hours = Math.floor(minutes / 60);
       const remainingMinutes = minutes % 60;
-      return hours > 0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
+      return hours > 0 ? ${hours}時間${remainingMinutes}分経過 : ${minutes}分経過;
     }
 
     function updateTableDisplays() {
@@ -199,10 +200,10 @@
         const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
         const status = currentCount > 0 ? "利用中" : "空席";
         const timeText = formatTimestamp(timeToShow);
-        const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
-        const element = document.getElementById(`table${tableNum}-status`);
+        const elapsed = currentCount > 0 ? ｜${calculateElapsedTime(timeToShow)} : "";
+        const element = document.getElementById(table${tableNum}-status);
         if (element) {
-          element.textContent = `${status}（${timeText}${elapsed}）`;
+          element.textContent = ${status}（${timeText}${elapsed}）;
         }
       });
     }
@@ -231,7 +232,10 @@
         if (tableCounts[table]) {
           if (data.type === "enter") {
             tableCounts[table].enter++;
-            if (!tableCounts[table].lastEnterTime || new Date(tableCounts[table].lastEnterTime) < new Date(timestamp)) {
+            if (
+              !tableCounts[table].lastEnterTime ||
+              new Date(tableCounts[table].lastEnterTime) < new Date(timestamp)
+            ) {
               tableCounts[table].lastEnterTime = timestamp;
             }
           }
@@ -252,20 +256,24 @@
       db.collection("logs").onSnapshot(countVisitors);
       setInterval(updateTableDisplays, 60000);
 
-      // ✅ ローディングバー制御（indexのみ）
+      // ✅ ローディングバー制御
       setTimeout(() => {
-        document.getElementById("loadingLabel").textContent = "Completion!";
+        $('#loadingLabel').text("Completion!");
       }, 3100);
+
       setTimeout(() => {
-        document.getElementById("loadingWrapper").style.display = "none";
+        $('#loadingWrapper').fadeOut(400);
       }, 3600);
+
       setTimeout(() => {
-        document.getElementById("loader03").style.display = "none";
-        document.querySelector("main").style.display = "block";
+        $('#loader03').fadeOut(600, function () {
+          $('main').fadeIn(600);
+        });
       }, 4800);
     };
   </script>
 </head>
+
 <body>
   <!-- 🔄 ローディング -->
   <div class="loader" id="loader03">
@@ -290,7 +298,6 @@
       <a href="index.html" class="active">ホーム</a>
       <a href="map.html">店内マップ</a>
       <a href="log.html">ログ一覧</a>
-      <a href="admin.html">待ち管理</a>
     </nav>
   </header>
 
