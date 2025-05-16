@@ -180,7 +180,8 @@
         const estimated = (peopleAhead * 30) + 30;
 
         document.getElementById("ticketNumber").textContent = `番号札:  No. ${myIndex}`;
-        document.getElementById("peopleAhead").textContent = peopleAhead;
+        document.getElementById("peopleAhead").textContent = 
+          peopleAhead === 0 ? "次はあなたの番です" : `${peopleAhead}人`;
         document.getElementById("estimatedTime").textContent = `${estimated}分`;
       });
     }
