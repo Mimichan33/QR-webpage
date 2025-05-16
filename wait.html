@@ -180,9 +180,21 @@
         const estimated = (peopleAhead * 30) + 30;
 
         document.getElementById("ticketNumber").textContent = `番号札:  No. ${myIndex}`;
-        document.getElementById("peopleAhead").textContent = 
-          peopleAhead === 0 ? "次はあなたの番です" : `${peopleAhead}人`;
-        document.getElementById("estimatedTime").textContent = `${estimated}分`;
+
+        const peopleAheadElement = document.getElementById("peopleAhead");
+        if (peopleAhead === 0) {
+          peopleAheadElement.innerHTML = `次はあなたの番です<br><span style="font-size:14px;">It's your turn next</span>`;
+        } else {
+        peopleAheadElement.textContent = `${peopleAhead}人`;
+        }
+
+        document.getElementById("estimatedTime").innerHTML = `
+          ${estimated}分<br>
+          <div style="margin-top: 10px; font-size: 14px; color: #c0392b;">
+            ※5分以内に来店しない場合、自動キャンセルされます<br>
+            <span style="font-size:13px;">*Your spot will be automatically cancelled if you don't arrive within 5 minutes.</span>
+          </div>
+        `;
       });
     }
 
