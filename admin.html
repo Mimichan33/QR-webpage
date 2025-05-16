@@ -14,7 +14,73 @@
       padding: 0;
       background: linear-gradient(to right, #c2e9fb, #a1c4fd);
     }
-    
+     header {
+      background-color: #2c3e50;
+      color: white;
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+    }
+
+    .header-title {
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+
+    .header-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .header-links a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .header-links a:hover {
+      text-decoration: underline;
+    }
+
+    nav {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background-color: #3498db;
+      text-align: center;
+      border-top: 1px solid #fff;
+      border-bottom: 1px solid #fff;
+    }
+
+    nav a {
+      padding: 12px 0;
+      display: block;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      border-right: 1px solid #fff;
+    }
+
+    nav a:last-child {
+      border-right: none;
+    }
+
+    nav a.active {
+      background-color: #1f618d;
+    }
+
+    nav a:hover {
+      background-color: #2980b9;
+    }
+
+    main {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
     h1 {
       text-align: center;
       padding: 20px;
@@ -45,7 +111,21 @@
   </style>
 </head>
 <body>
- 
+ <header>
+    <div class="header-bar">
+      <div class="header-title">店内管理システム</div>
+      <div class="header-links">
+        <a href="#">マニュアル</a>
+        <a href="#">ログアウト</a>
+      </div>
+    </div>
+    <nav>
+      <a href="index.html" class="active">ホーム</a>
+      <a href="map.html">店内マップ</a>
+      <a href="log.html">ログ一覧</a>
+      <a href="admin.html">待ち管理</a>
+    </nav>
+  </header>
   <h1 style="display:none;" id="mainTitle">順番待ち管理（店員用）</h1>
   <div id="queueList"></div>
 
