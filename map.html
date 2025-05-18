@@ -2,104 +2,106 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>店舗テーブルマップ</title>
+  <title>店舗レイアウト</title>
   <style>
     body {
-      background-color: #f4f0e0;
+      background-color: #f0e4d7;
       font-family: sans-serif;
-    }
-
-    .map {
-      display: grid;
-      grid-template-columns: repeat(8, 80px);
-      grid-auto-rows: 80px;
-      gap: 10px;
-      padding: 20px;
-    }
-
-    .table-container {
       position: relative;
-      width: 100%;
-      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    .floor {
+      position: relative;
+      width: 800px;
+      height: 600px;
+      margin: 20px auto;
+      background-color: #f7e3c5;
+      border: 2px solid #444;
     }
 
     .table {
-      width: 100%;
-      height: 100%;
-      background-color: green;
-      border-radius: 10px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      background-color: #7b4a12;
       color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-weight: bold;
-      font-size: 18px;
-    }
-
-    .occupied .table {
-      background-color: red;
+      border-radius: 4px;
     }
 
     .chair {
-      width: 15px;
-      height: 15px;
-      background-color: #999;
-      border-radius: 50%;
       position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: green;
+      border: 1px solid #000;
     }
 
-    /* 椅子の配置位置 */
-    .top { top: -10px; left: 50%; transform: translateX(-50%); }
-    .bottom { bottom: -10px; left: 50%; transform: translateX(-50%); }
-    .left { left: -10px; top: 50%; transform: translateY(-50%); }
-    .right { right: -10px; top: 50%; transform: translateY(-50%); }
-
-    .top-left { top: -10px; left: 10px; }
-    .top-right { top: -10px; right: 10px; }
-    .bottom-left { bottom: -10px; left: 10px; }
-    .bottom-right { bottom: -10px; right: 10px; }
+    .chair.occupied {
+      background-color: red;
+    }
 
     .label {
-      text-align: center;
-      font-size: 14px;
-      margin-top: 5px;
-    }
-
-    .wc {
-      background-color: #fff;
-      border: 2px solid #999;
-      text-align: center;
+      position: absolute;
       font-weight: bold;
-      line-height: 80px;
-    }
-
-    .staff {
-      background-color: #ddd;
-      text-align: center;
-      font-weight: bold;
-      writing-mode: vertical-rl;
-      line-height: 1.5;
+      background: #fff;
+      padding: 2px 5px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
-  <div class="map">
-    <div class="wc" style="grid-column: 1 / span 2;">WC</div>
-    <div></div><div></div><div></div><div></div><div class="label" style="grid-column: 8;">入口</div>
+  <div class="floor" id="floor">
+    <!-- テーブル1 -->
+    <div class="table" style="top: 40px; left: 30px;" id="table1">1</div>
+    <div class="chair" style="top: 25px; left: 50px;"></div>
+    <div class="chair" style="top: 125px; left: 50px;"></div>
+    <div class="chair" style="top: 65px; left: 10px;"></div>
+    <div class="chair" style="top: 65px; left: 90px;"></div>
 
-    <div class="table-container"><div class="chair left"></div><div class="chair right"></div><div class="table">1</div></div>
-    <div class="table-container"><div class="chair left"></div><div class="chair right"></div><div class="table">2</div></div>
-    <div></div><div></div><div class="table-container" style="grid-row: span 2;"><div class="chair top"></div><div class="chair bottom"></div><div class="table">6</div></div>
-    <div class="staff" style="grid-row: span 4; grid-column: span 1;">スタッフ</div>
+    <!-- テーブル2 -->
+    <div class="table" style="top: 140px; left: 30px;" id="table2">2</div>
+    <div class="chair" style="top: 125px; left: 50px;"></div>
+    <div class="chair" style="top: 225px; left: 50px;"></div>
+    <div class="chair" style="top: 165px; left: 10px;"></div>
+    <div class="chair" style="top: 165px; left: 90px;"></div>
 
-    <div class="table-container"><div class="chair left"></div><div class="chair right"></div><div class="table">3</div></div>
-    <div class="table-container"><div class="chair left"></div><div class="chair right"></div><div class="table">4</div></div>
-    <div></div><div></div><div class="table-container"><div class="chair top-left"></div><div class="chair top-right"></div><div class="chair bottom-left"></div><div class="chair bottom-right"></div><div class="table">7</div></div>
+    <!-- テーブル3（中央8名） -->
+    <div class="table" style="top: 90px; left: 200px; width: 60px; height: 180px;" id="table3">3</div>
+    <div class="chair" style="top: 80px; left: 190px;"></div>
+    <div class="chair" style="top: 80px; left: 270px;"></div>
+    <div class="chair" style="top: 130px; left: 190px;"></div>
+    <div class="chair" style="top: 130px; left: 270px;"></div>
+    <div class="chair" style="top: 180px; left: 190px;"></div>
+    <div class="chair" style="top: 180px; left: 270px;"></div>
 
-    <div class="table-container" style="grid-column: 6;"><div class="chair top"></div><div class="chair bottom"></div><div class="chair left"></div><div class="chair right"></div><div class="table">5</div></div>
-    <div class="table-container"><div class="chair top"></div><div class="chair bottom"></div><div class="chair left"></div><div class="chair right"></div><div class="table">8</div></div>
-    <div class="table-container"><div class="chair top"></div><div class="chair bottom"></div><div class="chair left"></div><div class="chair right"></div><div class="table">9</div></div>
-    <div class="wc" style="grid-column: 8;">WC</div>
+    <!-- スタッフエリア -->
+    <div class="label" style="top: 90px; left: 280px; width: 100px; text-align: center;">スタッフ</div>
+
+    <!-- WC -->
+    <div class="label" style="top: 20px; left: 110px;">WC</div>
+    <div class="label" style="top: 460px; left: 620px;">WC</div>
+
+    <!-- 入り口 -->
+    <div class="label" style="top: 0px; left: 370px;">入口</div>
   </div>
+
+  <script>
+    // 椅子のクリックで状態変更（赤⇔緑）
+    document.querySelectorAll('.chair').forEach(chair => {
+      chair.addEventListener('click', () => {
+        chair.classList.toggle('occupied');
+      });
+    });
+  </script>
 </body>
 </html>
+
