@@ -78,6 +78,43 @@
     .occupied {
       background-color: #f8a5a5;
     }
+
+    /* Table 1 用の椅子装飾 */
+    #table-1 {
+      position: relative;
+    }
+
+    .chair {
+      width: 20px;
+      height: 20px;
+      background-color: #555;
+      border-radius: 50%;
+      position: absolute;
+    }
+
+    .chair.top {
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .chair.bottom {
+      bottom: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .chair.left {
+      left: -15px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .chair.right {
+      right: -15px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
   </style>
 
   <script>
@@ -166,7 +203,13 @@
 
   <main>
     <div class="map-grid">
-      <div id="table-1" class="table">読み込み中...</div>
+      <div id="table-1" class="table">
+        読み込み中...
+        <div class="chair top"></div>
+        <div class="chair bottom"></div>
+        <div class="chair left"></div>
+        <div class="chair right"></div>
+      </div>
       <div id="table-2" class="table">読み込み中...</div>
       <div id="table-3" class="table">読み込み中...</div>
       <div id="table-4" class="table">読み込み中...</div>
@@ -177,3 +220,4 @@
   </main>
 </body>
 </html>
+
