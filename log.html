@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ログ管理システム</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <h2>ログ管理</h2>
+
+  <!-- フィルター -->
+  <label>操作種別：
+    <select id="typeFilter">
+      <option value="">すべて</option>
+      <option value="enter">入店</option>
+      <option value="exit">退店</option>
+    </select>
+  </label>
+  <label>テーブル番号：
+    <input type="text" id="tableFilter" placeholder="例: A-1">
+  </label>
+  <button id="filterBtn">フィルター適用</button>
+  <button id="exportBtn">CSVエクスポート</button>
+
+  <!-- ログ表示テーブル -->
+  <table border="1" id="logTable" style="margin-top:20px;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>日時</th>
+        <th>操作</th>
+        <th>テーブル</th>
+        <th>デバイス</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    // Firebase 初期化
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let allLogs = [];
+
+    function formatDate(ts) {
+      const date = ts.toDate();
+      return date.toLocaleString("ja-JP");
+    }
+
+    function renderLogs(logs) {
+      const tbody = $("#logTable tbody");
+      tbody.empty();
+      logs.forEach((log, index) => {
+        tbody.append(`
+          <tr>
+            <td>${index + 1}</td>
+            <td>${formatDate(log.time)}</td>
+            <td>${log.type}</td>
+            <td>${log.table || "-"}</td>
+            <td>${log.device}</td>
+          </tr>
+        `);
+      });
+    }
+
+    function applyFilters() {
+      const type = $("#typeFilter").val();
+      const table = $("#tableFilter").val().trim().toLowerCase();
+      const filtered = allLogs.filter(log => {
+        return (!type || log.type === type) &&
+               (!table || (log.table && log.table.toLowerCase().includes(table)));
+      });
+      renderLogs(filtered);
+    }
+
+    function exportCSV(logs) {
+      let csv = "No,日時,操作,テーブル,デバイス\n";
+      logs.forEach((log, index) => {
+        csv += `${index + 1},"${formatDate(log.time)}",${log.type},${log.table || ""},${log.device}\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "logs.csv";
+      link.click();
+    }
+
+    // 初期読み込み
+    db.collection("logs").orderBy("time", "desc").onSnapshot(snapshot => {
+      allLogs = snapshot.docs.map(doc => doc.data());
+      renderLogs(allLogs);
+    });
+
+    $("#filterBtn").click(applyFilters);
+    $("#exportBtn").click(() => exportCSV(allLogs));
+  </script>
+</body>
+</html>
