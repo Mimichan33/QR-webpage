@@ -202,6 +202,76 @@
       db.collection("logs").onSnapshot(countVisitors);
       setInterval(updateTableDisplays, 60000);
     };
+    <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const tableStatus = {};
+    const tablePositions = {
+      "1": { top: "30%", left: "20%" },
+      "2": { top: "30%", left: "50%" },
+      "3": { top: "30%", left: "80%" },
+      "4": { top: "60%", left: "20%" },
+      "5": { top: "60%", left: "50%" },
+      "6": { top: "60%", left: "80%" },
+      "7": { top: "60%", left: "50%" }
+    };
+
+    function updateMarkers() {
+      for (const table in tablePositions) {
+        const marker = document.getElementById(`marker-${table}`);
+        if (!marker) continue;
+        const count = tableStatus[table] || 0;
+        marker.textContent = count > 0 ? `✕ 利用中` : `◯ 空席`;
+        marker.style.backgroundColor = count > 0 ? "#fdd" : "#dfd";
+      }
+    }
+
+    function countVisitors(snapshot) {
+      const tempCounts = {};
+
+      for (const table in tablePositions) {
+        tempCounts[table] = 0;
+      }
+
+      const enterLog = {};
+      const exitLog = {};
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const table = data.table;
+        const type = data.type;
+        const timestamp = data.timestamp;
+        if (!table || !timestamp) return;
+
+        if (!enterLog[table]) enterLog[table] = 0;
+        if (!exitLog[table]) exitLog[table] = 0;
+
+        if (type === "enter") enterLog[table]++;
+        if (type === "exit") exitLog[table]++;
+      });
+
+      for (const table in tablePositions) {
+        const current = (enterLog[table] || 0) - (exitLog[table] || 0);
+        tableStatus[table] = current;
+      }
+
+      updateMarkers();
+    }
+
+    window.onload = () => {
+      db.collection("logs").onSnapshot(countVisitors);
+    };
+  </script>
   </script>
 </head>
 <body>
