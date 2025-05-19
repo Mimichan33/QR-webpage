@@ -188,7 +188,7 @@
 
     
     <!-- テーブル3（中央8名） -->
-    <div class="table" style="top: 90px; left: 200px; width: 60px; height: 180px;" id="table3">3</div>
+    <div class="table" style="top: 90px; left: 200px; width: 60px; height: 180px;" id="table8">8</div>
     <div class="chair" style="top: 80px; left: 190px;"></div>
     <div class="chair" style="top: 80px; left: 270px;"></div>
     <div class="chair" style="top: 130px; left: 190px;"></div>
@@ -221,43 +221,34 @@
     };
 
   const app = initializeApp(firebaseConfig);
-  const database = getDatabase(app);
+  const db = getFirestore(app);
 
-  // occupied 状態のテーブル一覧を取得して、色を変更
-  const occupiedTables = new Set();
+  async function updateTableColors() {
+    const querySnapshot = await getDocs(collection(db, "logs"));
+    const occupiedTables = new Set();
 
-  const logsRef = ref(database, 'logs'); // ← データベース構造に応じて変更
-  onValue(logsRef, (snapshot) => {
-    const data = snapshot.val();
-    occupiedTables.clear();
-
-    for (const key in data) {
-      const log = data[key];
-      if (log.type === "enter") {
-        occupiedTables.add(log.table);
-      }
-    }
-
-    // テーブルの色変更
-    document.querySelectorAll('.table, .table2').forEach(table => {
-      const id = table.id.replace('table', '');
-      if (occupiedTables.has(id)) {
-        table.style.backgroundColor = 'red';
-      } else {
-        table.style.backgroundColor = '#7b4a12';
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.type === "enter") {
+        occupiedTables.add(data.table);
+      } else if (data.type === "exit") {
+        occupiedTables.delete(data.table);
       }
     });
 
-    // 対応する椅子も赤くする（id属性で特定できる場合）
-    document.querySelectorAll('.chair').forEach(chair => {
-      const id = chair.id.replace('table', '');
-      if (occupiedTables.has(id)) {
-        chair.classList.add('occupied');
-      } else {
-        chair.classList.remove('occupied');
+    occupiedTables.forEach((tableNumber) => {
+      const table = document.getElementById(`table${tableNumber}`);
+      if (table) {
+        table.style.backgroundColor = "red";
       }
+
+      // 椅子にも色をつけたい場合
+      const chairs = document.querySelectorAll(`.chair[id="table${tableNumber}"]`);
+      chairs.forEach(chair => chair.classList.add("occupied"));
     });
-  });
+  }
+
+  updateTableColors();
 </script>
 </body>
 </html>
