@@ -25,10 +25,9 @@
       border: 2px solid #444;
     }
     
-    .table {
+    .table, .table2 {
       position: absolute;
       width: 80px;
-      height: 130px;
       background-color: #7b4a12;
       color: white;
       display: flex;
@@ -36,60 +35,39 @@
       justify-content: center;
       font-weight: bold;
       border-radius: 4px;
+    }
+
+    .table {
+      height: 130px;
     }
 
     .table2 {
-      position: absolute;
-      width: 80px;
       height: 90px;
-      background-color: #7b4a12;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      border-radius: 4px;
+    }
+
+    .table.occupied, .table2.occupied {
+      background-color: #b71c1c;
+    }
+
+    .border, .border2, .border3 {
+      position: absolute;
+      background-color: #000;
     }
 
     .border {
-      position: absolute;
       width: 170px;
       height: 2px;
-      background-color: #000000;
-      color: brack;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      border-radius: 4px;
     }
 
     .border2 {
-      position: absolute;
       width: 2px;
       height: 150px;
-      background-color: #000000;
-      color: brack;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      border-radius: 4px;
     }
 
     .border3 {
-      position: absolute;
       width: 2px;
       height: 100px;
-      background-color: #000000;
-      color: brack;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      border-radius: 4px;
     }
-
 
     .chair {
       position: absolute;
@@ -103,19 +81,9 @@
     .chair.occupied {
       background-color: red;
     }
-
-    .label {
-      position: absolute;
-      font-weight: bold;
-      background: #fff;
-      padding: 2px 5px;
-      border: 1px solid #333;
-      border-radius: 4px;
-      font-size: 12px;
-    }
   </style>
 
-<script>
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
       authDomain: "qr-visitor-log.firebaseapp.com",
@@ -129,57 +97,22 @@
     const db = firebase.firestore();
     const tableCounts = {};
 
-    function formatTimestamp(isoString) {
-      if (!isoString || typeof isoString !== "string") return "ー";
-      const date = new Date(isoString);
-      const options = {
-        timeZone: "Asia/Tokyo",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit"
-      };
-      return new Intl.DateTimeFormat("ja-JP", options).format(date).replace(/\//g, "-").replace(",", "");
-    }
-
-    function calculateElapsedTime(isoString) {
-      if (!isoString) return "";
-      const start = new Date(isoString);
-      const now = new Date();
-      const diffMs = now - start;
-      if (diffMs < 0) return "";
-      const minutes = Math.floor(diffMs / 60000);
-      const hours = Math.floor(minutes / 60);
-      const remainingMinutes = minutes % 60;
-      return hours > 0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
-    }
-
     function updateTableDisplays() {
       Object.keys(tableCounts).forEach(tableNum => {
         const t = tableCounts[tableNum];
         const currentCount = t.enter - t.exit;
-        const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
-        const status = currentCount > 0 ? "利用中" : "空席";
-        const timeText = formatTimestamp(timeToShow);
-        const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
-        const element = document.getElementById(`table${tableNum}-status`);
-        if (element) {
-          element.textContent = `${status}（${timeText}${elapsed}）`;
-        }
+        const isOccupied = currentCount > 0;
+
+        // テーブルと椅子にクラスを適用
+        document.querySelectorAll(`[data-table="${tableNum}"]`).forEach(el => {
+          el.classList.toggle("occupied", isOccupied);
+        });
       });
     }
 
     function countVisitors(snapshot) {
-      let entries = 0;
-      let exits = 0;
-
       for (let i = 1; i <= 7; i++) {
-        tableCounts[i.toString()] = {
-          enter: 0,
-          exit: 0,
-          lastEnterTime: null
-        };
+        tableCounts[i.toString()] = { enter: 0, exit: 0, lastEnterTime: null };
       }
 
       snapshot.forEach(doc => {
@@ -187,9 +120,6 @@
         const table = data.table;
         const timestamp = data.timestamp;
         if (!table || !timestamp) return;
-
-        if (data.type === "enter") entries++;
-        if (data.type === "exit") exits++;
 
         if (tableCounts[table]) {
           if (data.type === "enter") {
@@ -204,10 +134,6 @@
         }
       });
 
-      document.getElementById("count").textContent = entries - exits;
-      document.getElementById("entries").textContent = entries;
-      document.getElementById("exits").textContent = exits;
-
       updateTableDisplays();
     }
 
@@ -215,53 +141,50 @@
       db.collection("logs").onSnapshot(countVisitors);
       setInterval(updateTableDisplays, 60000);
     };
-    
   </script>
 </head>
 <body>
   <div class="floor" id="floor">
     <!-- テーブル1 -->
-    <div class="table" style="top: 140px; left: 30px;" id="table1">1</div>
-    <div class="chair" style="top: 155px; left: 10px;"></div>
-    <div class="chair" style="top: 155px; left: 112px;"></div>
-    <div class="chair" style="top: 195px; left: 10px;"></div>
-    <div class="chair" style="top: 195px; left: 112px;"></div>
-    <div class="chair" style="top: 235px; left: 10px;"></div>
-    <div class="chair" style="top: 235px; left: 112px;"></div>
+    <div class="table" style="top: 140px; left: 30px;" id="table1" data-table="1">1</div>
+    <div class="chair" style="top: 155px; left: 10px;" data-table="1"></div>
+    <div class="chair" style="top: 155px; left: 112px;" data-table="1"></div>
+    <div class="chair" style="top: 195px; left: 10px;" data-table="1"></div>
+    <div class="chair" style="top: 195px; left: 112px;" data-table="1"></div>
+    <div class="chair" style="top: 235px; left: 10px;" data-table="1"></div>
+    <div class="chair" style="top: 235px; left: 112px;" data-table="1"></div>
 
     <!-- テーブル2 -->
-    <div class="table2" style="top: 325px; left: 30px;" id="table2">2</div>
-    <div class="chair" style="top: 340px; left: 10px;"></div>
-    <div class="chair" style="top: 340px; left: 112px;"></div>
-    <div class="chair" style="top: 380px; left: 10px;"></div>
-    <div class="chair" style="top: 380px; left: 112px;"></div>
+    <div class="table2" style="top: 325px; left: 30px;" id="table2" data-table="2">2</div>
+    <div class="chair" style="top: 340px; left: 10px;" data-table="2"></div>
+    <div class="chair" style="top: 340px; left: 112px;" data-table="2"></div>
+    <div class="chair" style="top: 380px; left: 10px;" data-table="2"></div>
+    <div class="chair" style="top: 380px; left: 112px;" data-table="2"></div>
 
     <!-- テーブル3 -->
-    <div class="table2" style="top: 475px; left: 30px;" id="table3">3</div>
-    <div class="chair" style="top: 490px; left: 10px;"></div>
-    <div class="chair" style="top: 490px; left: 112px;"></div>
-    <div class="chair" style="top: 530px; left: 10px;"></div>
-    <div class="chair" style="top: 530px; left: 112px;"></div>
-
+    <div class="table2" style="top: 475px; left: 30px;" id="table3" data-table="3">3</div>
+    <div class="chair" style="top: 490px; left: 10px;" data-table="3"></div>
+    <div class="chair" style="top: 490px; left: 112px;" data-table="3"></div>
+    <div class="chair" style="top: 530px; left: 10px;" data-table="3"></div>
+    <div class="chair" style="top: 530px; left: 112px;" data-table="3"></div>
 
     <!-- テーブル4 -->
-    <div class="table" style="top: 40px; left: 680px;" id="table4">4</div>
-    <div class="chair" style="top: 55px; left: 660px;"></div>
-    <div class="chair" style="top: 55px; left: 762px;"></div>
-    <div class="chair" style="top: 95px; left: 660px;"></div>
-    <div class="chair" style="top: 95px; left: 762px;"></div>
-    <div class="chair" style="top: 135px; left: 660px;"></div>
-    <div class="chair" style="top: 135px; left: 762px;"></div>
-
+    <div class="table" style="top: 40px; left: 680px;" id="table4" data-table="4">4</div>
+    <div class="chair" style="top: 55px; left: 660px;" data-table="4"></div>
+    <div class="chair" style="top: 55px; left: 762px;" data-table="4"></div>
+    <div class="chair" style="top: 95px; left: 660px;" data-table="4"></div>
+    <div class="chair" style="top: 95px; left: 762px;" data-table="4"></div>
+    <div class="chair" style="top: 135px; left: 660px;" data-table="4"></div>
+    <div class="chair" style="top: 135px; left: 762px;" data-table="4"></div>
 
     <!-- テーブル5 -->
-    <div class="table" style="top: 240px; left: 680px;" id="table5">5</div>
-    <div class="chair" style="top: 255px; left: 660px;"></div>
-    <div class="chair" style="top: 255px; left: 762px;"></div>
-    <div class="chair" style="top: 295px; left: 660px;"></div>
-    <div class="chair" style="top: 295px; left: 762px;"></div>
-    <div class="chair" style="top: 335px; left: 660px;"></div>
-    <div class="chair" style="top: 335px; left: 762px;"></div>
+    <div class="table" style="top: 240px; left: 680px;" id="table5" data-table="5">5</div>
+    <div class="chair" style="top: 255px; left: 660px;" data-table="5"></div>
+    <div class="chair" style="top: 255px; left: 762px;" data-table="5"></div>
+    <div class="chair" style="top: 295px; left: 660px;" data-table="5"></div>
+    <div class="chair" style="top: 295px; left: 762px;" data-table="5"></div>
+    <div class="chair" style="top: 335px; left: 660px;" data-table="5"></div>
+    <div class="chair" style="top: 335px; left: 762px;" data-table="5"></div>
 
     <!--　縦棒-->
     <div class="border3" style="top: 0px; left: 630px;"></div>
