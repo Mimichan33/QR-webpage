@@ -2,115 +2,107 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>店舗テーブル状況</title>
+  <title>店舗レイアウト</title>
   <style>
     body {
-      background-color: #f5deb3;
+      background-color: #f0e4d7;
       font-family: sans-serif;
-    }
-    .floor {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 20px;
-      padding: 40px;
-    }
-    .table {
       position: relative;
-      width: 100px;
-      height: 100px;
-      background-color: green;
-      border-radius: 10px;
+      margin: 0;
+      padding: 0;
+    }
+
+    .floor {
+      position: relative;
+      width: 800px;
+      height: 600px;
+      margin: 20px auto;
+      background-color: #f7e3c5;
+      border: 2px solid #444;
+    }
+
+    .table {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      background-color: #7b4a12;
+      color: white;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
       font-weight: bold;
-      transition: background-color 0.3s;
+      border-radius: 4px;
     }
-    .occupied {
-      background-color: red !important;
+
+    .chair {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: green;
+      border: 1px solid #000;
     }
-    .vacant {
-      background-color: green !important;
+
+    .chair.occupied {
+      background-color: red;
     }
+
     .label {
       position: absolute;
-      bottom: -20px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 14px;
-      color: #333;
+      font-weight: bold;
+      background: #fff;
+      padding: 2px 5px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
-  <h1 style="text-align:center">店舗テーブル状況</h1>
-  <div class="floor">
-    <div class="table" data-table="1">1</div>
-    <div class="table" data-table="2">2</div>
-    <div class="table" data-table="3">3</div>
-    <div class="table" data-table="4">4</div>
-    <div class="table" data-table="5">5</div>
-    <div class="table" data-table="6">6</div>
-    <div class="table" data-table="7">7</div>
-    <div class="table" data-table="8">8</div>
-    <div class="table" data-table="9">9</div>
-    <div class="table" data-table="10">10</div>
+  <div class="floor" id="floor">
+    <!-- テーブル1 -->
+    <div class="table" style="top: 40px; left: 30px;" id="table1">1</div>
+    <div class="chair" style="top: 25px; left: 50px;"></div>
+    <div class="chair" style="top: 125px; left: 50px;"></div>
+    <div class="chair" style="top: 65px; left: 10px;"></div>
+    <div class="chair" style="top: 65px; left: 90px;"></div>
+
+    <!-- テーブル2 -->
+    <div class="table" style="top: 140px; left: 30px;" id="table2">2</div>
+    <div class="chair" style="top: 125px; left: 50px;"></div>
+    <div class="chair" style="top: 225px; left: 50px;"></div>
+    <div class="chair" style="top: 165px; left: 10px;"></div>
+    <div class="chair" style="top: 165px; left: 90px;"></div>
+
+    <!-- テーブル3（中央8名） -->
+    <div class="table" style="top: 90px; left: 200px; width: 60px; height: 180px;" id="table3">3</div>
+    <div class="chair" style="top: 80px; left: 190px;"></div>
+    <div class="chair" style="top: 80px; left: 270px;"></div>
+    <div class="chair" style="top: 130px; left: 190px;"></div>
+    <div class="chair" style="top: 130px; left: 270px;"></div>
+    <div class="chair" style="top: 180px; left: 190px;"></div>
+    <div class="chair" style="top: 180px; left: 270px;"></div>
+
+    <!-- スタッフエリア -->
+    <div class="label" style="top: 90px; left: 280px; width: 100px; text-align: center;">スタッフ</div>
+
+    <!-- WC -->
+    <div class="label" style="top: 20px; left: 110px;">WC</div>
+    <div class="label" style="top: 460px; left: 620px;">WC</div>
+
+    <!-- 入り口 -->
+    <div class="label" style="top: 0px; left: 370px;">入口</div>
   </div>
 
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID",
-      databaseURL: "YOUR_DB_URL"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    function updateTableColors() {
-      const logsRef = ref(db, 'logs');
-
-      onValue(logsRef, (snapshot) => {
-        const logs = snapshot.val();
-        const latestStatus = {};
-
-        for (const key in logs) {
-          const { table, type, time } = logs[key];
-          if (!latestStatus[table] || latestStatus[table].time < time) {
-            latestStatus[table] = { type, time };
-          }
-        }
-
-        document.querySelectorAll('.table').forEach(tableDiv => {
-          const tableNum = tableDiv.getAttribute('data-table');
-          const status = latestStatus[tableNum];
-
-          tableDiv.classList.remove('occupied', 'vacant');
-
-          if (status) {
-            if (status.type === 'enter') {
-              tableDiv.classList.add('occupied');
-            } else {
-              tableDiv.classList.add('vacant');
-            }
-          } else {
-            tableDiv.classList.add('vacant');
-          }
-        });
+  <script>
+    // 椅子のクリックで状態変更（赤⇔緑）
+    document.querySelectorAll('.chair').forEach(chair => {
+      chair.addEventListener('click', () => {
+        chair.classList.toggle('occupied');
       });
-    }
-
-    updateTableColors();
+    });
   </script>
 </body>
 </html>
+
 
