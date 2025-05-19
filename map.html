@@ -92,28 +92,23 @@
       font-size: 12px;
     }
 
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-    
-    .map-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      width: 100vw;
-      overflow: auto;
-      background-color: #f8f8f8;
-    }
+    body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* 画面の高さいっぱいに */
+    margin: 0;
+    background-color: #f5f5f5; /* 背景色は任意 */
+  }
 
-    .map-image {
-      max-width: 100%;
-      max-height: 100%;
-      height: auto;
-      width: auto;
-      display: block;
-    }
+  .map-container {
+    position: relative;
+    width: 800px;   /* マップの横幅 */
+    height: 600px;  /* マップの高さ */
+    background-color: white;
+    border: 1px solid #ccc;
+    overflow: hidden;
+  }
   </style>
 
   <script>
@@ -177,9 +172,8 @@
   </script>
 </head>
 <body>
+
   <div class="map-container">
-    <img src="map.png" alt="Map Image" class="map-image">
-  </div>
   <div class="floor" id="floor">
     <!-- テーブル1 -->
     <div class="table" style="top: 140px; left: 30px;" id="table1" data-table="1">1</div>
@@ -270,6 +264,7 @@
 
     <!-- 入り口 -->
     <div class="label" style="top: 0px; left: 370px;">入口</div>
+  </div>
   </div>
 
 </body>
