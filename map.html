@@ -91,6 +91,29 @@
       border-radius: 4px;
       font-size: 12px;
     }
+
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    
+    .map-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      overflow: auto;
+      background-color: #f8f8f8;
+    }
+
+    .map-image {
+      max-width: 100%;
+      max-height: 100%;
+      height: auto;
+      width: auto;
+      display: block;
+    }
   </style>
 
   <script>
@@ -154,6 +177,9 @@
   </script>
 </head>
 <body>
+  <div class="map-container">
+    <img src="map.png" alt="Map Image" class="map-image">
+  </div>
   <div class="floor" id="floor">
     <!-- テーブル1 -->
     <div class="table" style="top: 140px; left: 30px;" id="table1" data-table="1">1</div>
@@ -216,7 +242,7 @@
     <div class="chair" style="top: 565px; left: 762px;" data-table="6"></div>
 
 
-    <!-- テーブル6 -->
+    <!-- テーブル7 -->
     <div class="table" style="top: 470px; left: 480px;" id="table7" data-table="7">7</div>
     <div class="chair" style="top: 485px; left: 460px;" data-table="7"></div>
     <div class="chair" style="top: 485px; left: 562px;" data-table="7"></div>
