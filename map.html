@@ -175,7 +175,35 @@
         tableStatus[i] = (enterLog[i] || 0) - (exitLog[i] || 0);
       }
 
-      updateTableDisplay();
+      function updateTableDisplay() {
+  for (let i = 1; i <= totalTables; i++) {
+    const elem = document.getElementById(`table-${i}`);
+    if (!elem) continue;
+
+    const count = tableStatus[i] || 0;
+
+    // 椅子のHTML（テーブル1のみ表示）
+    const chairsHTML = (i === 1) ? `
+      <div class="chair-container">
+        <div class="chair"></div>
+        <div class="chair"></div>
+        <div class="chair"></div>
+        <div class="chair"></div>
+      </div>` : '';
+
+    if (count > 0) {
+      elem.classList.remove("available");
+      elem.classList.add("occupied");
+      elem.innerHTML = `✕ ${i}番台${chairsHTML}`;
+    } else {
+      elem.classList.remove("occupied");
+      elem.classList.add("available");
+      elem.innerHTML = `◯ ${i}番台${chairsHTML}`;
+    }
+  }
+}
+
+    
     }
 
     window.onload = () => {
