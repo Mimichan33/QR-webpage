@@ -62,6 +62,7 @@
 
     .table {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       font-weight: bold;
@@ -79,41 +80,19 @@
       background-color: #f8a5a5;
     }
 
-    /* Table 1 用の椅子装飾 */
-    #table-1 {
-      position: relative;
+    .chair-container {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
 
     .chair {
-      width: 20px;
-      height: 20px;
+      width: 15px;
+      height: 15px;
       background-color: #555;
       border-radius: 50%;
-      position: absolute;
-    }
-
-    .chair.top {
-      top: -15px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-
-    .chair.bottom {
-      bottom: -15px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-
-    .chair.left {
-      left: -15px;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-
-    .chair.right {
-      right: -15px;
-      top: 50%;
-      transform: translateY(-50%);
     }
   </style>
 
@@ -139,14 +118,23 @@
         if (!elem) continue;
 
         const count = tableStatus[i] || 0;
+
+        const chairsHTML = (i === 1) ? `
+          <div class="chair-container">
+            <div class="chair"></div>
+            <div class="chair"></div>
+            <div class="chair"></div>
+            <div class="chair"></div>
+          </div>` : '';
+
         if (count > 0) {
           elem.classList.remove("available");
           elem.classList.add("occupied");
-          elem.textContent = `✕ ${i}番台`;
+          elem.innerHTML = `✕ ${i}番台${chairsHTML}`;
         } else {
           elem.classList.remove("occupied");
           elem.classList.add("available");
-          elem.textContent = `◯ ${i}番台`;
+          elem.innerHTML = `◯ ${i}番台${chairsHTML}`;
         }
       }
     }
@@ -175,35 +163,7 @@
         tableStatus[i] = (enterLog[i] || 0) - (exitLog[i] || 0);
       }
 
-      function updateTableDisplay() {
-  for (let i = 1; i <= totalTables; i++) {
-    const elem = document.getElementById(`table-${i}`);
-    if (!elem) continue;
-
-    const count = tableStatus[i] || 0;
-
-    // 椅子のHTML（テーブル1のみ表示）
-    const chairsHTML = (i === 1) ? `
-      <div class="chair-container">
-        <div class="chair"></div>
-        <div class="chair"></div>
-        <div class="chair"></div>
-        <div class="chair"></div>
-      </div>` : '';
-
-    if (count > 0) {
-      elem.classList.remove("available");
-      elem.classList.add("occupied");
-      elem.innerHTML = `✕ ${i}番台${chairsHTML}`;
-    } else {
-      elem.classList.remove("occupied");
-      elem.classList.add("available");
-      elem.innerHTML = `◯ ${i}番台${chairsHTML}`;
-    }
-  }
-
-
-    
+      updateTableDisplay();
     }
 
     window.onload = () => {
@@ -231,13 +191,7 @@
 
   <main>
     <div class="map-grid">
-      <div id="table-1" class="table">
-        読み込み中...
-        <div class="chair top"></div>
-        <div class="chair bottom"></div>
-        <div class="chair left"></div>
-        <div class="chair right"></div>
-      </div>
+      <div id="table-1" class="table">読み込み中...</div>
       <div id="table-2" class="table">読み込み中...</div>
       <div id="table-3" class="table">読み込み中...</div>
       <div id="table-4" class="table">読み込み中...</div>
@@ -248,4 +202,3 @@
   </main>
 </body>
 </html>
-
