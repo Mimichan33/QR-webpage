@@ -206,14 +206,60 @@
     <div class="label" style="top: 0px; left: 370px;">入口</div>
   </div>
 
-  <script>
-    // 椅子のクリックで状態変更（赤⇔緑）
-    document.querySelectorAll('.chair').forEach(chair => {
-      chair.addEventListener('click', () => {
-        chair.classList.toggle('occupied');
-      });
+  <script type="module">
+  // Firebaseの初期化
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const database = getDatabase(app);
+
+  // occupied 状態のテーブル一覧を取得して、色を変更
+  const occupiedTables = new Set();
+
+  const logsRef = ref(database, 'logs'); // ← データベース構造に応じて変更
+  onValue(logsRef, (snapshot) => {
+    const data = snapshot.val();
+    occupiedTables.clear();
+
+    for (const key in data) {
+      const log = data[key];
+      if (log.type === "enter") {
+        occupiedTables.add(log.table);
+      }
+    }
+
+    // テーブルの色変更
+    document.querySelectorAll('.table, .table2').forEach(table => {
+      const id = table.id.replace('table', '');
+      if (occupiedTables.has(id)) {
+        table.style.backgroundColor = 'red';
+      } else {
+        table.style.backgroundColor = '#7b4a12';
+      }
     });
-  </script>
+
+    // 対応する椅子も赤くする（id属性で特定できる場合）
+    document.querySelectorAll('.chair').forEach(chair => {
+      const id = chair.id.replace('table', '');
+      if (occupiedTables.has(id)) {
+        chair.classList.add('occupied');
+      } else {
+        chair.classList.remove('occupied');
+      }
+    });
+  });
+</script>
 </body>
 </html>
 
