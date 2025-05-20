@@ -9,20 +9,31 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <style>
     body {
-      background-color: #f0e4d7;
-      font-family: sans-serif;
-      position: relative;
       margin: 0;
       padding: 0;
+      background-color: #f0e4d7;
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: auto;
     }
 
     .floor {
       position: relative;
       width: 800px;
       height: 600px;
-      margin: 20px auto;
       background-color: #f7e3c5;
       border: 2px solid #444;
+      transform: scale(1);
+      transform-origin: top left;
+    }
+
+    @media (max-width: 820px) {
+      .floor {
+        transform: scale(calc(100vw / 820)); /* 800px + padding的余裕を含めて縮小 */
+      }
     }
     
     .table, .table2 {
