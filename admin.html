@@ -149,57 +149,43 @@
       return d.toLocaleString("ja-JP", options);
     }
 
-   function watchQueue() {
+    function renderQueue() {
       db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
         const allDocs = snapshot.docs;
         const waitingList = allDocs.filter(doc => doc.data().status === "waiting");
-        const selfDoc = snapshot.docs.find(doc => doc.id === myDocId);
+        const list = document.getElementById("queueList");
+        list.innerHTML = "";
 
-        if (!selfDoc) return;
-        const selfData = selfDoc.data();
-
-        if (selfData.status === "expired") {
-          location.href = "expired.html";
-          return;
-        } else if (selfData.status === "entered") {
-          location.href = "admit.html";
-          return;
-        }
-
-        // 番号札固定
         allDocs.forEach((doc, index) => {
           if (!(doc.id in ticketMap)) {
             ticketMap[doc.id] = index + 1;
           }
         });
 
-        myIndex = ticketMap[myDocId];
-        const peopleAhead = waitingList.filter(doc => ticketMap[doc.id] < myIndex).length;
+        waitingList.forEach(doc => {
+          const data = doc.data();
+          const ticketNumber = ticketMap[doc.id] || "?";
 
-        // 🔁 予想待ち時間 = 人数×30 + 基本30分
-        const estimated = (peopleAhead * 30) + 30;
-
-        document.getElementById("ticketNumber").textContent = 番号札:  No. ${myIndex};
-
-        const peopleAheadElement = document.getElementById("peopleAhead");
-        if (peopleAhead === 0) {
-          peopleAheadElement.innerHTML = 次はあなたの番です<br><span style="font-size:14px;">It's your turn next</span>;
-        } else {
-        peopleAheadElement.textContent = ${peopleAhead}人;
-        }
-
-        document.getElementById("estimatedTime").innerHTML = 
-          約${estimated}分<br>
-          <div style="margin-top: 10px; font-size: 14px; color: #c0392b;">
-            <br>※5分以内に来店しない場合、自動キャンセルされます<br>
-            <span style="font-size:13px;">*Your spot will be automatically cancelled if you don't arrive within 5 minutes.</span>
-          </div>
-        ;
+          const item = document.createElement("div");
+          item.className = "queue-item";
+          item.innerHTML = 
+            <p><strong>番号札:</strong> ${ticketNumber}</p>
+            <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
+            <div class="btn-group">
+              <button class="btn-enter">入店確定</button>
+              <button class="btn-exit">退店</button>
+            </div>
+          ;
+          item.querySelector(".btn-enter").onclick = () => {
+            db.collection("queue").doc(doc.id).update({ status: "entered" });
+          };
+          item.querySelector(".btn-exit").onclick = () => {
+            db.collection("queue").doc(doc.id).update({ status: "expired" });
+          };
+          list.appendChild(item);
+        });
       });
     }
-
-
-
   window.onload = () => {
     document.getElementById("mainTitle").style.display = "block";
     renderQueue();
