@@ -184,10 +184,8 @@
           };
 
           item.querySelector(".btn-complete").onclick = () => {
-  db.collection("queue").doc(doc.id).update({ status: "done" }).then(() => {
     // 完了後に要素を削除
     item.remove();
-  });
 };
           
           item.querySelector(".btn-exit").onclick = () => {
