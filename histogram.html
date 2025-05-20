@@ -299,14 +299,12 @@
             backgroundColor: "#4a90e2"
           }]
         },
-        options: {
+                options: {
           responsive: true,
           maintainAspectRatio: false,
           scales: {
             y: {
-              beginAtZero: true,
-              suggestedMax: 10,
-              stepSize: 1
+              beginAtZero: true
             }
           }
         }
@@ -314,22 +312,45 @@
 
       const tbody = document.getElementById("logTableBody");
       tbody.innerHTML = "";
-      for (const d of details) {
-        tbody.innerHTML += `
-          <tr>
-            <td>${d.date}</td>
-            <td>${d.slot}</td>
-            <td>${d.table}</td>
-            <td>${d.stay}</td>
-            <td>${d.enter}</td>
-            <td>${d.exit}</td>
-          </tr>`;
-      }
+      details.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.date}</td>
+          <td>${row.slot}</td>
+          <td>${row.table}</td>
+          <td>${row.stay}</td>
+          <td>${row.enter}</td>
+          <td>${row.exit}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
+
+    document.getElementById("datePicker").valueAsDate = new Date();
 
     document.getElementById("datePicker").addEventListener("change", updateChartAndTable);
     document.getElementById("interval").addEventListener("change", updateChartAndTable);
     document.getElementById("rangeType").addEventListener("change", updateChartAndTable);
+
+    document.getElementById("downloadCSV").addEventListener("click", () => {
+      const rows = [["日付", "時間帯", "テーブル番号", "滞在時間", "入店時間", "退店時間"]];
+      const trs = document.querySelectorAll("#logTableBody tr");
+      trs.forEach(tr => {
+        const cols = [...tr.children].map(td => td.textContent);
+        rows.push(cols);
+      });
+
+      const csv = rows.map(row => row.join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "logs.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    window.addEventListener("DOMContentLoaded", updateChartAndTable);
   </script>
 </body>
 </html>
