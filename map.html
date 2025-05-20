@@ -158,6 +158,7 @@
     window.onload = () => {
       db.collection("logs").onSnapshot(countVisitors);
       setInterval(updateTableDisplays, 60000);
+      watchWaitingCount();
     };
   </script>
 </head>
@@ -257,6 +258,9 @@
   <div style="width: 140px; height: 80px; background: #ffffff; border: 2px solid #555; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 2px 2px 8px rgba(0,0,0,0.2);">
     <strong>待機人数</strong>
     <span id="waitingCount" style="font-size: 24px; font-weight: bold; color: #e74c3c;">--</span>
+    <div class="label" style="top: 10px; left: 10px;">
+  待ち人数: <span id="waitingCount">0</span>人
+</div>
   </div>
 </div>
   </div>
