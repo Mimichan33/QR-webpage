@@ -149,53 +149,62 @@
       return d.toLocaleString("ja-JP", options);
     }
 
-function renderQueue() {
+  function renderQueue() {
   db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
     const allDocs = snapshot.docs;
-    // 「waiting」「entered」のみを表示対象にする（expiredは除外）
-    const visibleList = allDocs.filter(doc => ["waiting", "entered"].includes(doc.data().status));
-
     const list = document.getElementById("queueList");
     list.innerHTML = "";
 
     allDocs.forEach((doc, index) => {
-      if (!(doc.id in ticketMap)) {
-        ticketMap[doc.id] = index + 1;
-      }
-    });
-
-    visibleList.forEach(doc => {
       const data = doc.data();
-      const ticketNumber = ticketMap[doc.id] || "?";
+      const status = data.status;
+      const ticketId = doc.id;
+
+      // expired（キャンセル済）は非表示
+      if (status === "expired") return;
 
       const item = document.createElement("div");
       item.className = "queue-item";
       item.innerHTML = `
-        <p><strong>番号札:</strong> ${ticketNumber}</p>
+        <p><strong>番号札:</strong> ${index + 1}</p>
         <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
-        <p><strong>状態:</strong> ${data.status === "entered" ? "入店中" : "待機中"}</p>
-        <div class="btn-group">
-          ${data.status === "waiting" ? '<button class="btn-enter-waiting">入店待ち</button>' : ""}
-          <button class="btn-exit">${data.status === "entered" ? "キャンセル" : "退店"}</button>
-        </div>
+        <div class="btn-group"></div>
       `;
 
-      // 「入店待ち」ボタンが押されたら「入店」状態に変更
-      if (data.status === "waiting") {
-        item.querySelector(".btn-enter-waiting").onclick = () => {
-          db.collection("queue").doc(doc.id).update({ status: "entered" });
+      const btnGroup = item.querySelector(".btn-group");
+
+      // 状態に応じたボタン表示
+      if (status === "waiting") {
+        const callBtn = document.createElement("button");
+        callBtn.textContent = "入店通知";
+        callBtn.onclick = () => {
+          db.collection("queue").doc(ticketId).update({ status: "called" });
         };
+        btnGroup.appendChild(callBtn);
       }
 
-      // 「退店」「キャンセル」ボタンが押されたらexpiredにして非表示
-      item.querySelector(".btn-exit").onclick = () => {
-        db.collection("queue").doc(doc.id).update({ status: "expired" });
+      if (status === "called") {
+        const admitBtn = document.createElement("button");
+        admitBtn.textContent = "入店確定";
+        admitBtn.onclick = () => {
+          db.collection("queue").doc(ticketId).delete(); // 削除
+        };
+        btnGroup.appendChild(admitBtn);
+      }
+
+      // どの状態でも表示するキャンセルボタン
+      const cancelBtn = document.createElement("button");
+      cancelBtn.textContent = "キャンセル";
+      cancelBtn.onclick = () => {
+        db.collection("queue").doc(ticketId).update({ status: "expired" });
       };
+      btnGroup.appendChild(cancelBtn);
 
       list.appendChild(item);
     });
   });
 }
+
 
   window.onload = () => {
     document.getElementById("mainTitle").style.display = "block";
