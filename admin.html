@@ -151,56 +151,61 @@
 
   function renderQueue() {
   db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
-    const allDocs = snapshot.docs;
     const list = document.getElementById("queueList");
     list.innerHTML = "";
 
-    allDocs.forEach((doc, index) => {
+    snapshot.forEach(doc => {
       const data = doc.data();
-      const status = data.status;
       const ticketId = doc.id;
-
-      // expired（キャンセル済）は非表示
-      if (status === "expired") return;
+      const status = data.status;
 
       const item = document.createElement("div");
       item.className = "queue-item";
       item.innerHTML = `
-        <p><strong>番号札:</strong> ${index + 1}</p>
-        <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
-        <div class="btn-group"></div>
+        <p><strong>番号札:</strong> ${ticketId}</p>
+        <div class="btn-group" id="btns-${ticketId}"></div>
       `;
 
-      const btnGroup = item.querySelector(".btn-group");
+      list.appendChild(item);
 
-      // 状態に応じたボタン表示
+      const btnGroup = item.querySelector(`#btns-${ticketId}`);
+
+      // 入店通知前の状態：ボタン「入店通知」「キャンセル」を表示
       if (status === "waiting") {
         const callBtn = document.createElement("button");
         callBtn.textContent = "入店通知";
         callBtn.onclick = () => {
+          // ボタン置き換え
           db.collection("queue").doc(ticketId).update({ status: "called" });
         };
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.textContent = "キャンセル";
+        cancelBtn.onclick = () => {
+          db.collection("queue").doc(ticketId).update({ status: "expired" });
+        };
+
         btnGroup.appendChild(callBtn);
+        btnGroup.appendChild(cancelBtn);
       }
 
+      // 入店通知後の状態：「入店確定」「キャンセル」ボタンに置き換える
       if (status === "called") {
         const admitBtn = document.createElement("button");
         admitBtn.textContent = "入店確定";
         admitBtn.onclick = () => {
-          db.collection("queue").doc(ticketId).delete(); // 削除
+          db.collection("queue").doc(ticketId).delete(); // 入店確定で削除
         };
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.textContent = "キャンセル";
+        cancelBtn.onclick = () => {
+          db.collection("queue").doc(ticketId).update({ status: "expired" });
+        };
+
         btnGroup.appendChild(admitBtn);
+        btnGroup.appendChild(cancelBtn);
       }
-
-      // どの状態でも表示するキャンセルボタン
-      const cancelBtn = document.createElement("button");
-      cancelBtn.textContent = "キャンセル";
-      cancelBtn.onclick = () => {
-        db.collection("queue").doc(ticketId).update({ status: "expired" });
-      };
-      btnGroup.appendChild(cancelBtn);
-
-      list.appendChild(item);
     });
   });
 }
