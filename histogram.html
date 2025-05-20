@@ -130,6 +130,14 @@
         <option value="30">30分</option>
         <option value="10">10分</option>
       </select>
+      表示単位:
+      <select id="rangeType">
+        <option value="day" selected>日</option>
+        <option value="week">週</option>
+        <option value="month">月</option>
+      </select>
+
+    <button id="downloadCSV">CSVダウンロード</button>
     </div>
     <div class="chart-container">
       <canvas id="histogram"></canvas>
@@ -178,96 +186,142 @@
       return slots;
     }
 
+    function getDateRange(rangeType, baseDateStr) {
+  const baseDate = new Date(baseDateStr + "T00:00:00+09:00");
+  let start, end;
+
+  if (rangeType === "day") {
+    start = new Date(baseDate);
+    end = new Date(baseDate);
+    end.setHours(23, 59, 59);
+  } else if (rangeType === "week") {
+    const day = baseDate.getDay(); // 0:日曜, 1:月曜...
+    const diff = day === 0 ? 6 : day - 1; // 月曜始まりに調整
+    start = new Date(baseDate);
+    start.setDate(baseDate.getDate() - diff);
+    end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59);
+  } else if (rangeType === "month") {
+    start = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+    end = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
+    end.setHours(23, 59, 59);
+  }
+
+  return {
+    startISO: start.toISOString(),
+    endISO: end.toISOString()
+  };
+}
+
     function formatTime(dt) {
       return dt.toLocaleString("ja-JP", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo' });
     }
 
-    async function updateChartAndTable() {
-      const date = document.getElementById("datePicker").value;
-      const interval = parseInt(document.getElementById("interval").value);
-      if (!date) return;
+async function updateChartAndTable() {
+  const date = document.getElementById("datePicker").value;
+  const interval = parseInt(document.getElementById("interval").value);
+  const rangeType = document.getElementById("rangeType").value;
+  if (!date) return;
 
-      const startOfDay = new Date(`${date}T00:00:00+09:00`).toISOString();
-      const endOfDay = new Date(`${date}T23:59:59+09:00`).toISOString();
-      const snapshot = await db.collection("logs")
-        .where("timestamp", ">=", startOfDay)
-        .where("timestamp", "<=", endOfDay)
-        .orderBy("timestamp")
-        .get();
+  const { startISO, endISO } = getDateRange(rangeType, date);
+  const snapshot = await db.collection("logs")
+    .where("timestamp", ">=", startISO)
+    .where("timestamp", "<=", endISO)
+    .orderBy("timestamp")
+    .get();
 
-      const logs = snapshot.docs.map(doc => doc.data());
-      const enters = logs.filter(log => log.type === "enter");
-      const exits = logs.filter(log => log.type === "exit");
+  const logs = snapshot.docs.map(doc => doc.data());
+  const enters = logs.filter(log => log.type === "enter");
+  const exits = logs.filter(log => log.type === "exit");
 
-      const slots = getTimeSlots(interval);
-      const counts = Array(slots.length).fill(0);
-      const details = [];
+  const slots = getTimeSlots(interval);
+  const counts = Array(slots.length).fill(0);
+  const details = [];
 
-      enters.forEach(entry => {
-        const table = entry.table;
-        const enterTime = new Date(entry.timestamp);
-        const exit = exits.find(e => e.table === table && new Date(e.timestamp) > enterTime);
-        const exitTime = exit ? new Date(exit.timestamp) : null;
+  enters.forEach(entry => {
+    const table = entry.table;
+    const enterTime = new Date(entry.timestamp);
+    const exit = exits.find(e => e.table === table && new Date(e.timestamp) > enterTime);
+    const exitTime = exit ? new Date(exit.timestamp) : null;
 
-        const minutes = enterTime.getHours() * 60 + enterTime.getMinutes();
-        const slotIndex = Math.floor(minutes / interval);
-        if (counts[slotIndex] !== undefined) counts[slotIndex]++;
+    const minutes = enterTime.getHours() * 60 + enterTime.getMinutes();
+    const slotIndex = Math.floor(minutes / interval);
+    if (counts[slotIndex] !== undefined) counts[slotIndex]++;
 
-        const stay = exitTime ? Math.floor((exitTime - enterTime) / 60000) : null;
-        details.push({
-          date,
-          table,
-          slot: slots[slotIndex],
-          stay: stay !== null ? `${Math.floor(stay / 60)}時間${stay % 60}分` : "退店未登録",
-          enter: enterTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }),
-          exit: exitTime ? exitTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }) : "--"
-        });
-      });
+    const stay = exitTime ? Math.floor((exitTime - enterTime) / 60000) : null;
+    details.push({
+      date: enterTime.toLocaleDateString("ja-JP", { timeZone: 'Asia/Tokyo' }),
+      table,
+      slot: slots[slotIndex],
+      stay: stay !== null ? `${Math.floor(stay / 60)}時間${stay % 60}分` : "退店未登録",
+      enter: enterTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }),
+      exit: exitTime ? exitTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }) : "--"
+    });
+  });
 
-      // ソート
-      details.reverse();
+  details.reverse();
 
-      const ctx = document.getElementById("histogram").getContext("2d");
-      if (chart) chart.destroy();
-      chart = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: slots,
-          datasets: [{
-            label: "入店者数",
-            data: counts,
-            backgroundColor: "#4a90e2"
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              suggestedMax: 10,
-              stepSize: 1
-            }
-          }
+  const ctx = document.getElementById("histogram").getContext("2d");
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: slots,
+      datasets: [{
+        label: "入店者数",
+        data: counts,
+        backgroundColor: "#4a90e2"
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          suggestedMax: 10,
+          stepSize: 1
         }
-      });
-
-      // 表描画
-      const tbody = document.getElementById("logTableBody");
-      tbody.innerHTML = "";
-      for (const d of details) {
-        tbody.innerHTML += `
-          <tr>
-            <td>${d.date}</td>
-            <td>${d.slot}</td>
-            <td>${d.table}</td>
-            <td>${d.stay}</td>
-            <td>${d.enter}</td>
-            <td>${d.exit}</td>
-          </tr>
-        `;
       }
     }
+  });
+
+  const tbody = document.getElementById("logTableBody");
+  tbody.innerHTML = "";
+  for (const d of details) {
+    tbody.innerHTML += `
+      <tr>
+        <td>${d.date}</td>
+        <td>${d.slot}</td>
+        <td>${d.table}</td>
+        <td>${d.stay}</td>
+        <td>${d.enter}</td>
+        <td>${d.exit}</td>
+      </tr>
+    `;
+  }
+
+  // CSVデータ保持用にグローバルで保存
+  window.latestDetails = details;
+}
+    document.getElementById("downloadCSV").addEventListener("click", () => {
+  const rows = [["日付", "時間帯", "テーブル番号", "滞在時間", "入店時間", "退店時間"]];
+  (window.latestDetails || []).forEach(d => {
+    rows.push([d.date, d.slot, d.table, d.stay, d.enter, d.exit]);
+  });
+
+  const csvContent = rows.map(r => r.join(",")).join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "混雑データ.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+
 
     document.addEventListener("DOMContentLoaded", () => {
       const today = new Date().toISOString().split("T")[0];
@@ -276,6 +330,8 @@
 
       document.getElementById("datePicker").addEventListener("change", updateChartAndTable);
       document.getElementById("interval").addEventListener("change", updateChartAndTable);
+      document.getElementById("rangeType").addEventListener("change", updateChartAndTable);
+
     });
   </script>
 </body>
