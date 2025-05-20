@@ -168,14 +168,16 @@
 
           const item = document.createElement("div");
           item.className = "queue-item";
-          item.innerHTML = 
-            <p><strong>番号札:</strong> ${ticketNumber}</p>
-            <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
-            <div class="btn-group">
-              <button class="btn-enter">入店確定</button>
-              <button class="btn-exit">退店</button>
-            </div>
-          ;
+          item.innerHTML = `
+  <p><strong>番号札:</strong> ${ticketNumber}</p>
+  <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
+  <div class="btn-group">
+    <button class="btn-enter">入店確定</button>
+    <button class="btn-exit">退店</button>
+  </div>
+`;
+
+
           item.querySelector(".btn-enter").onclick = () => {
             db.collection("queue").doc(doc.id).update({ status: "entered" });
           };
