@@ -181,37 +181,29 @@ waitingList.forEach(doc => {
   const notifyBtn = item.querySelector(".btn-notify");
   const exitBtn = item.querySelector(".btn-exit");
 
-  notifyBtn.addEventListener("click", () => {
-    // ステータスを "called" に更新（wait.html側で検知して admit.html に遷移する）
-    db.collection("queue").doc(doc.id).update({ status: "called" });
+notifyBtn.addEventListener("click", () => {
+  // 1. Firestoreのstatusを"called"に更新
+  db.collection("queue").doc(doc.id).update({ status: "called" }).then(() => {
+    console.log("Status updated to 'called'");
 
-    // ボタンを切り替える
+    // 2. ボタンを切り替え（入店確定とキャンセルに）
     const btnGroup = notifyBtn.parentElement;
     btnGroup.innerHTML = `
       <button class="btn-confirm">入店確定</button>
       <button class="btn-exit">キャンセル</button>
     `;
 
-    // 入店確定ボタン：データを削除（画面からも消える）
+    // 3. 入店確定ボタン：Firestoreから削除
     btnGroup.querySelector(".btn-confirm").addEventListener("click", () => {
       db.collection("queue").doc(doc.id).delete();
     });
 
-    // 再設定されたキャンセルボタン：status を expired に（wait.html → expired.html）
+    // 4. キャンセルボタン："expired" に更新
     btnGroup.querySelector(".btn-exit").addEventListener("click", () => {
       db.collection("queue").doc(doc.id).update({ status: "expired" });
     });
   });
-
-  // 初期状態のキャンセルボタン（まだ通知してない段階）
-  exitBtn.addEventListener("click", () => {
-    db.collection("queue").doc(doc.id).update({ status: "expired" });
-  });
-
-  list.appendChild(item);
 });
-  });
-}
 
 
 
