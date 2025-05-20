@@ -182,11 +182,6 @@
           item.querySelector(".btn-enter").onclick = () => {
             db.collection("queue").doc(doc.id).update({ status: "entered" });
           };
-
-          item.querySelector(".btn-complete").onclick = () => {
-    // 完了後に要素を削除
-    item.remove();
-};
           
           item.querySelector(".btn-exit").onclick = () => {
             db.collection("queue").doc(doc.id).update({ status: "expired" });
