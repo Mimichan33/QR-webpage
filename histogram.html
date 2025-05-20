@@ -136,8 +136,7 @@
         <option value="week">週</option>
         <option value="month">月</option>
       </select>
-
-    <button id="downloadCSV">CSVダウンロード</button>
+      <button id="downloadCSV">CSVダウンロード</button>
     </div>
     <div class="chart-container">
       <canvas id="histogram"></canvas>
@@ -171,203 +170,166 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-
     let chart;
 
-function getTimeSlots(rangeType, startISO, endISO, interval) {
-  let labels = [];
-
-  if (rangeType === "day") {
-    const start = new Date("2000-01-01T00:00:00+09:00"); // ダミー日付
-    for (let i = 0; i < (24 * 60) / interval; i++) {
-      const d = new Date(start.getTime() + i * interval * 60000);
-      labels.push(d.toLocaleTimeString("ja-JP", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo' }));
-    }
-  } else if (rangeType === "week") {
-    const startDate = new Date(startISO);
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(startDate);
-      d.setDate(startDate.getDate() + i);
-      labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
-    }
-  } else if (rangeType === "month") {
-    const startDate = new Date(startISO);
-    const endDate = new Date(endISO);
-    const startMonth = startDate.getMonth();
-    const endMonth = endDate.getMonth();
-
-    for (let m = startMonth; m <= endMonth; m++) {
-      labels.push(`${m + 1}月`);
-    }
-  }
-
-  return labels;
-}
-
-
     function getDateRange(rangeType, baseDateStr) {
-  const baseDate = new Date(baseDateStr + "T00:00:00+09:00");
-  let start, end;
+      const baseDate = new Date(baseDateStr + "T00:00:00+09:00");
+      let start, end;
 
-  if (rangeType === "day") {
-    start = new Date(baseDate);
-    end = new Date(baseDate);
-    end.setHours(23, 59, 59);
-  } else if (rangeType === "week") {
-    const day = baseDate.getDay(); // 0:日曜, 1:月曜...
-    const diff = day === 0 ? 6 : day - 1; // 月曜始まりに調整
-    start = new Date(baseDate);
-    start.setDate(baseDate.getDate() - diff);
-    end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    end.setHours(23, 59, 59);
-  } else if (rangeType === "month") {
-    start = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
-    end = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
-    end.setHours(23, 59, 59);
-  }
+      if (rangeType === "day") {
+        start = new Date(baseDate);
+        end = new Date(baseDate);
+        end.setHours(23, 59, 59);
+      } else if (rangeType === "week") {
+        const day = baseDate.getDay();
+        const diff = day === 0 ? 6 : day - 1;
+        start = new Date(baseDate);
+        start.setDate(baseDate.getDate() - diff);
+        end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        end.setHours(23, 59, 59);
+      } else if (rangeType === "month") {
+        start = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+        end = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
+        end.setHours(23, 59, 59);
+      }
 
-  return {
-    startISO: start.toISOString(),
-    endISO: end.toISOString()
-  };
-}
-
-    function formatTime(dt) {
-      return dt.toLocaleString("ja-JP", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo' });
+      return {
+        startISO: start.toISOString(),
+        endISO: end.toISOString(),
+        startDate: start,
+        endDate: end
+      };
     }
 
-async function updateChartAndTable() {
-  const date = document.getElementById("datePicker").value;
-  const interval = parseInt(document.getElementById("interval").value);
-  const rangeType = document.getElementById("rangeType").value;
-  if (!date) return;
+    function getTimeSlots(interval, rangeType, startDate, endDate) {
+      const labels = [];
 
-  const { startISO, endISO } = getDateRange(rangeType, date);
-  const snapshot = await db.collection("logs")
-    .where("timestamp", ">=", startISO)
-    .where("timestamp", "<=", endISO)
-    .orderBy("timestamp")
-    .get();
-
-  const logs = snapshot.docs.map(doc => doc.data());
-  const enters = logs.filter(log => log.type === "enter");
-  const exits = logs.filter(log => log.type === "exit");
-
-  const labels = getTimeSlots(rangeType, startISO, endISO, interval);
-  const counts = Array(labels.length).fill(0);
-
-  const details = [];
-
-  enters.forEach(entry => {
-  const table = entry.table;
-  const enterTime = new Date(entry.timestamp);
-  const exit = exits.find(e => e.table === table && new Date(e.timestamp) > enterTime);
-  const exitTime = exit ? new Date(exit.timestamp) : null;
-
-  let index = -1;
-
-  if (rangeType === "day") {
-    const minutes = enterTime.getHours() * 60 + enterTime.getMinutes();
-    index = Math.floor(minutes / interval);
-  } else if (rangeType === "week") {
-    const dayDiff = Math.floor((enterTime - new Date(startISO)) / (1000 * 60 * 60 * 24));
-    index = dayDiff >= 0 && dayDiff < 7 ? dayDiff : -1;
-  } else if (rangeType === "month") {
-    const month = enterTime.getMonth();
-    const baseMonth = new Date(startISO).getMonth();
-    index = month - baseMonth;
-  }
-
-  if (index >= 0 && index < counts.length) {
-    counts[index]++;
-  }
-
-  const stay = exitTime ? Math.floor((exitTime - enterTime) / 60000) : null;
-  details.push({
-    date: enterTime.toLocaleDateString("ja-JP", { timeZone: 'Asia/Tokyo' }),
-    table,
-    slot: rangeType === "day" ? labels[index] : labels[index] ?? "--",
-    stay: stay !== null ? `${Math.floor(stay / 60)}時間${stay % 60}分` : "退店未登録",
-    enter: enterTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }),
-    exit: exitTime ? exitTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }) : "--"
-  });
-});
-
-
-  details.reverse();
-
-  const ctx = document.getElementById("histogram").getContext("2d");
-  if (chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: slots,
-      datasets: [{
-        label: "入店者数",
-        data: counts,
-        backgroundColor: "#4a90e2"
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          suggestedMax: 10,
-          stepSize: 1
+      if (rangeType === "day") {
+        for (let i = 0; i < 24 * 60; i += interval) {
+          const h = Math.floor(i / 60).toString().padStart(2, '0');
+          const m = (i % 60).toString().padStart(2, '0');
+          labels.push(`${h}:${m}`);
+        }
+      } else if (rangeType === "week") {
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(startDate);
+          d.setDate(startDate.getDate() + i);
+          labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+        }
+      } else if (rangeType === "month") {
+        const startMonth = startDate.getMonth();
+        const endMonth = endDate.getMonth();
+        for (let m = startMonth; m <= endMonth; m++) {
+          labels.push(`${m + 1}月`);
         }
       }
+
+      return labels;
     }
-  });
 
-  const tbody = document.getElementById("logTableBody");
-  tbody.innerHTML = "";
-  for (const d of details) {
-    tbody.innerHTML += `
-      <tr>
-        <td>${d.date}</td>
-        <td>${d.slot}</td>
-        <td>${d.table}</td>
-        <td>${d.stay}</td>
-        <td>${d.enter}</td>
-        <td>${d.exit}</td>
-      </tr>
-    `;
-  }
+    async function updateChartAndTable() {
+      const date = document.getElementById("datePicker").value;
+      const interval = parseInt(document.getElementById("interval").value);
+      const rangeType = document.getElementById("rangeType").value;
+      if (!date) return;
 
-  // CSVデータ保持用にグローバルで保存
-  window.latestDetails = details;
-}
-    document.getElementById("downloadCSV").addEventListener("click", () => {
-  const rows = [["日付", "時間帯", "テーブル番号", "滞在時間", "入店時間", "退店時間"]];
-  (window.latestDetails || []).forEach(d => {
-    rows.push([d.date, d.slot, d.table, d.stay, d.enter, d.exit]);
-  });
+      const { startISO, endISO, startDate, endDate } = getDateRange(rangeType, date);
+      const labels = getTimeSlots(interval, rangeType, startDate, endDate);
+      const counts = Array(labels.length).fill(0);
 
-  const csvContent = rows.map(r => r.join(",")).join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "混雑データ.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-});
+      const snapshot = await db.collection("logs")
+        .where("timestamp", ">=", startISO)
+        .where("timestamp", "<=", endISO)
+        .orderBy("timestamp")
+        .get();
 
+      const logs = snapshot.docs.map(doc => doc.data());
+      const enters = logs.filter(log => log.type === "enter");
+      const exits = logs.filter(log => log.type === "exit");
 
+      const details = [];
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const today = new Date().toISOString().split("T")[0];
-      document.getElementById("datePicker").value = today;
-      updateChartAndTable();
+      enters.forEach(entry => {
+        const table = entry.table;
+        const enterTime = new Date(entry.timestamp);
+        const exit = exits.find(e => e.table === table && new Date(e.timestamp) > enterTime);
+        const exitTime = exit ? new Date(exit.timestamp) : null;
 
-      document.getElementById("datePicker").addEventListener("change", updateChartAndTable);
-      document.getElementById("interval").addEventListener("change", updateChartAndTable);
-      document.getElementById("rangeType").addEventListener("change", updateChartAndTable);
+        let index = -1;
 
-    });
+        if (rangeType === "day") {
+          const minutes = enterTime.getHours() * 60 + enterTime.getMinutes();
+          index = Math.floor(minutes / interval);
+        } else if (rangeType === "week") {
+          const dayDiff = Math.floor((enterTime - startDate) / (1000 * 60 * 60 * 24));
+          index = dayDiff >= 0 && dayDiff < 7 ? dayDiff : -1;
+        } else if (rangeType === "month") {
+          const month = enterTime.getMonth();
+          const baseMonth = startDate.getMonth();
+          index = month - baseMonth;
+        }
+
+        if (index >= 0 && index < counts.length) {
+          counts[index]++;
+        }
+
+        const stay = exitTime ? Math.floor((exitTime - enterTime) / 60000) : null;
+        details.push({
+          date: enterTime.toLocaleDateString("ja-JP", { timeZone: 'Asia/Tokyo' }),
+          table,
+          slot: labels[index] ?? "--",
+          stay: stay !== null ? `${Math.floor(stay / 60)}時間${stay % 60}分` : "退店未登録",
+          enter: enterTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }),
+          exit: exitTime ? exitTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }) : "--"
+        });
+      });
+
+      details.reverse();
+
+      const ctx = document.getElementById("histogram").getContext("2d");
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "入店者数",
+            data: counts,
+            backgroundColor: "#4a90e2"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              suggestedMax: 10,
+              stepSize: 1
+            }
+          }
+        }
+      });
+
+      const tbody = document.getElementById("logTableBody");
+      tbody.innerHTML = "";
+      for (const d of details) {
+        tbody.innerHTML += `
+          <tr>
+            <td>${d.date}</td>
+            <td>${d.slot}</td>
+            <td>${d.table}</td>
+            <td>${d.stay}</td>
+            <td>${d.enter}</td>
+            <td>${d.exit}</td>
+          </tr>`;
+      }
+    }
+
+    document.getElementById("datePicker").addEventListener("change", updateChartAndTable);
+    document.getElementById("interval").addEventListener("change", updateChartAndTable);
+    document.getElementById("rangeType").addEventListener("change", updateChartAndTable);
   </script>
 </body>
 </html>
