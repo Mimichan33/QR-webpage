@@ -172,7 +172,8 @@
   <p><strong>番号札:</strong> ${ticketNumber}</p>
   <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
   <div class="btn-group">
-    <button class="btn-enter">入店確定</button>
+    <button class="btn-notify">入店通知</button>
+    <button class="btn-complete">入店完了</button>
     <button class="btn-exit">退店</button>
   </div>
 `;
@@ -181,6 +182,14 @@
           item.querySelector(".btn-enter").onclick = () => {
             db.collection("queue").doc(doc.id).update({ status: "entered" });
           };
+
+          item.querySelector(".btn-complete").onclick = () => {
+  db.collection("queue").doc(doc.id).update({ status: "done" }).then(() => {
+    // 完了後に要素を削除
+    item.remove();
+  });
+};
+          
           item.querySelector(".btn-exit").onclick = () => {
             db.collection("queue").doc(doc.id).update({ status: "expired" });
           };
