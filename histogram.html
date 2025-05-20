@@ -228,103 +228,104 @@
       return labels;
     }
 
-    async function updateChartAndTable() {
-      const date = document.getElementById("datePicker").value;
-      const interval = parseInt(document.getElementById("interval").value);
-      const rangeType = document.getElementById("rangeType").value;
-      if (!date) return;
+async function updateChartAndTable() {
+  const date = document.getElementById("datePicker").value;
+  const interval = parseInt(document.getElementById("interval").value);
+  const rangeType = document.getElementById("rangeType").value;
+  if (!date) return;
 
-      const { startISO, endISO, startDate, endDate } = getDateRange(rangeType, date);
-      const labels = getTimeSlots(interval, rangeType, startDate, endDate);
-      const counts = Array(labels.length).fill(0);
+  const { startISO, endISO, startDate, endDate } = getDateRange(rangeType, date);
+  const labels = getTimeSlots(interval, rangeType, startDate, endDate);
+  const counts = Array(labels.length).fill(0);
 
-      const snapshot = await db.collection("logs")
-        .where("timestamp", ">=", startISO)
-        .where("timestamp", "<=", endISO)
-        .orderBy("timestamp")
-        .get();
+  const snapshot = await db.collection("logs")
+    .where("timestamp", ">=", startISO)
+    .where("timestamp", "<=", endISO)
+    .orderBy("timestamp")
+    .get();
 
-      const logs = snapshot.docs.map(doc => doc.data());
-      const enters = logs.filter(log => log.type === "enter");
-      const exits = logs.filter(log => log.type === "exit");
+  const logs = snapshot.docs.map(doc => doc.data());
+  const enters = logs.filter(log => log.type === "enter");
+  const exits = logs.filter(log => log.type === "exit");
 
-      const details = [];
+  const details = [];
 
-      enters.forEach(entry => {
-        const table = entry.table;
-        const enterTime = new Date(entry.timestamp);
-        const exit = exits.find(e => e.table === table && new Date(e.timestamp) > enterTime);
-        const exitTime = exit ? new Date(exit.timestamp) : null;
+  enters.forEach(entry => {
+    const table = entry.table;
+    const enterTime = new Date(entry.timestamp);
+    const exit = exits.find(e => e.table === table && new Date(e.timestamp) > enterTime);
+    const exitTime = exit ? new Date(exit.timestamp) : null;
 
-        let index = -1;
+    let index = -1;
 
-        if (rangeType === "day") {
-          const minutes = enterTime.getHours() * 60 + enterTime.getMinutes();
-          index = Math.floor(minutes / interval);
-        } else if (rangeType === "week") {
-          const dayDiff = Math.floor((enterTime - startDate) / (1000 * 60 * 60 * 24));
-          index = dayDiff >= 0 && dayDiff < 7 ? dayDiff : -1;
-        } else if (rangeType === "month") {
-          const month = enterTime.getMonth();
-          const baseMonth = startDate.getMonth();
-          index = month - baseMonth;
-        }
-
-        if (index >= 0 && index < counts.length) {
-          counts[index]++;
-        }
-
-        const stay = exitTime ? Math.floor((exitTime - enterTime) / 60000) : null;
-        details.push({
-          date: enterTime.toLocaleDateString("ja-JP", { timeZone: 'Asia/Tokyo' }),
-          table,
-          slot: labels[index] ?? "--",
-          stay: stay !== null ? `${Math.floor(stay / 60)}時間${stay % 60}分` : "退店未登録",
-          enter: enterTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }),
-          exit: exitTime ? exitTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }) : "--"
-        });
-      });
-
-      details.reverse();
-
-      const ctx = document.getElementById("histogram").getContext("2d");
-      if (chart) chart.destroy();
-      chart = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: labels,
-          datasets: [{
-            label: "入店者数",
-            data: counts,
-            backgroundColor: "#4a90e2"
-          }]
-        },
-                options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          }
-        }
-      });
-
-      const tbody = document.getElementById("logTableBody");
-      tbody.innerHTML = "";
-      details.forEach(row => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${row.date}</td>
-          <td>${row.slot}</td>
-          <td>${row.table}</td>
-          <td>${row.stay}</td>
-          <td>${row.enter}</td>
-          <td>${row.exit}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+    if (rangeType === "day") {
+      const minutes = enterTime.getHours() * 60 + enterTime.getMinutes();
+      index = Math.floor(minutes / interval);
+    } else if (rangeType === "week") {
+      const dayDiff = Math.floor((enterTime - startDate) / (1000 * 60 * 60 * 24));
+      index = dayDiff >= 0 && dayDiff < 7 ? dayDiff : -1;
+    } else if (rangeType === "month") {
+      const month = enterTime.getMonth();
+      const baseMonth = startDate.getMonth();
+      index = month - baseMonth;
     }
+
+    if (index >= 0 && index < counts.length) {
+      counts[index]++;
+    }
+
+    const stay = exitTime ? Math.floor((exitTime - enterTime) / 60000) : null;
+    details.push({
+      date: enterTime.toLocaleDateString("ja-JP", { timeZone: 'Asia/Tokyo' }),
+      table,
+      slot: labels[index] ?? "--",
+      stay: stay !== null ? `${Math.floor(stay / 60)}時間${stay % 60}分` : "退店未登録",
+      enter: enterTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }),
+      exit: exitTime ? exitTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }) : "--"
+    });
+  });
+
+  details.reverse();
+
+  const ctx = document.getElementById("histogram").getContext("2d");
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "入店者数",
+        data: counts,
+        backgroundColor: "#4a90e2"
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  const tbody = document.getElementById("logTableBody");
+  tbody.innerHTML = "";
+  details.forEach(row => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${row.date}</td>
+      <td>${row.slot}</td>
+      <td>${row.table}</td>
+      <td>${row.stay}</td>
+      <td>${row.enter}</td>
+      <td>${row.exit}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
 
     document.getElementById("datePicker").valueAsDate = new Date();
 
