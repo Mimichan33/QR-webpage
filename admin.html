@@ -149,63 +149,54 @@
       return d.toLocaleString("ja-JP", options);
     }
 
-function renderQueue() {
-  db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
-    const allDocs = snapshot.docs;
-    const waitingList = allDocs.filter(doc => doc.data().status === "waiting" || doc.data().status === "called");
-    const list = document.getElementById("queueList");
-    list.innerHTML = "";
+   function watchQueue() {
+      db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
+        const allDocs = snapshot.docs;
+        const waitingList = allDocs.filter(doc => doc.data().status === "waiting");
+        const selfDoc = snapshot.docs.find(doc => doc.id === myDocId);
 
-    allDocs.forEach((doc, index) => {
-      if (!(doc.id in ticketMap)) {
-        ticketMap[doc.id] = index + 1;
-      }
-    });
+        if (!selfDoc) return;
+        const selfData = selfDoc.data();
 
-waitingList.forEach(doc => {
-  const data = doc.data();
-  const ticketNumber = ticketMap[doc.id] || "?";
+        if (selfData.status === "expired") {
+          location.href = "expired.html";
+          return;
+        } else if (selfData.status === "entered") {
+          location.href = "admit.html";
+          return;
+        }
 
-  const item = document.createElement("div");
-  item.className = "queue-item";
+        // 番号札固定
+        allDocs.forEach((doc, index) => {
+          if (!(doc.id in ticketMap)) {
+            ticketMap[doc.id] = index + 1;
+          }
+        });
 
-  item.innerHTML = `
-    <p><strong>番号札:</strong> ${ticketNumber}</p>
-    <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
-    <div class="btn-group">
-      <button class="btn-notify">入店通知</button>
-      <button class="btn-exit">キャンセル</button>
-    </div>
-  `;
+        myIndex = ticketMap[myDocId];
+        const peopleAhead = waitingList.filter(doc => ticketMap[doc.id] < myIndex).length;
 
-  const notifyBtn = item.querySelector(".btn-notify");
-  const exitBtn = item.querySelector(".btn-exit");
+        // 🔁 予想待ち時間 = 人数×30 + 基本30分
+        const estimated = (peopleAhead * 30) + 30;
 
-notifyBtn.addEventListener("click", () => {
-  // 1. Firestoreのstatusを"called"に更新
-  db.collection("queue").doc(doc.id).update({ status: "called" }).then(() => {
-    console.log("Status updated to 'called'");
+        document.getElementById("ticketNumber").textContent = 番号札:  No. ${myIndex};
 
-    // 2. ボタンを切り替え（入店確定とキャンセルに）
-    const btnGroup = notifyBtn.parentElement;
-    btnGroup.innerHTML = `
-      <button class="btn-confirm">入店確定</button>
-      <button class="btn-exit">キャンセル</button>
-    `;
+        const peopleAheadElement = document.getElementById("peopleAhead");
+        if (peopleAhead === 0) {
+          peopleAheadElement.innerHTML = 次はあなたの番です<br><span style="font-size:14px;">It's your turn next</span>;
+        } else {
+        peopleAheadElement.textContent = ${peopleAhead}人;
+        }
 
-    // 3. 入店確定ボタン：Firestoreから削除
-    btnGroup.querySelector(".btn-confirm").addEventListener("click", () => {
-      db.collection("queue").doc(doc.id).delete();
-    });
-
-    // 4. キャンセルボタン："expired" に更新
-    btnGroup.querySelector(".btn-exit").addEventListener("click", () => {
-      db.collection("queue").doc(doc.id).update({ status: "expired" });
-    });
-      list.appendChild(item);
-
-  });
-});
+        document.getElementById("estimatedTime").innerHTML = 
+          約${estimated}分<br>
+          <div style="margin-top: 10px; font-size: 14px; color: #c0392b;">
+            <br>※5分以内に来店しない場合、自動キャンセルされます<br>
+            <span style="font-size:13px;">*Your spot will be automatically cancelled if you don't arrive within 5 minutes.</span>
+          </div>
+        ;
+      });
+    }
 
 
 
