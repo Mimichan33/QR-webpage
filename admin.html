@@ -149,43 +149,55 @@
       return d.toLocaleString("ja-JP", options);
     }
 
-    function renderQueue() {
-      db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
-        const allDocs = snapshot.docs;
-        const waitingList = allDocs.filter(doc => doc.data().status === "waiting");
-        const list = document.getElementById("queueList");
-        list.innerHTML = "";
+function renderQueue() {
+  db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
+    const allDocs = snapshot.docs;
+    const waitingList = allDocs.filter(doc => ["waiting", "entered"].includes(doc.data().status)); // ← enteredも対象に
 
-        allDocs.forEach((doc, index) => {
-          if (!(doc.id in ticketMap)) {
-            ticketMap[doc.id] = index + 1;
-          }
+    const list = document.getElementById("queueList");
+    list.innerHTML = "";
+
+    allDocs.forEach((doc, index) => {
+      if (!(doc.id in ticketMap)) {
+        ticketMap[doc.id] = index + 1;
+      }
+    });
+
+    waitingList.forEach(doc => {
+      const data = doc.data();
+      const ticketNumber = ticketMap[doc.id] || "?";
+
+      const item = document.createElement("div");
+      item.className = "queue-item";
+      item.innerHTML = `
+        <p><strong>番号札:</strong> ${ticketNumber}</p>
+        <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
+        <p><strong>状態:</strong> ${data.status === "entered" ? "入店中" : "待機中"}</p>
+        <div class="btn-group">
+          ${data.status === "waiting" ? '<button class="btn-enter">入店確定</button>' : ""}
+          <button class="btn-exit">${data.status === "entered" ? "キャンセル" : "退店"}</button>
+        </div>
+      `;
+
+      if (data.status === "waiting") {
+        item.querySelector(".btn-enter").onclick = () => {
+          db.collection("queue").doc(doc.id).update({ status: "entered" }).then(() => {
+            location.href = "admit.html"; // 入店後の画面へ遷移
+          });
+        };
+      }
+
+      item.querySelector(".btn-exit").onclick = () => {
+        db.collection("queue").doc(doc.id).update({ status: "expired" }).then(() => {
+          location.href = "expired.html"; // キャンセル・退店画面へ遷移
         });
+      };
 
-        waitingList.forEach(doc => {
-          const data = doc.data();
-          const ticketNumber = ticketMap[doc.id] || "?";
+      list.appendChild(item);
+    });
+  });
+}
 
-          const item = document.createElement("div");
-          item.className = "queue-item";
-          item.innerHTML = `
-            <p><strong>番号札:</strong> ${ticketNumber}</p>
-            <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
-            <div class="btn-group">
-              <button class="btn-enter">入店確定</button>
-              <button class="btn-exit">退店</button>
-            </div>
-          `;
-          item.querySelector(".btn-enter").onclick = () => {
-            db.collection("queue").doc(doc.id).update({ status: "entered" });
-          };
-          item.querySelector(".btn-exit").onclick = () => {
-            db.collection("queue").doc(doc.id).update({ status: "expired" });
-          };
-          list.appendChild(item);
-        });
-      });
-    }
   window.onload = () => {
     document.getElementById("mainTitle").style.display = "block";
     renderQueue();
