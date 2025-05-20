@@ -174,34 +174,36 @@
 
     let chart;
 
-    function getTimeSlots(interval) {
-      let labels = [];
-let counts = [];
+function getTimeSlots(rangeType, startISO, endISO, interval) {
+  let labels = [];
 
-if (rangeType === "day") {
-  labels = getTimeSlots(interval);
-  counts = Array(labels.length).fill(0);
-} else if (rangeType === "week") {
-  const startDate = new Date(startISO);
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(startDate);
-    d.setDate(startDate.getDate() + i);
-    labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
-  }
-  counts = Array(7).fill(0);
-} else if (rangeType === "month") {
-  const startDate = new Date(startISO);
-  const endDate = new Date(endISO);
-  const startMonth = startDate.getMonth();
-  const endMonth = endDate.getMonth();
-  const year = startDate.getFullYear();
-
-  for (let m = startMonth; m <= endMonth; m++) {
-    labels.push(`${m + 1}月`);
-  }
-  counts = Array(labels.length).fill(0);
-}
+  if (rangeType === "day") {
+    const start = new Date("2000-01-01T00:00:00+09:00"); // ダミー日付
+    for (let i = 0; i < (24 * 60) / interval; i++) {
+      const d = new Date(start.getTime() + i * interval * 60000);
+      labels.push(d.toLocaleTimeString("ja-JP", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo' }));
     }
+  } else if (rangeType === "week") {
+    const startDate = new Date(startISO);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+    }
+  } else if (rangeType === "month") {
+    const startDate = new Date(startISO);
+    const endDate = new Date(endISO);
+    const startMonth = startDate.getMonth();
+    const endMonth = endDate.getMonth();
+
+    for (let m = startMonth; m <= endMonth; m++) {
+      labels.push(`${m + 1}月`);
+    }
+  }
+
+  return labels;
+}
+
 
     function getDateRange(rangeType, baseDateStr) {
   const baseDate = new Date(baseDateStr + "T00:00:00+09:00");
@@ -252,8 +254,9 @@ async function updateChartAndTable() {
   const enters = logs.filter(log => log.type === "enter");
   const exits = logs.filter(log => log.type === "exit");
 
-  const slots = getTimeSlots(interval);
-  const counts = Array(slots.length).fill(0);
+  const labels = getTimeSlots(rangeType, startISO, endISO, interval);
+  const counts = Array(labels.length).fill(0);
+
   const details = [];
 
   enters.forEach(entry => {
