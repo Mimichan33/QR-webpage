@@ -218,12 +218,14 @@
           labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
         }
       } else if (rangeType === "month") {
-        const startMonth = startDate.getMonth();
-        const endMonth = endDate.getMonth();
-        for (let m = startMonth; m <= endMonth; m++) {
-          labels.push(`${m + 1}月`);
+        const dayCount = (endDate - startDate) / (1000 * 60 * 60 * 24);
+        for (let i = 0; i <= dayCount; i++) {
+          const d = new Date(startDate);
+          d.setDate(startDate.getDate() + i);
+          labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
         }
-      }
+}
+
 
       return labels;
     }
@@ -265,10 +267,10 @@ async function updateChartAndTable() {
       const dayDiff = Math.floor((enterTime - startDate) / (1000 * 60 * 60 * 24));
       index = dayDiff >= 0 && dayDiff < 7 ? dayDiff : -1;
     } else if (rangeType === "month") {
-      const month = enterTime.getMonth();
-      const baseMonth = startDate.getMonth();
-      index = month - baseMonth;
-    }
+  const dayDiff = Math.floor((enterTime - startDate) / (1000 * 60 * 60 * 24));
+  index = dayDiff >= 0 && dayDiff < counts.length ? dayDiff : -1;
+}
+
 
     if (index >= 0 && index < counts.length) {
       counts[index]++;
