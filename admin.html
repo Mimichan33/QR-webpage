@@ -162,43 +162,54 @@ function renderQueue() {
       }
     });
 
-    waitingList.forEach(doc => {
-      const data = doc.data();
-      const ticketNumber = ticketMap[doc.id] || "?";
-      const item = document.createElement("div");
-      item.className = "queue-item";
+waitingList.forEach(doc => {
+  const data = doc.data();
+  const ticketNumber = ticketMap[doc.id] || "?";
 
-      const isCalled = data.status === "called";
+  const item = document.createElement("div");
+  item.className = "queue-item";
 
-      item.innerHTML = `
-        <p><strong>番号札:</strong> ${ticketNumber}</p>
-        <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
-        <div class="btn-group">
-          ${isCalled 
-            ? `<button class="btn-enter">入店確定</button>` 
-            : `<button class="btn-notify">入店通知</button>`
-          }
-          <button class="btn-exit">キャンセル</button>
-        </div>
-      `;
+  item.innerHTML = `
+    <p><strong>番号札:</strong> ${ticketNumber}</p>
+    <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
+    <div class="btn-group">
+      <button class="btn-notify">入店通知</button>
+      <button class="btn-exit">キャンセル</button>
+    </div>
+  `;
 
-      // 入店通知ボタン → status: "called"
-      item.querySelector(".btn-notify")?.addEventListener("click", () => {
-        db.collection("queue").doc(doc.id).update({ status: "called" });
-      });
+  const notifyBtn = item.querySelector(".btn-notify");
+  const exitBtn = item.querySelector(".btn-exit");
 
-      // 入店確定ボタン → 完了後、Firestoreから削除（もしくはstatus: "entered"などにすることも可能）
-      item.querySelector(".btn-enter")?.addEventListener("click", () => {
-        db.collection("queue").doc(doc.id).delete(); // または update({ status: "entered" })
-      });
+  notifyBtn.addEventListener("click", () => {
+    // ステータスを "called" に更新（wait.html側で検知して admit.html に遷移する）
+    db.collection("queue").doc(doc.id).update({ status: "called" });
 
-      // キャンセルボタン → status: "expired"
-      item.querySelector(".btn-exit")?.addEventListener("click", () => {
-        db.collection("queue").doc(doc.id).update({ status: "expired" });
-      });
+    // ボタンを切り替える
+    const btnGroup = notifyBtn.parentElement;
+    btnGroup.innerHTML = `
+      <button class="btn-confirm">入店確定</button>
+      <button class="btn-exit">キャンセル</button>
+    `;
 
-      list.appendChild(item);
+    // 入店確定ボタン：データを削除（画面からも消える）
+    btnGroup.querySelector(".btn-confirm").addEventListener("click", () => {
+      db.collection("queue").doc(doc.id).delete();
     });
+
+    // 再設定されたキャンセルボタン：status を expired に（wait.html → expired.html）
+    btnGroup.querySelector(".btn-exit").addEventListener("click", () => {
+      db.collection("queue").doc(doc.id).update({ status: "expired" });
+    });
+  });
+
+  // 初期状態のキャンセルボタン（まだ通知してない段階）
+  exitBtn.addEventListener("click", () => {
+    db.collection("queue").doc(doc.id).update({ status: "expired" });
+  });
+
+  list.appendChild(item);
+});
   });
 }
 
