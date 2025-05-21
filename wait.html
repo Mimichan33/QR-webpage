@@ -169,6 +169,7 @@
           location.href = "expired.html";
           return;
         } else if (selfData.status === "entered") {
+          sessionStorage.setItem("myDocId", myDocId);
           location.href = "admit.html";
           return;
         }
