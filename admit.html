@@ -66,83 +66,10 @@
     };
 
     // 初期化（重複チェックなし）
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
 
-    // URLからdocIdを取得
-    const params = new URLSearchParams(window.location.search);
-    const docId = params.get("id");
-    console.log("取得したdocId:", docId);
-
-    <!-- admit.html -->
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>入店のご案内</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      background: linear-gradient(to right, #c2e9fb, #a1c4fd);
-      font-family: 'Helvetica Neue', sans-serif;
-    }
-    .message {
-      background: white;
-      padding: 40px;
-      border-radius: 16px;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-      max-width: 90%;
-    }
-    .message h1 {
-      font-size: 28px;
-      color: #2c3e50;
-      margin-bottom: 10px;
-    }
-    .message p {
-      font-size: 18px;
-      color: #34495e;
-      margin: 6px 0;
-    }
-    .icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-    }
-  </style>
-</head>
-<body>
-  <div class="message">
-    <div class="icon">✅</div>
-    <h1>あなたの番です！</h1>
-    <p>ご来店ありがとうございます。</p>
-    <p>すぐにご入店ください。</p>
-    <br>
-    <p><strong>It's your turn!</strong></p>
-    <p>Please enter the store now.</p>
-  </div>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script>
-    // Firebase 設定
-    const firebaseConfig = {
-      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
-      authDomain: "qr-visitor-log.firebaseapp.com",
-      projectId: "qr-visitor-log",
-      storageBucket: "qr-visitor-log.appspot.com",
-      messagingSenderId: "304250341939",
-      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
-    };
-
-    // 初期化（重複チェックなし）
-    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     // URLからdocIdを取得
@@ -157,16 +84,13 @@
           console.log("現在のstatus:", data?.status);
 
           if (data && data.status === "expired") {
-            console.log("ステータスがexpired → 遷移します");
+            console.log("ステータスがexpired → expired.htmlに遷移します");
             window.location.href = "expired.html";
           }
         });
     } else {
       console.error("URLにidが含まれていません");
     }
-  </script>
-</body>
-</html>
   </script>
 </body>
 </html>
