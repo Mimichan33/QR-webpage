@@ -183,7 +183,6 @@ function renderQueue() {
 
       const btnGroup = item.querySelector(".btn-group");
 
-      // 「waiting」なら「入店通知」ボタン表示
       if (data.status === "waiting") {
         const btnEnter = document.createElement("button");
         btnEnter.className = "btn-enter";
@@ -194,7 +193,6 @@ function renderQueue() {
         btnGroup.appendChild(btnEnter);
       }
 
-      // 「entered」なら「入店確定」ボタン表示
       if (data.status === "entered") {
         const btnConfirm = document.createElement("button");
         btnConfirm.style.backgroundColor = "#2980b9";
@@ -206,7 +204,7 @@ function renderQueue() {
         btnGroup.appendChild(btnConfirm);
       }
 
-      // 常に「キャンセル」ボタンは表示
+      // ✅ キャンセルボタンは常に表示＆常に expired に変更
       const btnCancel = document.createElement("button");
       btnCancel.className = "btn-exit";
       btnCancel.textContent = "キャンセル";
