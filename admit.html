@@ -50,5 +50,43 @@
     <p><strong>It's your turn!</strong></p>
     <p>Please enter the store now.</p>
   </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script>
+    // Firebase 設定（ご自身のプロジェクトに置き換えてください）
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    const db = firebase.firestore();
+
+    // クエリパラメータからドキュメントIDを取得
+    const params = new URLSearchParams(window.location.search);
+    const docId = params.get("id");
+
+    if (docId) {
+      db.collection("queue").doc(docId)
+        .onSnapshot((doc) => {
+          const data = doc.data();
+          if (data && data.status === "expired") {
+            // ステータスが expired になったら遷移
+            window.location.href = "expired.html";
+          }
+        });
+    } else {
+      console.error("URLにidが含まれていません");
+    }
+  </script>
 </body>
 </html>
