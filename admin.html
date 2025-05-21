@@ -189,9 +189,7 @@ function renderQueue() {
         btnEnter.className = "btn-enter";
         btnEnter.textContent = "入店通知";
         btnEnter.onclick = () => {
-        db.collection("queue").doc(doc.id).update({ status: "entered" }).then(() => {
-          window.open(`admit.html?id=${doc.id}`, "_blank");
-          });
+          db.collection("queue").doc(doc.id).update({ status: "entered" });
         };
 
         btnGroup.appendChild(btnEnter);
