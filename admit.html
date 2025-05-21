@@ -65,32 +65,22 @@
       appId: "1:304250341939:web:b8d5b946590d1f852cf146"
     };
 
-    // 初期化（重複チェックなし）
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
+    firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-    const db = firebase.firestore();
+  const urlParams = new URLSearchParams(window.location.search);
+  const docId = urlParams.get('id'); // URLに ?id=xxx の形式で渡すことを想定
 
-    // URLからdocIdを取得
-    const params = new URLSearchParams(window.location.search);
-    const docId = params.get("id");
-    console.log("取得したdocId:", docId);
-
-    if (docId) {
-      db.collection("queue").doc(docId)
-        .onSnapshot((doc) => {
-          const data = doc.data();
-          console.log("現在のstatus:", data?.status);
-
-          if (data && data.status === "expired") {
-            console.log("ステータスがexpired → expired.htmlに遷移します");
-            window.location.href = "expired.html";
-          }
-        });
-    } else {
-      console.error("URLにidが含まれていません");
-    }
+  if (docId) {
+    db.collection("queue").doc(docId).onSnapshot((doc) => {
+      if (doc.exists) {
+        const data = doc.data();
+        if (data.status === "expired") {
+          location.href = "expired.html";
+        }
+      }
+    });
+  }
   </script>
 </body>
 </html>
