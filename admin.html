@@ -152,9 +152,11 @@
 function renderQueue() {
   db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
     const allDocs = snapshot.docs;
-    const displayList = allDocs.filter(doc => {
+
+    // 表示対象は "waiting" と "entered"
+    const visibleDocs = allDocs.filter(doc => {
       const status = doc.data().status;
-      return status === "waiting" || status === "notified";
+      return status === "waiting" || status === "entered";
     });
 
     const list = document.getElementById("queueList");
@@ -166,7 +168,7 @@ function renderQueue() {
       }
     });
 
-    displayList.forEach(doc => {
+    visibleDocs.forEach(doc => {
       const data = doc.data();
       const ticketNumber = ticketMap[doc.id] || "?";
 
@@ -175,27 +177,43 @@ function renderQueue() {
       item.innerHTML = `
         <p><strong>番号札:</strong> ${ticketNumber}</p>
         <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
-        <p><strong>状態:</strong> ${data.status === "notified" ? "通知済み" : "待機中"}</p>
-        <div class="btn-group">
-          ${data.status === "waiting" ? '<button class="btn-enter">入店通知</button>' : ''}
-          <button class="btn-confirm">入店確定</button>
-          <button class="btn-exit">退店</button>
-        </div>
+        <p><strong>状態:</strong> ${data.status}</p>
+        <div class="btn-group"></div>
       `;
 
+      const btnGroup = item.querySelector(".btn-group");
+
+      // 「waiting」なら「入店通知」ボタン表示
       if (data.status === "waiting") {
-        item.querySelector(".btn-enter").onclick = () => {
-          db.collection("queue").doc(doc.id).update({ status: "notified" });
+        const btnEnter = document.createElement("button");
+        btnEnter.className = "btn-enter";
+        btnEnter.textContent = "入店通知";
+        btnEnter.onclick = () => {
+          db.collection("queue").doc(doc.id).update({ status: "entered" });
         };
+        btnGroup.appendChild(btnEnter);
       }
 
-      item.querySelector(".btn-confirm").onclick = () => {
-        db.collection("queue").doc(doc.id).update({ status: "entered" });
-      };
+      // 「entered」なら「入店確定」ボタン表示
+      if (data.status === "entered") {
+        const btnConfirm = document.createElement("button");
+        btnConfirm.style.backgroundColor = "#2980b9";
+        btnConfirm.style.color = "white";
+        btnConfirm.textContent = "入店確定";
+        btnConfirm.onclick = () => {
+          db.collection("queue").doc(doc.id).update({ status: "confirmed" });
+        };
+        btnGroup.appendChild(btnConfirm);
+      }
 
-      item.querySelector(".btn-exit").onclick = () => {
+      // 常に「キャンセル」ボタンは表示
+      const btnCancel = document.createElement("button");
+      btnCancel.className = "btn-exit";
+      btnCancel.textContent = "キャンセル";
+      btnCancel.onclick = () => {
         db.collection("queue").doc(doc.id).update({ status: "expired" });
       };
+      btnGroup.appendChild(btnCancel);
 
       list.appendChild(item);
     });
