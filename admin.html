@@ -149,46 +149,59 @@
       return d.toLocaleString("ja-JP", options);
     }
 
-    function renderQueue() {
-      db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
-        const allDocs = snapshot.docs;
-        const waitingList = allDocs.filter(doc => doc.data().status === "waiting");
-        const list = document.getElementById("queueList");
-        list.innerHTML = "";
+function renderQueue() {
+  db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
+    const allDocs = snapshot.docs;
+    const displayList = allDocs.filter(doc => {
+      const status = doc.data().status;
+      return status === "waiting" || status === "notified";
+    });
 
-        allDocs.forEach((doc, index) => {
-          if (!(doc.id in ticketMap)) {
-            ticketMap[doc.id] = index + 1;
-          }
-        });
+    const list = document.getElementById("queueList");
+    list.innerHTML = "";
 
-        waitingList.forEach(doc => {
-          const data = doc.data();
-          const ticketNumber = ticketMap[doc.id] || "?";
+    allDocs.forEach((doc, index) => {
+      if (!(doc.id in ticketMap)) {
+        ticketMap[doc.id] = index + 1;
+      }
+    });
 
-          const item = document.createElement("div");
-          item.className = "queue-item";
-          item.innerHTML = `
-  <p><strong>番号札:</strong> ${ticketNumber}</p>
-  <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
-  <div class="btn-group">
-    <button class="btn-enter">入店確定</button>
-    <button class="btn-exit">退店</button>
-  </div>
-`;
+    displayList.forEach(doc => {
+      const data = doc.data();
+      const ticketNumber = ticketMap[doc.id] || "?";
 
+      const item = document.createElement("div");
+      item.className = "queue-item";
+      item.innerHTML = `
+        <p><strong>番号札:</strong> ${ticketNumber}</p>
+        <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
+        <p><strong>状態:</strong> ${data.status === "notified" ? "通知済み" : "待機中"}</p>
+        <div class="btn-group">
+          ${data.status === "waiting" ? '<button class="btn-enter">入店通知</button>' : ''}
+          <button class="btn-confirm">入店確定</button>
+          <button class="btn-exit">退店</button>
+        </div>
+      `;
 
-          item.querySelector(".btn-enter").onclick = () => {
-            db.collection("queue").doc(doc.id).update({ status: "entered" });
-          };
-          
-          item.querySelector(".btn-exit").onclick = () => {
-            db.collection("queue").doc(doc.id).update({ status: "expired" });
-          };
-          list.appendChild(item);
-        });
-      });
-    }
+      if (data.status === "waiting") {
+        item.querySelector(".btn-enter").onclick = () => {
+          db.collection("queue").doc(doc.id).update({ status: "notified" });
+        };
+      }
+
+      item.querySelector(".btn-confirm").onclick = () => {
+        db.collection("queue").doc(doc.id).update({ status: "entered" });
+      };
+
+      item.querySelector(".btn-exit").onclick = () => {
+        db.collection("queue").doc(doc.id).update({ status: "expired" });
+      };
+
+      list.appendChild(item);
+    });
+  });
+}
+
   window.onload = () => {
     document.getElementById("mainTitle").style.display = "block";
     renderQueue();
