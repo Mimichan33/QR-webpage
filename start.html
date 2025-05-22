@@ -2,111 +2,117 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
+  <title>混雑可視化システム - トップページ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>混雑可視化システム スタートページ</title>
   <style>
     body {
-      font-family: sans-serif;
       margin: 0;
-      padding: 0;
-      text-align: center;
+      font-family: 'Helvetica Neue', sans-serif;
+      background: #f4f9ff;
+      color: #2c3e50;
+      line-height: 1.6;
     }
 
     header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 32px;
-    }
-
-    header .logo {
-      font-weight: bold;
-      font-size: 1.2rem;
-    }
-
-    header a {
-      text-decoration: none;
-      color: black;
-      font-weight: bold;
+      background-color: #2c3e50;
+      color: white;
+      padding: 20px;
+      text-align: center;
     }
 
     .hero {
-      margin: 40px auto;
-      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px 40px;
     }
 
     .hero img {
-      width: 100%;
-      max-width: 500px;
-      margin-bottom: 24px;
+      width: 60%;
+      max-width: 600px;
+      margin-bottom: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
     .description {
-      font-size: 1.1rem;
-      margin-bottom: 32px;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 20px 40px;
+      text-align: center;
     }
 
-    .button {
+    .description h2 {
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+
+    .description p {
+      font-size: 18px;
+      color: #444;
+    }
+
+    .btn-start {
       display: inline-block;
-      padding: 12px 24px;
-      font-size: 1rem;
-      background-color: black;
+      margin-top: 30px;
+      padding: 12px 28px;
+      background-color: #3498db;
       color: white;
-      border: none;
-      border-radius: 4px;
       text-decoration: none;
-      margin-bottom: 60px;
+      font-size: 18px;
+      border-radius: 8px;
+      transition: background-color 0.3s;
+    }
+
+    .btn-start:hover {
+      background-color: #2980b9;
     }
 
     footer {
-      border-top: 1px solid #ccc;
-      padding: 20px;
-      font-size: 0.9rem;
+      background-color: #eee;
+      padding: 30px 20px;
+      text-align: center;
+      font-size: 14px;
       color: #555;
     }
 
-    .footer-links {
-      margin-top: 10px;
-    }
-
-    .footer-links a {
-      margin: 0 10px;
-      color: #333;
+    footer a {
+      color: #2c3e50;
       text-decoration: none;
+      margin: 0 10px;
     }
 
-    .footer-links a:hover {
+    footer a:hover {
       text-decoration: underline;
     }
   </style>
 </head>
+
 <body>
   <header>
-    <div class="logo">混雑可視化システム</div>
-    <a href="#">ReadMe →</a>
+    <h1>混雑可視化システム</h1>
+    <p>A Smart Visitor Tracking System with QR Codes</p>
   </header>
 
-  <main class="hero">
-    <!-- ※画像は `index-preview.png` などに差し替えてください -->
-    <img src="index-preview.png" alt="システム画面のプレビュー画像" />
+  <section class="hero">
+    <img src="map.png" alt="店内マップ">
+    <a href="index.html" class="btn-start">▶︎ 使ってみる</a>
+  </section>
 
-    <div class="description">
-      このプロジェクトは、QRコードを用いて入退店を記録し、<br />
-      店舗の混雑状況をリアルタイムに可視化するWebアプリケーションです。<br />
-      各テーブルにQRコードを設置し、入店・退店時にスマホで読み取ることで、<br />
-      管理者は現在の混雑状況を一覧で把握できます。
-    </div>
-
-    <a class="button" href="index.html">使ってみる</a>
-  </main>
+  <section class="description">
+    <h2>このプロジェクトについて</h2>
+    <p>
+      このシステムは、QRコードを活用してお客様の入退店状況を記録し、
+      店舗の混雑具合や待機状況を可視化します。<br />
+      店内のテーブル利用状況や、店外での待ち人数・予想待機時間をリアルタイムで把握可能です。
+    </p>
+  </section>
 
   <footer>
-    <div>©2024 東京市立大学 メディア情報学部 情報システム学科 Daiki Komuro</div>
-    <div class="footer-links">
-      <a href="#">先行研究</a>
-      <a href="https://github.com/Mimichan33/QR-webpage/tree/main" target="_blank">GitHub</a>
-      <a href="#">Docs</a>
-    </div>
+    <p>© 2025 QR Visitor Log Project</p>
+    <a href="https://github.com/Mimichan33/QR-webpage" target="_blank">GitHub</a>
+    <a href="#">マニュアル（準備中）</a>
   </footer>
 </body>
 </html>
+
