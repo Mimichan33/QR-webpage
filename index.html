@@ -204,21 +204,20 @@
       setInterval(updateTableDisplays, 60000);
     };
 
-    // 店外待機人数のリアルタイム監視
+// ✅ 待機人数の監視
 function watchWaitingCount() {
   db.collection("queue").where("status", "==", "waiting")
     .onSnapshot(snapshot => {
       const count = snapshot.size;
-      document.getElementById("waitingCount").textContent = count;
+      document.getElementById("waitingCount").textContent = `${count}人`;
     });
 }
 
-// テーブル使用率の進捗バー表示（テーブル1〜9）
+// ✅ 利用率の監視（9テーブル使用中数から算出）
 function watchTableUsage() {
   const totalTables = 9;
 
-  db.collection("logs")
-    .where("type", "==", "enter")
+  db.collection("logs").where("type", "==", "enter")
     .onSnapshot(snapshot => {
       const usedTables = new Set();
 
@@ -231,19 +230,28 @@ function watchTableUsage() {
 
       const usedCount = usedTables.size;
       const usageRate = Math.min((usedCount / totalTables) * 100, 100).toFixed(0);
+
+      // プログレスバー更新
       const progressBar = document.getElementById("usageProgress");
       progressBar.style.width = `${usageRate}%`;
       progressBar.textContent = `${usageRate}%`;
+
+      // 色変更：緑→黄→赤
+      if (usageRate < 50) {
+        progressBar.style.backgroundColor = "#4caf50"; // 緑
+      } else if (usageRate < 80) {
+        progressBar.style.backgroundColor = "#ff9800"; // オレンジ
+      } else {
+        progressBar.style.backgroundColor = "#f44336"; // 赤
+      }
     });
 }
 
-// 初期化
+// ✅ 初期化
 window.addEventListener("DOMContentLoaded", () => {
   watchWaitingCount();
   watchTableUsage();
 });
-
-
 
     
   </script>
@@ -288,19 +296,12 @@ window.addEventListener("DOMContentLoaded", () => {
       <p>テーブル9：<span id="table9-status">読み込み中...</span></p>
     </section>
 
-     <!-- 店舗状況ヘッダー：待機人数と進捗バー -->
-<div style="padding: 20px; background-color: #f5f5f5; border-radius: 8px; margin-bottom: 20px;">
-  <h2>店舗状況</h2>
+    <section>
+    <h2>全体状況</h2>
 
-  <!-- 待機人数表示 -->
-  <p>
-    店外の待機人数：<span id="waitingCount" style="font-weight: bold; font-size: 1.2em;">0</span>人
-  </p>
-
-  <!-- テーブル使用率の進捗バー -->
-  <div style="margin-top: 10px;">
-    <label for="usageProgress">店内利用率</label>
-    <div style="width: 100%; background-color: #ddd; border-radius: 10px; overflow: hidden; height: 25px;">
+    <!-- 🔵 進捗バー -->
+    <p>店内利用率：</p>
+    <div style="width: 100%; background-color: #ddd; border-radius: 10px; overflow: hidden; height: 25px; margin-bottom: 10px;">
       <div id="usageProgress" style="
         width: 0%;
         background-color: #4caf50;
@@ -311,8 +312,27 @@ window.addEventListener("DOMContentLoaded", () => {
         transition: width 0.3s;
       ">0%</div>
     </div>
-  </div>
-</div>
+
+    <!-- ✅ 待機人数 -->
+    <p>現在の待機人数: <span id="waitingCount">読み込み中...</span></p>
+
+    <p>現在の入店者数: <span id="count">読み込み中...</span></p>
+    <p>累計入店数: <span id="entries">-</span></p>
+    <p>累計退店数: <span id="exits">-</span></p>
+  </section>
+
+  <section id="tables">
+    <h2>テーブル別 使用状況（時刻）</h2>
+    <p>テーブル1：<span id="table1-status">読み込み中...</span></p>
+    <p>テーブル2：<span id="table2-status">読み込み中...</span></p>
+    <p>テーブル3：<span id="table3-status">読み込み中...</span></p>
+    <p>テーブル4：<span id="table4-status">読み込み中...</span></p>
+    <p>テーブル5：<span id="table5-status">読み込み中...</span></p>
+    <p>テーブル6：<span id="table6-status">読み込み中...</span></p>
+    <p>テーブル7：<span id="table7-status">読み込み中...</span></p>
+    <p>テーブル8：<span id="table8-status">読み込み中...</span></p>
+    <p>テーブル9：<span id="table9-status">読み込み中...</span></p>
+  </section>
   </main>
 
 </body>
