@@ -203,6 +203,48 @@
       db.collection("logs").onSnapshot(countVisitors);
       setInterval(updateTableDisplays, 60000);
     };
+
+    // 店外待機人数のリアルタイム監視
+function watchWaitingCount() {
+  db.collection("queue").where("status", "==", "waiting")
+    .onSnapshot(snapshot => {
+      const count = snapshot.size;
+      document.getElementById("waitingCount").textContent = count;
+    });
+}
+
+// テーブル使用率の進捗バー表示（テーブル1〜9）
+function watchTableUsage() {
+  const totalTables = 9;
+
+  db.collection("logs")
+    .where("type", "==", "enter")
+    .onSnapshot(snapshot => {
+      const usedTables = new Set();
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.table && typeof data.table === "string") {
+          usedTables.add(data.table);
+        }
+      });
+
+      const usedCount = usedTables.size;
+      const usageRate = Math.min((usedCount / totalTables) * 100, 100).toFixed(0);
+      const progressBar = document.getElementById("usageProgress");
+      progressBar.style.width = `${usageRate}%`;
+      progressBar.textContent = `${usageRate}%`;
+    });
+}
+
+// 初期化
+window.addEventListener("DOMContentLoaded", () => {
+  watchWaitingCount();
+  watchTableUsage();
+});
+
+
+
     
   </script>
 </head>
@@ -245,6 +287,32 @@
       <p>テーブル8：<span id="table8-status">読み込み中...</span></p>
       <p>テーブル9：<span id="table9-status">読み込み中...</span></p>
     </section>
+
+     <!-- 店舗状況ヘッダー：待機人数と進捗バー -->
+<div style="padding: 20px; background-color: #f5f5f5; border-radius: 8px; margin-bottom: 20px;">
+  <h2>店舗状況</h2>
+
+  <!-- 待機人数表示 -->
+  <p>
+    店外の待機人数：<span id="waitingCount" style="font-weight: bold; font-size: 1.2em;">0</span>人
+  </p>
+
+  <!-- テーブル使用率の進捗バー -->
+  <div style="margin-top: 10px;">
+    <label for="usageProgress">店内利用率</label>
+    <div style="width: 100%; background-color: #ddd; border-radius: 10px; overflow: hidden; height: 25px;">
+      <div id="usageProgress" style="
+        width: 0%;
+        background-color: #4caf50;
+        height: 100%;
+        text-align: center;
+        color: white;
+        line-height: 25px;
+        transition: width 0.3s;
+      ">0%</div>
+    </div>
+  </div>
+</div>
   </main>
 
 </body>
