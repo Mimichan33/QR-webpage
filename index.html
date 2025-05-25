@@ -277,6 +277,22 @@ window.addEventListener("DOMContentLoaded", () => {
 
   <main>
     <section>
+    <!-- 🔵 進捗バー -->
+    <p>店内利用率：</p>
+    <div style="width: 100%; background-color: #ddd; border-radius: 10px; overflow: hidden; height: 25px; margin-bottom: 10px;">
+      <div id="usageProgress" style="
+        width: 0%;
+        background-color: #4caf50;
+        height: 100%;
+        text-align: center;
+        color: white;
+        line-height: 25px;
+        transition: width 0.3s;
+      ">0%</div>
+    </div>
+    </section>
+    
+    <section>
       <h2>全体状況</h2>
       <p>現在の入店者数: <span id="count">読み込み中...</span></p>
       <p>累計入店数: <span id="entries">-</span></p>
