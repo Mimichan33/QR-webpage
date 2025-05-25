@@ -213,38 +213,50 @@ function watchWaitingCount() {
     });
 }
 
-// ✅ 利用率の監視（9テーブル使用中数から算出）
 function watchTableUsage() {
   const totalTables = 9;
+  const usedTables = new Set();
 
-  db.collection("logs").where("type", "==", "enter")
-    .onSnapshot(snapshot => {
-      const usedTables = new Set();
+  // 各テーブルについて最新の status を取得
+  const tableStatuses = [];
+  for (let i = 1; i <= totalTables; i++) {
+    const tableId = `table${i}`;
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.table && typeof data.table === "string") {
-          usedTables.add(data.table);
+    const promise = db.collection("logs")
+      .where("table", "==", tableId)
+      .orderBy("time", "desc")
+      .limit(1)
+      .get()
+      .then(snapshot => {
+        if (!snapshot.empty) {
+          const data = snapshot.docs[0].data();
+          if (data.status === "enter") {
+            usedTables.add(tableId);
+          }
         }
       });
 
-      const usedCount = usedTables.size;
-      const usageRate = Math.min((usedCount / totalTables) * 100, 100).toFixed(0);
+    tableStatuses.push(promise);
+  }
 
-      // プログレスバー更新
-      const progressBar = document.getElementById("usageProgress");
-      progressBar.style.width = `${usageRate}%`;
-      progressBar.textContent = `${usageRate}%`;
+  // 全テーブルの状態取得が終わったら進捗バー更新
+  Promise.all(tableStatuses).then(() => {
+    const usedCount = usedTables.size;
+    const usageRate = Math.round((usedCount / totalTables) * 100);
 
-      // 色変更：緑→黄→赤
-      if (usageRate < 50) {
-        progressBar.style.backgroundColor = "#4caf50"; // 緑
-      } else if (usageRate < 80) {
-        progressBar.style.backgroundColor = "#ff9800"; // オレンジ
-      } else {
-        progressBar.style.backgroundColor = "#f44336"; // 赤
-      }
-    });
+    const progressBar = document.getElementById("usageProgress");
+    progressBar.style.width = `${usageRate}%`;
+    progressBar.textContent = `${usageRate}%`;
+
+    // 色変更：緑→オレンジ→赤
+    if (usageRate < 50) {
+      progressBar.style.backgroundColor = "#4caf50"; // 緑
+    } else if (usageRate < 80) {
+      progressBar.style.backgroundColor = "#ff9800"; // オレンジ
+    } else {
+      progressBar.style.backgroundColor = "#f44336"; // 赤
+    }
+  });
 }
 
 // ✅ 初期化
