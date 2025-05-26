@@ -389,11 +389,13 @@ async function updateChartAndTable() {
 
     window.addEventListener("DOMContentLoaded", updateChartAndTable);
 
-  $(document).ready(function() {
-    $('.menu-button').on('click', function() {
-      $('.drawer').toggleClass('open');
+    document.addEventListener('DOMContentLoaded', function () {
+    document.querySelector('.menu-button').addEventListener('click', function () {
+      document.querySelector('.drawer').classList.toggle('open');
     });
   });
+
+
     
   </script>
 </body>
