@@ -50,6 +50,18 @@
       text-decoration: underline;
     }
 
+    .full-width-section {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  background: #e0f7da;
+  padding: 60px 0;
+  text-align: center;
+}
+
     /* ハンバーガーメニュー */
     .menu-button {
       position: absolute;
@@ -257,9 +269,10 @@
   </header>
 
   <main>
-    <section id="hero" class="area area--hero" style="background: #e0f7da; padding: 60px 0; text-align: center; width: 100%;">
-  <div style="width: 100%;">
-    <h1 class="area-tit" style="font-size: 2.5em; font-weight: bold; color: #2c3e50; margin-bottom: 20px;">
+    <section id="hero" class="area area--hero" 
+         style="background: #e0f7da; padding: 60px 0; text-align: center; width: 100vw; position: relative; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw;">
+  <div style="max-width: 1000px; margin: 0 auto;">
+    <h1 style="font-size: 2.5em; font-weight: bold; color: #2c3e50; margin-bottom: 20px;">
       店内の混雑状況を<br>リアルタイムで見える化
     </h1>
     <p style="font-size: 1.2em; color: #34495e; margin-bottom: 40px;">
