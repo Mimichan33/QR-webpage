@@ -158,48 +158,50 @@
       });
     }
 
-    function countVisitors(snapshot) {
-      let entries = 0;
-      let exits = 0;
+   function countVisitors(snapshot) {
+  let entries = 0;
+  let exits = 0;
+  let waiting = 0;
 
-      for (let i = 1; i <= 9; i++) {
-        tableCounts[i.toString()] = {
-          enter: 0,
-          exit: 0,
-          lastEnterTime: null
-        };
-      }
+  for (let i = 1; i <= 9; i++) {
+    tableCounts[i.toString()] = {
+      enter: 0,
+      exit: 0,
+      lastEnterTime: null
+    };
+  }
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const table = data.table;
-        const timestamp = data.timestamp;
-        if (!table || !timestamp) return;
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const table = data.table;
+    const timestamp = data.timestamp;
+    if (!table || !timestamp) return;
 
-        if (data.type === "enter") entries++;
-        if (data.type === "exit") exits++;
+    if (data.type === "enter") entries++;
+    if (data.type === "exit") exits++;
+    if (data.type === "wait") waiting++;
 
-        if (tableCounts[table]) {
-          if (data.type === "enter") {
-            tableCounts[table].enter++;
-            if (!tableCounts[table].lastEnterTime || new Date(tableCounts[table].lastEnterTime) < new Date(timestamp)) {
-              tableCounts[table].lastEnterTime = timestamp;
-            }
-          }
-          if (data.type === "exit") {
-            tableCounts[table].exit++;
-          }
+    if (tableCounts[table]) {
+      if (data.type === "enter") {
+        tableCounts[table].enter++;
+        if (!tableCounts[table].lastEnterTime || new Date(tableCounts[table].lastEnterTime) < new Date(timestamp)) {
+          tableCounts[table].lastEnterTime = timestamp;
         }
-      });
-
-      document.getElementById("count").textContent = entries - exits;
-      document.getElementById("entries").textContent = entries;
-      document.getElementById("exits").textContent = exits;
-      document.getElementById("waitingCount").textContent = waiting;
-
-
-      updateTableDisplays();
+      }
+      if (data.type === "exit") {
+        tableCounts[table].exit++;
+      }
     }
+  });
+
+  document.getElementById("count").textContent = entries - exits;
+  document.getElementById("entries").textContent = entries;
+  document.getElementById("exits").textContent = exits;
+  document.getElementById("waitingCount").textContent = waiting;
+
+  updateTableDisplays();
+}
+
 
     window.onload = () => {
       db.collection("logs").onSnapshot(countVisitors);
