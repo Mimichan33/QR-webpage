@@ -151,19 +151,26 @@
 </head>
 <body>
  <header>
-    <div class="header-bar">
-      <div class="header-title">店内管理システム</div>
-      <div class="header-links">
-        <a href="#">マニュアル</a>
-        <a href="#">ログアウト</a>
-      </div>
+   <div class="drawer" id="drawerMenu">
+    <a href="index.html">ホーム</a>
+    <a href="map.html">店内マップ</a>
+    <a href="histogram.html" class="active">混雑状況可視化</a>
+    <a href="admin.html">待ち管理</a>
+    <a href="#">マニュアル</a>
+    <a href="#">ログアウト</a>
+  </div>
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+  <div class="container">
+    <canvas id="histogram" width="400" height="200"></canvas>
+  </div>
+
+   <div class="hamburger" id="hamburger">
+      <div></div>
+      <div></div>
+      <div></div>
     </div>
-    <nav>
-      <a href="index.html">ホーム</a>
-      <a href="map.html">店内マップ</a>
-      <a href="histogram.html">混雑状況可視化</a>
-      <a href="histogram.html" class="active">待ち管理</a>
-    </nav>
+    
   </header>
   <h1 style="display:none;" id="mainTitle">順番待ち管理（店員用）</h1>
   <div id="queueList"></div>
