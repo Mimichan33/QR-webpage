@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ハンバーガーメニュー</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+    /* ハンバーガーアイコン */
+    .hamburger {
+      font-size: 30px;
+      cursor: pointer;
+      padding: 16px;
+      background-color: #333;
+      color: white;
+      border: none;
+    }
+
+    /* ドロワーメニュー */
+    .drawer {
+      position: fixed;
+      top: 0;
+      left: -250px;
+      width: 250px;
+      height: 100%;
+      background-color: #444;
+      color: white;
+      transition: left 0.3s ease;
+      padding-top: 60px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+      z-index: 1000;
+    }
+
+    .drawer.open {
+      left: 0;
+    }
+
+    .drawer a {
+      display: block;
+      padding: 12px 24px;
+      color: white;
+      text-decoration: none;
+      border-bottom: 1px solid #666;
+    }
+
+    .drawer a:hover {
+      background-color: #555;
+    }
+
+    /* オーバーレイ */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background-color: rgba(0,0,0,0.4);
+      z-index: 999;
+      display: none;
+    }
+
+    .overlay.show {
+      display: block;
+    }
+
+    /* メインコンテンツ（見やすく） */
+    .content {
+      padding: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ハンバーガーアイコン -->
+  <button class="hamburger" onclick="toggleDrawer()">☰</button>
+
+  <!-- オーバーレイ -->
+  <div class="overlay" id="overlay" onclick="toggleDrawer()"></div>
+
+  <!-- ドロワーメニュー -->
+  <div class="drawer" id="drawer">
+    <a href="index.html">🏠 ホーム</a>
+    <a href="map.html">🗺 店内マップ</a>
+    <a href="status.html">📊 混雑状況可視化</a>
+    <a href="wait.html">⏳ 待ち管理</a>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <div class="content">
+    <h1>ようこそ！</h1>
+    <p>ここにメインコンテンツが表示されます。</p>
+  </div>
+
+  <!-- スクリプト -->
+  <script>
+    function toggleDrawer() {
+      const drawer = document.getElementById('drawer');
+      const overlay = document.getElementById('overlay');
+      drawer.classList.toggle('open');
+      overlay.classList.toggle('show');
+    }
+  </script>
+
+</body>
+</html>
