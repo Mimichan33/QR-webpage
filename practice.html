@@ -173,6 +173,20 @@
       </div>
   </header>
 
+  <div class="drawer" id="drawerMenu">
+    <a href="index.html">ホーム</a>
+    <a href="map.html">店内マップ</a>
+    <a href="histogram.html" class="active">混雑状況可視化</a>
+    <a href="admin.html">待ち管理</a>
+    <a href="#">マニュアル</a>
+    <a href="#">ログアウト</a>
+  </div>
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+  <div class="container">
+    <canvas id="histogram" width="400" height="200"></canvas>
+  </div>
+
   <main>
     <h2>混雑傾向分析</h2>
     <div class="filters">
@@ -224,6 +238,21 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     let chart;
+
+     // ハンバーガーメニュー制御
+    const hamburger = document.getElementById("hamburger");
+    const drawerMenu = document.getElementById("drawerMenu");
+    const drawerBackdrop = document.getElementById("drawerBackdrop");
+
+    hamburger.addEventListener("click", () => {
+      drawerMenu.classList.toggle("open");
+      drawerBackdrop.classList.toggle("show");
+    });
+
+    drawerBackdrop.addEventListener("click", () => {
+      drawerMenu.classList.remove("open");
+      drawerBackdrop.classList.remove("show");
+    });
 
     function getDateRange(rangeType, baseDateStr) {
       const baseDate = new Date(baseDateStr + "T00:00:00+09:00");
@@ -399,7 +428,7 @@ async function updateChartAndTable() {
         const cols = [...tr.children].map(td => td.textContent);
         rows.push(cols);
       });
-
+      
       const csv = rows.map(row => row.join(",")).join("\n");
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
