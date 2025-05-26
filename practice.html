@@ -389,16 +389,12 @@ async function updateChartAndTable() {
 
     window.addEventListener("DOMContentLoaded", updateChartAndTable);
 
-    window.onload = () => {
-      db.collection("logs").onSnapshot(countVisitors);
-      setInterval(updateTableDisplays, 60000);
-
-      const menuButton = document.querySelector(".menu-button");
-      const drawer = document.querySelector(".drawer");
-      menuButton.addEventListener("click", () => {
-        drawer.classList.toggle("open");
-      });
-    };
+  $(document).ready(function() {
+    $('.menu-button').on('click', function() {
+      $('.drawer').toggleClass('open');
+    });
+  });
+    
   </script>
 </body>
 </html>
