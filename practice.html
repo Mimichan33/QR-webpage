@@ -165,21 +165,6 @@
     const db = firebase.firestore();
 
     const ticketMap = {};
-
-    const hamburger = document.getElementById("hamburger");
-    const drawerMenu = document.getElementById("drawerMenu");
-    const drawerBackdrop = document.getElementById("drawerBackdrop");
-
-    hamburger.addEventListener("click", () => {
-      drawerMenu.classList.toggle("open");
-      drawerBackdrop.classList.toggle("show");
-    });
-
-    drawerBackdrop.addEventListener("click", () => {
-      drawerMenu.classList.remove("open");
-      drawerBackdrop.classList.remove("show");
-    });
-
     
     function formatTime(iso) {
       const d = new Date(iso);
@@ -267,7 +252,7 @@ function renderQueue() {
     renderQueue();
   };
 
-    document.addEventListener('DOMContentLoaded', function () {
+   document.addEventListener('DOMContentLoaded', function () {
     document.querySelector('.menu-button').addEventListener('click', function () {
       document.querySelector('.drawer').classList.toggle('open');
     });
