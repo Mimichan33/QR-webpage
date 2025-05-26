@@ -202,70 +202,7 @@
     window.onload = () => {
       db.collection("logs").onSnapshot(countVisitors);
       setInterval(updateTableDisplays, 60000);
-    };
-
-// ✅ 待機人数の監視
-function watchWaitingCount() {
-  db.collection("queue").where("status", "==", "waiting")
-    .onSnapshot(snapshot => {
-      const count = snapshot.size;
-      document.getElementById("waitingCount").textContent = `${count}人`;
-    });
-}
-
-function watchTableUsage() {
-  const totalTables = 9;
-  const usedTables = new Set();
-
-  // 各テーブルについて最新の status を取得
-  const tableStatuses = [];
-  for (let i = 1; i <= totalTables; i++) {
-    const tableId = `table${i}`;
-
-    const promise = db.collection("logs")
-      .where("table", "==", tableId)
-      .orderBy("time", "desc")
-      .limit(1)
-      .get()
-      .then(snapshot => {
-        if (!snapshot.empty) {
-          const data = snapshot.docs[0].data();
-          if (data.status === "enter") {
-            usedTables.add(tableId);
-          }
-        }
-      });
-
-    tableStatuses.push(promise);
-  }
-
-  // 全テーブルの状態取得が終わったら進捗バー更新
-  Promise.all(tableStatuses).then(() => {
-    const usedCount = usedTables.size;
-    const usageRate = Math.round((usedCount / totalTables) * 100);
-
-    const progressBar = document.getElementById("usageProgress");
-    progressBar.style.width = `${usageRate}%`;
-    progressBar.textContent = `${usageRate}%`;
-
-    // 色変更：緑→オレンジ→赤
-    if (usageRate < 50) {
-      progressBar.style.backgroundColor = "#4caf50"; // 緑
-    } else if (usageRate < 80) {
-      progressBar.style.backgroundColor = "#ff9800"; // オレンジ
-    } else {
-      progressBar.style.backgroundColor = "#f44336"; // 赤
-    }
-  });
-}
-
-// ✅ 初期化
-window.addEventListener("DOMContentLoaded", () => {
-  watchWaitingCount();
-  watchTableUsage();
-});
-
-    
+    };    
   </script>
 </head>
 <body>
@@ -287,23 +224,7 @@ window.addEventListener("DOMContentLoaded", () => {
     </nav>
   </header>
 
-  <main>
-    <section>
-    <!-- 🔵 進捗バー -->
-    <p>店内利用率：</p>
-    <div style="width: 100%; background-color: #ddd; border-radius: 10px; overflow: hidden; height: 25px; margin-bottom: 10px;">
-      <div id="usageProgress" style="
-        width: 0%;
-        background-color: #4caf50;
-        height: 100%;
-        text-align: center;
-        color: white;
-        line-height: 25px;
-        transition: width 0.3s;
-      ">0%</div>
-    </div>
-    </section>
-    
+  <main>    
     <section>
       <h2>全体状況</h2>
       <p>現在の入店者数: <span id="count">読み込み中...</span></p>
