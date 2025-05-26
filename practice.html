@@ -89,17 +89,71 @@
       padding: 20px;
       border-radius: 10px;
     }
-    table {
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      cursor: pointer;
+      width: 30px;
+      gap: 5px;
+    }
+
+    .hamburger div {
+      height: 4px;
+      background-color: white;
+      border-radius: 2px;
+    }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      left: -250px;
+      width: 220px;
+      height: 100%;
+      background-color: #2c3e50;
+      color: white;
+      padding-top: 60px;
+      transition: left 0.3s;
+      z-index: 1000;
+    }
+
+    .drawer.open {
+      left: 0;
+    }
+
+    .drawer a {
+      display: block;
+      padding: 12px 20px;
+      color: white;
+      text-decoration: none;
+    }
+
+    .drawer a:hover {
+      background-color: #34495e;
+    }
+
+    .drawer-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
-      border-collapse: collapse;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 999;
     }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: center;
+
+    .drawer-backdrop.show {
+      display: block;
     }
-    th {
-      background-color: #e0e0e0;
+
+    @media (max-width: 768px) {
+      nav {
+        display: none;
+      }
+
+      .hamburger {
+        display: flex;
+      }
     }
   </style>
 </head>
@@ -112,12 +166,11 @@
         <a href="#">ログアウト</a>
       </div>
     </div>
-    <nav>
-      <a href="index.html">ホーム</a>
-      <a href="map.html">店内マップ</a>
-      <a href="histogram.html" class="active">混雑状況可視化</a>
-      <a href="admin.html">待ち管理</a>
-    </nav>
+    <div class="hamburger" id="hamburger">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
   </header>
 
   <main>
