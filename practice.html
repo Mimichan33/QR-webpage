@@ -42,31 +42,56 @@
     .header-links a:hover {
       text-decoration: underline;
     }
-    nav {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      background-color: #3498db;
-      text-align: center;
-      border-top: 1px solid #fff;
-      border-bottom: 1px solid #fff;
+
+    .menu-button {
+      position: absolute;
+      left: 20px;
+      top: 12px;
+      width: 30px;
+      height: 24px;
+      cursor: pointer;
+      z-index: 1001;
     }
-    nav a {
-      padding: 12px 0;
+
+    .menu-button span {
       display: block;
+      height: 4px;
+      background: white;
+      margin: 5px 0;
+      transition: 0.4s;
+    }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      left: -250px;
+      width: 250px;
+      height: 100%;
+      background-color: #34495e;
       color: white;
+      transition: 0.3s;
+      z-index: 1000;
+      padding-top: 60px;
+    }
+
+    .drawer.open {
+      left: 0;
+    }
+
+    .drawer a {
+      display: block;
+      padding: 15px 20px;
       text-decoration: none;
+      color: white;
       font-weight: bold;
-      border-right: 1px solid #fff;
+      border-bottom: 1px solid #2c3e50;
     }
-    nav a:last-child {
-      border-right: none;
+
+    .drawer a:hover {
+      background-color: #2c3e50;
     }
-    nav a.active {
-      background-color: #1f618d;
-    }
-    nav a:hover {
-      background-color: #2980b9;
-    }
+
+    
     main {
       padding: 20px;
       max-width: 1000px;
@@ -105,19 +130,24 @@
 </head>
 <body>
   <header>
+    <div class="menu-button">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
     <div class="header-bar">
-      <div class="header-title">店内管理システム</div>
+      <div class="header-title">　　　　　店内管理システム</div>
       <div class="header-links">
         <a href="#">マニュアル</a>
         <a href="#">ログアウト</a>
       </div>
     </div>
-    <nav>
+    <div class="drawer">
       <a href="index.html">ホーム</a>
       <a href="map.html">店内マップ</a>
-      <a href="histogram.html" class="active">混雑状況可視化</a>
+      <a href="histogram.html">混雑状況可視化</a>
       <a href="admin.html">待ち管理</a>
-    </nav>
+    </div>
   </header>
 
   <main>
