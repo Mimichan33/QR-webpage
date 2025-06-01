@@ -237,80 +237,16 @@
       updateTableDisplays();
     }
 
-window.onload = () => {
-  db.collection("logs").onSnapshot(snapshot => {
-    countVisitors(snapshot);
-    calculateStayTimes(snapshot);
-  });
+    window.onload = () => {
+      db.collection("logs").onSnapshot(countVisitors);
+      setInterval(updateTableDisplays, 60000);
 
-  setInterval(updateTableDisplays, 60000);
-
-  const menuButton = document.querySelector(".menu-button");
-  const drawer = document.querySelector(".drawer");
-  menuButton.addEventListener("click", () => {
-    drawer.classList.toggle("open");
-  });
-};
-
-    function calculateStayTimes(snapshot) {
-      const deviceLogs = {};
-
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    if (!data.deviceId || !data.timestamp || !data.type) return;
-
-    if (!deviceLogs[data.deviceId]) {
-      deviceLogs[data.deviceId] = [];
-    }
-    deviceLogs[data.deviceId].push(data);
-  });
-
-  let totalTime = 0;
-  let count = 0;
-  let minTime = Infinity;
-  let maxTime = -Infinity;
-  const tableTimes = {};
-
-  Object.values(deviceLogs).forEach(logs => {
-    const enter = logs.find(l => l.type === "enter");
-    const exit = logs.find(l => l.type === "exit");
-
-    if (enter && exit) {
-      const time = (new Date(exit.timestamp) - new Date(enter.timestamp)) / 60000; // 分
-      if (time > 0 && time < 1440) { // 0分未満や24時間超は除外
-        totalTime += time;
-        count++;
-        minTime = Math.min(minTime, time);
-        maxTime = Math.max(maxTime, time);
-
-        const table = enter.table || "不明";
-        if (!tableTimes[table]) tableTimes[table] = [];
-        tableTimes[table].push(time);
-      }
-    }
-  });
-
-  document.getElementById("overallAverage").textContent = count > 0 ? `${(totalTime / count).toFixed(1)} 分` : "--";
-  document.getElementById("maxStay").textContent = maxTime !== -Infinity ? `${maxTime.toFixed(1)} 分` : "--";
-  document.getElementById("minStay").textContent = minTime !== Infinity ? `${minTime.toFixed(1)} 分` : "--";
-
-  const tableDiv = document.getElementById("tableAverages");
-  tableDiv.innerHTML = "";
-  Object.entries(tableTimes).forEach(([table, times]) => {
-    const avg = (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1);
-    const el = document.createElement("div");
-    el.className = "border p-2 rounded-lg bg-gray-100";
-    el.innerHTML = `<p class="text-sm text-gray-500">テーブル ${table}</p>
-                    <p class="text-lg font-bold text-indigo-600">${avg} 分</p>`;
-    tableDiv.appendChild(el);
-  });
-
-      calculateStayTimes(snapshot);
-
-}
-
-
-    
+      const menuButton = document.querySelector(".menu-button");
+      const drawer = document.querySelector(".drawer");
+      menuButton.addEventListener("click", () => {
+        drawer.classList.toggle("open");
+      });
+    };
   </script>
 </head>
 <body>
@@ -333,6 +269,14 @@ window.onload = () => {
       <a href="map.html">店内マップ</a>
       <a href="histogram.html">混雑状況可視化</a>
       <a href="admin.html">待ち管理</a>
+      
+      <a href="dashboard.html">ダッシュボード</a>
+      <a href="admin.html">テーブル管理</a>
+      <a href="admin.html">来店者分析</a>
+      <a href="admin.html">通知・アラート設定</a>
+      <a href="admin.html">利用ログ一覧</a>
+      <a href="admin.html">システム設定</a>
+
     </div>
   </header>
 
@@ -357,40 +301,6 @@ window.onload = () => {
       <p>累計入店数: <span id="entries">-</span></p>
       <p>累計退店数: <span id="exits">-</span></p>
     </section>
-
-    <section id="average-stay" class="p-4 mt-6">
-  <h2 class="text-xl font-bold mb-4">🕒 平均滞在時間</h2>
-
-  <!-- 全体平均 -->
-  <div class="bg-white shadow-md rounded-xl p-4 mb-4">
-    <p class="text-gray-700 text-lg font-semibold">全体の平均滞在時間</p>
-    <p id="overallAverage" class="text-3xl text-blue-600 mt-2">-- 分</p>
-  </div>
-
-  <!-- テーブル別平均 -->
-  <div class="bg-white shadow-md rounded-xl p-4 mb-4">
-    <p class="text-gray-700 text-lg font-semibold mb-2">テーブル別 平均滞在時間</p>
-    <div id="tableAverages" class="grid grid-cols-2 gap-4">
-      <!-- 動的にJSで生成 -->
-      <div class="border p-2 rounded-lg bg-gray-50">
-        <p class="text-sm text-gray-500">テーブル 1</p>
-        <p class="text-lg font-bold text-green-600">-- 分</p>
-      </div>
-      <div class="border p-2 rounded-lg bg-gray-50">
-        <p class="text-sm text-gray-500">テーブル 2</p>
-        <p class="text-lg font-bold text-green-600">-- 分</p>
-      </div>
-      <!-- 必要に応じて増減可 -->
-    </div>
-  </div>
-
-  <!-- 最長・最短 -->
-  <div class="bg-white shadow-md rounded-xl p-4">
-    <p class="text-gray-700 text-lg font-semibold mb-1">滞在時間の範囲</p>
-    <p class="text-sm text-gray-600">最長: <span id="maxStay">-- 分</span>｜最短: <span id="minStay">-- 分</span></p>
-  </div>
-</section>
-
 
     <section id="tables">
       <h2>テーブル別 使用状況（時刻）</h2>
