@@ -237,16 +237,20 @@
       updateTableDisplays();
     }
 
-    window.onload = () => {
-      db.collection("logs").onSnapshot(countVisitors);
-      setInterval(updateTableDisplays, 60000);
+window.onload = () => {
+  db.collection("logs").onSnapshot(snapshot => {
+    countVisitors(snapshot);
+    calculateStayTimes(snapshot);
+  });
 
-      const menuButton = document.querySelector(".menu-button");
-      const drawer = document.querySelector(".drawer");
-      menuButton.addEventListener("click", () => {
-        drawer.classList.toggle("open");
-      });
-    };
+  setInterval(updateTableDisplays, 60000);
+
+  const menuButton = document.querySelector(".menu-button");
+  const drawer = document.querySelector(".drawer");
+  menuButton.addEventListener("click", () => {
+    drawer.classList.toggle("open");
+  });
+};
 
     function calculateStayTimes(snapshot) {
       const deviceLogs = {};
