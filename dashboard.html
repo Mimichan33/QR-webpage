@@ -239,18 +239,18 @@
       updateTableDisplays();
     }
 
-    window.onload = () => {
-      db.collection("logs").onSnapshot(countVisitors);
-      setInterval(updateTableDisplays, 60000);
+window.onload = () => {
+  db.collection("logs").onSnapshot(countVisitors);
+  setInterval(updateTableDisplays, 60000);
 
-      const menuButton = document.querySelector(".menu-button");
-      const drawer = document.querySelector(".drawer");
-      menuButton.addEventListener("click", () => {
-        drawer.classList.toggle("open");
-      });
-    };
+  const menuButton = document.querySelector(".menu-button");
+  const drawer = document.querySelector(".drawer");
+  menuButton.addEventListener("click", () => {
+    drawer.classList.toggle("open");
+  });
 
-      const labels = [
+  // グラフ描画
+  const labels = [
     "10:00", "11:00", "12:00", "13:00", "14:00",
     "15:00", "16:00", "17:00", "18:00", "19:00"
   ];
@@ -258,17 +258,17 @@
     labels: labels,
     datasets: [{
       label: '滞在人数',
-      data: [3, 5, 8, 12, 10, 7, 6, 4, 2, 1], // ←ここに人数データ
-      backgroundColor: 'rgba(59, 130, 246, 0.5)', // 青系
+      data: [3, 5, 8, 12, 10, 7, 6, 4, 2, 1],
+      backgroundColor: 'rgba(59, 130, 246, 0.5)',
       borderColor: 'rgba(59, 130, 246, 1)',
       borderWidth: 2,
       fill: true,
-      tension: 0.3, // 緩やかなカーブ（棒グラフにしたい場合は tension: 0 に）
+      tension: 0.3
     }]
   };
 
   const config = {
-    type: 'line', // ← 'bar' に変更すると棒グラフになる
+    type: 'line',
     data: data,
     options: {
       responsive: true,
@@ -290,8 +290,14 @@
     }
   };
 
-  // グラフ描画
-  new Chart(document.getElementById('stayChart'), config);
+  const ctx = document.getElementById('stayChart');
+  if (ctx) {
+    new Chart(ctx, config);
+  } else {
+    console.error("stayChart が見つかりません");
+  }
+};
+
   </script>
 </head>
 <body>
@@ -360,10 +366,13 @@
     <h2>店内マップ</h2>
     <iframe src="map.html" width="850" height="650" style="border: 2px solid #444; border-radius: 8px;"></iframe>
 
-    <div class="p-4">
-  <h2 class="text-xl font-bold mb-2">今日の滞在状況（時間帯ごとの人数）</h2>
-  <canvas id="stayChart" class="bg-white rounded-lg shadow-md p-4"></canvas>
-</div>
+  <section id="hero" class="full-width-section">
+    <div style="max-width: 1000px;margin: 0 auto;">
+      <h1 style="font-size: 24px;">混雑状況ダッシュボード</h1>
+      <!-- 滞在人数の推移グラフ -->
+      <canvas id="stayChart" width="600" height="300"></canvas>
+    </div>
+  </section>
 
   </main>
 
