@@ -7,6 +7,8 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     body {
       font-family: 'Helvetica Neue', sans-serif;
@@ -247,6 +249,49 @@
         drawer.classList.toggle("open");
       });
     };
+
+      const labels = [
+    "10:00", "11:00", "12:00", "13:00", "14:00",
+    "15:00", "16:00", "17:00", "18:00", "19:00"
+  ];
+  const data = {
+    labels: labels,
+    datasets: [{
+      label: '滞在人数',
+      data: [3, 5, 8, 12, 10, 7, 6, 4, 2, 1], // ←ここに人数データ
+      backgroundColor: 'rgba(59, 130, 246, 0.5)', // 青系
+      borderColor: 'rgba(59, 130, 246, 1)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.3, // 緩やかなカーブ（棒グラフにしたい場合は tension: 0 に）
+    }]
+  };
+
+  const config = {
+    type: 'line', // ← 'bar' に変更すると棒グラフになる
+    data: data,
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: '人数'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: '時間帯'
+          }
+        }
+      }
+    }
+  };
+
+  // グラフ描画
+  new Chart(document.getElementById('stayChart'), config);
   </script>
 </head>
 <body>
@@ -314,6 +359,11 @@
 
     <h2>店内マップ</h2>
     <iframe src="map.html" width="850" height="650" style="border: 2px solid #444; border-radius: 8px;"></iframe>
+
+    <div class="p-4">
+  <h2 class="text-xl font-bold mb-2">今日の滞在状況（時間帯ごとの人数）</h2>
+  <canvas id="stayChart" class="bg-white rounded-lg shadow-md p-4"></canvas>
+</div>
 
   </main>
 
