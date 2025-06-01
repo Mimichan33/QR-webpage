@@ -7,6 +7,8 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     body {
       font-family: 'Helvetica Neue', sans-serif;
@@ -247,6 +249,63 @@
         drawer.classList.toggle("open");
       });
     };
+
+
+      // グラフデータ初期化
+      const hourLabels = Array.from({ length: 24 }, (_, i) => `${i}時`);
+      const visitorData = new Array(24).fill(0);
+
+      const ctx = document.getElementById('visitorChart').getContext('2d');
+      const visitorChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: hourLabels,
+          datasets: [{
+            label: '入店者数',
+            data: visitorData,
+            backgroundColor: 'rgba(46, 204, 113, 0.7)',
+            borderColor: 'rgba(39, 174, 96, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: '人数' }
+            },
+            x: {
+              title: { display: true, text: '時間帯' }
+            }
+          }
+        }
+      });
+
+      // 今日の日付（ローカル時間）を取得
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // ログから時間ごとのカウントを集計してグラフに反映
+      db.collection("logs").onSnapshot(snapshot => {
+        // カウント初期化
+        visitorData.fill(0);
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.type === "enter" && data.timestamp) {
+            const ts = new Date(data.timestamp);
+            if (ts >= today) {
+              const hour = ts.getHours();
+              visitorData[hour]++;
+            }
+          }
+        });
+
+        visitorChart.update();
+      });
+
+    
   </script>
 </head>
 <body>
@@ -322,6 +381,11 @@
 
     <h2>店内マップ</h2>
     <iframe src="map.html" width="850" height="650" style="border: 2px solid #444; border-radius: 8px;"></iframe>
+
+    <section style="margin-top: 60px;">
+      <h2>今日の滞在状況（時間帯別）</h2>
+      <canvas id="visitorChart" width="800" height="400"></canvas>
+    </section>
 
   </main>
 
