@@ -18,57 +18,33 @@
       color: #2c3e50;
       overflow-x: hidden;
     }
-
     header {
       background-color: #2c3e50;
       color: white;
       position: relative;
-      margin-bottom: 0;
-      padding-bottom: 0; 
     }
-
     .header-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 12px 20px;
     }
-
     .header-title {
       font-size: 1.5em;
       font-weight: bold;
     }
-
     .header-links {
       display: flex;
       gap: 20px;
     }
-
     .header-links a {
       color: white;
       text-decoration: none;
       font-weight: 500;
     }
-
     .header-links a:hover {
       text-decoration: underline;
     }
-
-    .full-width-section {
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-
-  background: #e0f7da;
-  padding: 60px 0;
-  text-align: center;
-  margin-top: 0 !important; 
-}
-
-    /* ハンバーガーメニュー */
     .menu-button {
       position: absolute;
       left: 20px;
@@ -78,7 +54,6 @@
       cursor: pointer;
       z-index: 1001;
     }
-
     .menu-button span {
       display: block;
       height: 4px;
@@ -86,7 +61,6 @@
       margin: 5px 0;
       transition: 0.4s;
     }
-
     .drawer {
       position: fixed;
       top: 0;
@@ -99,11 +73,9 @@
       z-index: 1000;
       padding-top: 60px;
     }
-
     .drawer.open {
       left: 0;
     }
-
     .drawer a {
       display: block;
       padding: 15px 20px;
@@ -112,33 +84,74 @@
       font-weight: bold;
       border-bottom: 1px solid #2c3e50;
     }
-
     .drawer a:hover {
       background-color: #2c3e50;
     }
-
     main {
       max-width: 800px;
       margin: 0 auto;
       padding: 30px 20px;
     }
-
     h2 {
       margin-top: 40px;
-      margin-bottom: 10px;
       border-bottom: 2px solid #2c3e50;
       padding-bottom: 5px;
     }
-
     p {
       font-size: 16px;
-      margin: 8px 0;
     }
-
-    #tables p {
-      font-size: 17px;
+    canvas {
+      margin-top: 30px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
   </style>
+</head>
+
+<body>
+  <header>
+    <div class="menu-button">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="header-bar">
+      <div class="header-title">　　　　　店内管理システム</div>
+      <div class="header-links">
+        <a href="#">マニュアル</a>
+        <a href="start.html">ログアウト</a>
+      </div>
+    </div>
+    <div class="drawer">
+      <a href="index.html">ホーム</a>
+      <a href="map.html">店内マップ</a>
+      <a href="histogram.html">混雑状況可視化</a>
+      <a href="admin.html">待ち管理</a>
+      <a href="dashboard.html">ダッシュボード</a>
+    </div>
+  </header>
+
+  <main>
+    <h2>現在の利用状況</h2>
+    <p>現在の店内人数：<span id="count">--</span>人</p>
+    <p>入店数：<span id="entries">--</span>人｜退店数：<span id="exits">--</span>人</p>
+    <p>待ち人数：<span id="waitingCount">--</span>人</p>
+
+    <div id="tables">
+      <h2>テーブルごとの状況</h2>
+      <p>テーブル1：<span id="table1-status">読み込み中...</span></p>
+      <p>テーブル2：<span id="table2-status">読み込み中...</span></p>
+      <p>テーブル3：<span id="table3-status">読み込み中...</span></p>
+      <p>テーブル4：<span id="table4-status">読み込み中...</span></p>
+      <p>テーブル5：<span id="table5-status">読み込み中...</span></p>
+      <p>テーブル6：<span id="table6-status">読み込み中...</span></p>
+      <p>テーブル7：<span id="table7-status">読み込み中...</span></p>
+      <p>テーブル8：<span id="table8-status">読み込み中...</span></p>
+      <p>テーブル9：<span id="table9-status">読み込み中...</span></p>
+    </div>
+
+    <h2>時間帯別 入店者数グラフ</h2>
+    <canvas id="visitorChart" width="700" height="300"></canvas>
+  </main>
 
   <script>
     const firebaseConfig = {
@@ -155,79 +168,63 @@
     const tableCounts = {};
 
     function formatTimestamp(isoString) {
-      if (!isoString || typeof isoString !== "string") return "ー";
+      if (!isoString) return "ー";
       const date = new Date(isoString);
-      const options = {
+      return new Intl.DateTimeFormat("ja-JP", {
         timeZone: "Asia/Tokyo",
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit"
-      };
-      return new Intl.DateTimeFormat("ja-JP", options).format(date).replace(/\//g, "-").replace(",", "");
+      }).format(date).replace(/\//g, "-").replace(",", "");
     }
 
     function calculateElapsedTime(isoString) {
-      if (!isoString) return "";
       const start = new Date(isoString);
       const now = new Date();
-      const diffMs = now - start;
-      if (diffMs < 0) return "";
-      const minutes = Math.floor(diffMs / 60000);
+      const diff = now - start;
+      const minutes = Math.floor(diff / 60000);
       const hours = Math.floor(minutes / 60);
-      const remainingMinutes = minutes % 60;
-      return hours > 0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
+      const mins = minutes % 60;
+      return hours > 0 ? `${hours}時間${mins}分経過` : `${minutes}分経過`;
     }
 
     function updateTableDisplays() {
       Object.keys(tableCounts).forEach(tableNum => {
         const t = tableCounts[tableNum];
-        const currentCount = t.enter - t.exit;
-        const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
-        const status = currentCount > 0 ? "利用中" : "空席";
-        const timeText = formatTimestamp(timeToShow);
-        const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
-        const element = document.getElementById(`table${tableNum}-status`);
-        if (element) {
-          element.textContent = `${status}（${timeText}${elapsed}）`;
-        }
+        const current = t.enter - t.exit;
+        const status = current > 0 ? "利用中" : "空席";
+        const timeText = current > 0 ? formatTimestamp(t.lastEnterTime) : "";
+        const elapsed = current > 0 ? `｜${calculateElapsedTime(t.lastEnterTime)}` : "";
+        const el = document.getElementById(`table${tableNum}-status`);
+        if (el) el.textContent = `${status}（${timeText}${elapsed}）`;
       });
     }
 
     function countVisitors(snapshot) {
-      let entries = 0;
-      let exits = 0;
-      let waiting = 0;
-
+      let entries = 0, exits = 0, waiting = 0;
       for (let i = 1; i <= 9; i++) {
-        tableCounts[i.toString()] = {
-          enter: 0,
-          exit: 0,
-          lastEnterTime: null
-        };
+        tableCounts[i] = { enter: 0, exit: 0, lastEnterTime: null };
       }
 
       snapshot.forEach(doc => {
-        const data = doc.data();
-        const table = data.table;
-        const timestamp = data.timestamp;
-        if (!table || !timestamp) return;
+        const d = doc.data();
+        const t = d.table;
+        const time = d.timestamp;
+        if (!t || !time) return;
 
-        if (data.type === "enter") entries++;
-        if (data.type === "exit") exits++;
-        if (data.type === "wait") waiting++;
-
-        if (tableCounts[table]) {
-          if (data.type === "enter") {
-            tableCounts[table].enter++;
-            if (!tableCounts[table].lastEnterTime || new Date(tableCounts[table].lastEnterTime) < new Date(timestamp)) {
-              tableCounts[table].lastEnterTime = timestamp;
-            }
+        if (d.type === "enter") {
+          entries++;
+          tableCounts[t].enter++;
+          if (!tableCounts[t].lastEnterTime || new Date(time) > new Date(tableCounts[t].lastEnterTime)) {
+            tableCounts[t].lastEnterTime = time;
           }
-          if (data.type === "exit") {
-            tableCounts[table].exit++;
-          }
+        } else if (d.type === "exit") {
+          exits++;
+          tableCounts[t].exit++;
+        } else if (d.type === "wait") {
+          waiting++;
         }
       });
 
@@ -248,20 +245,17 @@
       menuButton.addEventListener("click", () => {
         drawer.classList.toggle("open");
       });
-    };
 
-
-      // グラフデータ初期化
+      // グラフ描画
       const hourLabels = Array.from({ length: 24 }, (_, i) => `${i}時`);
       const visitorData = new Array(24).fill(0);
-
-      const ctx = document.getElementById('visitorChart').getContext('2d');
-      const visitorChart = new Chart(ctx, {
-        type: 'bar',
+      const ctx = document.getElementById("visitorChart").getContext("2d");
+      const chart = new Chart(ctx, {
+        type: "bar",
         data: {
           labels: hourLabels,
           datasets: [{
-            label: '入店者数',
+            label: "入店者数",
             data: visitorData,
             backgroundColor: 'rgba(46, 204, 113, 0.7)',
             borderColor: 'rgba(39, 174, 96, 1)',
@@ -282,112 +276,24 @@
         }
       });
 
-      // 今日の日付（ローカル時間）を取得
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // ログから時間ごとのカウントを集計してグラフに反映
       db.collection("logs").onSnapshot(snapshot => {
-        // カウント初期化
         visitorData.fill(0);
-
         snapshot.forEach(doc => {
-          const data = doc.data();
-          if (data.type === "enter" && data.timestamp) {
-            const ts = new Date(data.timestamp);
+          const d = doc.data();
+          if (d.type === "enter" && d.timestamp) {
+            const ts = new Date(d.timestamp);
             if (ts >= today) {
-              const hour = ts.getHours();
-              visitorData[hour]++;
+              visitorData[ts.getHours()]++;
             }
           }
         });
-
-        visitorChart.update();
+        chart.update();
       });
-
-    
+    };
   </script>
-</head>
-<body>
-
-  <header>
-    <div class="menu-button">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
-    <div class="header-bar">
-      <div class="header-title">　　　　　店内管理システム</div>
-      <div class="header-links">
-        <a href="#">マニュアル</a>
-        <a href="start.html">ログアウト</a>
-      </div>
-    </div>
-    <div class="drawer">
-      <a href="index.html">ホーム</a>
-      <a href="map.html">店内マップ</a>
-      <a href="histogram.html">混雑状況可視化</a>
-      <a href="admin.html">待ち管理</a>
-      
-      <a href="dashboard.html">ダッシュボード</a>
-      <a href="admin.html">テーブル管理</a>
-      <a href="admin.html">来店者分析</a>
-      <a href="admin.html">通知・アラート設定</a>
-      <a href="admin.html">利用ログ一覧</a>
-      <a href="admin.html">システム設定</a>
-
-    </div>
-  </header>
-
-  <main>
-<section id="hero" class="full-width-section">
-  <div style="max-width: 1000px;margin: 0 auto;">
-    <h1 style="font-size: 2.5em; font-weight: bold; color: #2c3e50; margin-bottom: 20px;">
-      店内の混雑状況を<br>リアルタイムで見える化
-    </h1>
-    <p style="font-size: 1.2em; color: #34495e; margin-bottom: 40px;">
-      お客様の安心と業務効率化を両立する<br>スマートな混雑管理ソリューション
-    </p>
-  </div>
-  <img src="https://corp.vacan.com/wp-content/themes/vacan/assets/images/other/lp/hotel/bg_city.svg" 
-       alt="背景都市イラスト" 
-       style="width: 100%; height: auto; object-fit: cover; display: block;">
-</section>
-    
-    <section>
-      <h2>全体状況</h2>
-      <p>現在の入店者数: <span id="count">読み込み中...</span></p>
-      <p>累計入店数: <span id="entries">-</span></p>
-      <p>累計退店数: <span id="exits">-</span></p>
-    </section>
-
-    <section id="tables">
-      <h2>テーブル別 使用状況（時刻）</h2>
-      <p>テーブル1：<span id="table1-status">読み込み中...</span></p>
-      <p>テーブル2：<span id="table2-status">読み込み中...</span></p>
-      <p>テーブル3：<span id="table3-status">読み込み中...</span></p>
-      <p>テーブル4：<span id="table4-status">読み込み中...</span></p>
-      <p>テーブル5：<span id="table5-status">読み込み中...</span></p>
-      <p>テーブル6：<span id="table6-status">読み込み中...</span></p>
-      <p>テーブル7：<span id="table7-status">読み込み中...</span></p>
-      <p>テーブル8：<span id="table8-status">読み込み中...</span></p>
-      <p>テーブル9：<span id="table9-status">読み込み中...</span></p>
-    </section>
-
-    <section>
-      <h2>待機人数</h2>
-      <p>現在の待機人数: <span id="waitingCount">読み込み中...</span></p>
-    </section>
-
-    <h2>店内マップ</h2>
-    <iframe src="map.html" width="850" height="650" style="border: 2px solid #444; border-radius: 8px;"></iframe>
-
-    <section style="margin-top: 60px;">
-      <h2>今日の滞在状況（時間帯別）</h2>
-      <canvas id="visitorChart" width="800" height="400"></canvas>
-    </section>
-
-  </main>
-
 </body>
 </html>
+
