@@ -247,6 +247,66 @@
         drawer.classList.toggle("open");
       });
     };
+
+    function calculateStayTimes(snapshot) {
+      const deviceLogs = {};
+
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (!data.deviceId || !data.timestamp || !data.type) return;
+
+    if (!deviceLogs[data.deviceId]) {
+      deviceLogs[data.deviceId] = [];
+    }
+    deviceLogs[data.deviceId].push(data);
+  });
+
+  let totalTime = 0;
+  let count = 0;
+  let minTime = Infinity;
+  let maxTime = -Infinity;
+  const tableTimes = {};
+
+  Object.values(deviceLogs).forEach(logs => {
+    const enter = logs.find(l => l.type === "enter");
+    const exit = logs.find(l => l.type === "exit");
+
+    if (enter && exit) {
+      const time = (new Date(exit.timestamp) - new Date(enter.timestamp)) / 60000; // 分
+      if (time > 0 && time < 1440) { // 0分未満や24時間超は除外
+        totalTime += time;
+        count++;
+        minTime = Math.min(minTime, time);
+        maxTime = Math.max(maxTime, time);
+
+        const table = enter.table || "不明";
+        if (!tableTimes[table]) tableTimes[table] = [];
+        tableTimes[table].push(time);
+      }
+    }
+  });
+
+  document.getElementById("overallAverage").textContent = count > 0 ? `${(totalTime / count).toFixed(1)} 分` : "--";
+  document.getElementById("maxStay").textContent = maxTime !== -Infinity ? `${maxTime.toFixed(1)} 分` : "--";
+  document.getElementById("minStay").textContent = minTime !== Infinity ? `${minTime.toFixed(1)} 分` : "--";
+
+  const tableDiv = document.getElementById("tableAverages");
+  tableDiv.innerHTML = "";
+  Object.entries(tableTimes).forEach(([table, times]) => {
+    const avg = (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1);
+    const el = document.createElement("div");
+    el.className = "border p-2 rounded-lg bg-gray-100";
+    el.innerHTML = `<p class="text-sm text-gray-500">テーブル ${table}</p>
+                    <p class="text-lg font-bold text-indigo-600">${avg} 分</p>`;
+    tableDiv.appendChild(el);
+  });
+
+      calculateStayTimes(snapshot);
+
+}
+
+
+    
   </script>
 </head>
 <body>
