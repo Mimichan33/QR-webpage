@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>混雑可視化ダッシュボード</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+  <style>
+    /* 簡易スタイル */
+    body { font-family: sans-serif; margin: 0; padding: 0; }
+    header, .menu { background-color: #333; color: #fff; padding: 10px; }
+    section { padding: 1rem; border-bottom: 1px solid #ddd; }
+    h2 { margin-top: 0; }
+  </style>
+</head>
+
+<body>
+  <!-- Header and Hamburger Menu -->
+  <header>
+    <button id="menu-toggle">☰</button>
+    <h1>管理者ダッシュボード</h1>
+  </header>
+  <nav class="menu" id="drawer-menu" style="display:none;">
+    <ul>
+      <li><a href="#realtime">リアルタイム状況</a></li>
+      <li><a href="#map">テーブル使用状況</a></li>
+      <!-- 今後の機能へのリンク -->
+    </ul>
+  </nav>
+
+  <!-- Realtime Congestion Section -->
+  <section id="realtime">
+    <h2>現在の混雑状況</h2>
+    <p>利用中のテーブル数: <span id="occupied-count">--</span></p>
+    <p>空席のテーブル数: <span id="available-count">--</span></p>
+  </section>
+
+  <!-- Table Map Section -->
+  <section id="map">
+    <h2>テーブルマップ</h2>
+    <iframe src="map.html" width="100%" height="500px" style="border: none;"></iframe>
+  </section>
+
+  <!-- Script -->
+  <script>
+    // ドロワーメニュー切替
+    document.getElementById("menu-toggle").addEventListener("click", () => {
+      const menu = document.getElementById("drawer-menu");
+      menu.style.display = menu.style.display === "none" ? "block" : "none";
+    });
+
+    // Firebaseからテーブルの状態を取得してリアルタイム表示
+    const db = firebase.database();
+    const occupiedCountEl = document.getElementById("occupied-count");
+    const availableCountEl = document.getElementById("available-count");
+
+    function updateOccupancy() {
+      db.ref("tables").once("value", (snapshot) => {
+        let occupied = 0;
+        let available = 0;
+        snapshot.forEach((child) => {
+          const status = child.val().status;
+          if (status === "occupied") occupied++;
+          else if (status === "available") available++;
+        });
+        occupiedCountEl.textContent = occupied;
+        availableCountEl.textContent = available;
+      });
+    }
+
+    updateOccupancy();
+    setInterval(updateOccupancy, 5000);
+  </script>
+</body>
+</html>
