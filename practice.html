@@ -1,145 +1,171 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>テーブル管理</title>
-<style>
-  body { font-family: Arial, sans-serif; background: linear-gradient(to bottom, #e0f7fa, #ffffff); padding: 20px; }
-  h1 { text-align: center; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-  th { background-color: #0097a7; color: white; }
-  .vacant { background-color: #b2dfdb; } /* 空席: 緑系 */
-  .occupied { background-color: #ef9a9a; } /* 使用中: 赤系 */
-  .btn-clear { cursor: pointer; color: blue; text-decoration: underline; }
-  .history-section { max-height: 300px; overflow-y: auto; }
-  input[type="text"] { padding: 6px; margin-bottom: 10px; width: 200px; }
-</style>
+  <meta charset="UTF-8">
+  <title>テーブル管理</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #e0f7fa, #ffffff);
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .table-list, .usage-logs {
+      margin-top: 30px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 40px;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #00796b;
+      color: white;
+    }
+    .occupied {
+      background-color: #ffccbc;
+    }
+    .vacant {
+      background-color: #c8e6c9;
+    }
+  </style>
 </head>
 <body>
+  <h1>テーブル管理画面</h1>
 
-<h1>テーブル管理</h1>
-
-<section>
-  <h2>テーブル一覧</h2>
-  <table id="tableStatus">
-    <thead>
-      <tr><th>テーブルID</th><th>状態</th><th>利用時間</th><th>操作</th></tr>
-    </thead>
-    <tbody>
-      <!-- JSで動的生成 -->
-    </tbody>
-  </table>
-</section>
-
-<section>
-  <h2>利用履歴</h2>
-  <input type="text" id="searchInput" placeholder="テーブルIDか端末IDで検索" />
-  <div class="history-section">
-    <table id="usageHistory">
+  <div class="table-list">
+    <h2>テーブル一覧</h2>
+    <table id="tableStatusTable">
       <thead>
-        <tr><th>テーブルID</th><th>開始時刻</th><th>終了時刻</th><th>端末ID</th></tr>
+        <tr>
+          <th>テーブルID</th>
+          <th>状態</th>
+          <th>使用開始時刻</th>
+          <th>利用時間（分）</th>
+        </tr>
       </thead>
-      <tbody>
-        <!-- JSで動的生成 -->
-      </tbody>
+      <tbody></tbody>
     </table>
   </div>
-</section>
 
-<script>
-// ダミーデータ（実際はFirebaseやAPIから取得）
-const tables = [
-  { id: "T1", status: "vacant", usageStart: null, deviceId: null },
-  { id: "T2", status: "occupied", usageStart: Date.now() - 3600 * 1000, deviceId: "device123" },
-  { id: "T3", status: "vacant", usageStart: null, deviceId: null },
-];
+  <div class="usage-logs">
+    <h2>利用履歴</h2>
+    <table id="usageLogsTable">
+      <thead>
+        <tr>
+          <th>テーブルID</th>
+          <th>端末ID</th>
+          <th>利用開始</th>
+          <th>利用終了</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-const usageLogs = [
-  { tableId: "T1", start: "2025-06-01 12:00", end: "2025-06-01 13:00", deviceId: "deviceA" },
-  { tableId: "T2", start: "2025-06-02 09:30", end: "2025-06-02 10:15", deviceId: "deviceB" },
-  { tableId: "T2", start: "2025-06-03 14:00", end: null, deviceId: "device123" }, // 利用中
-];
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
 
-// テーブル状態表示更新関数
-function updateTableStatus() {
-  const tbody = document.querySelector("#tableStatus tbody");
-  tbody.innerHTML = "";
-  tables.forEach(t => {
-    const tr = document.createElement("tr");
-    tr.className = t.status === "vacant" ? "vacant" : "occupied";
-    
-    // 利用時間計算（分単位）
-    let usageTime = "-";
-    if (t.status === "occupied" && t.usageStart) {
-      const elapsedMs = Date.now() - t.usageStart;
-      const m = Math.floor(elapsedMs / 60000);
-      usageTime = `${m}分`;
-    }
-    
-    tr.innerHTML = `
-      <td>${t.id}</td>
-      <td>${t.status === "vacant" ? "空席" : "使用中"}</td>
-      <td>${usageTime}</td>
-      <td>${t.status === "occupied" ? `<span class="btn-clear" onclick="clearTable('${t.id}')">クリア</span>` : ""}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-// テーブル使用状態クリア（強制終了用）
-function clearTable(tableId) {
-  const table = tables.find(t => t.id === tableId);
-  if (!table) return;
-  if (!confirm(`${tableId}の使用状態をクリアしますか？`)) return;
-  
-  table.status = "vacant";
-  table.usageStart = null;
-  table.deviceId = null;
-  
-  updateTableStatus();
-  alert(`${tableId}を空席にしました`);
-  // TODO: Firebaseなどに状態更新を反映する処理
-}
+    // 🔁 テーブル状態のリアルタイム監視
+    db.collection("logs").orderBy("timestamp").onSnapshot(snapshot => {
+      const tableStatus = {};  // { tableId: {status, startTime, deviceId} }
 
-// 利用履歴表示更新関数
-function updateUsageHistory(filterText = "") {
-  const tbody = document.querySelector("#usageHistory tbody");
-  tbody.innerHTML = "";
-  
-  // フィルター（テーブルIDか端末ID）
-  const filteredLogs = usageLogs.filter(log =>
-    log.tableId.includes(filterText) || (log.deviceId && log.deviceId.includes(filterText))
-  );
-  
-  filteredLogs.forEach(log => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${log.tableId}</td>
-      <td>${log.start}</td>
-      <td>${log.end ? log.end : "利用中"}</td>
-      <td>${log.deviceId}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const tableId = data.table;
+        const deviceId = data.device;
+        const timestamp = new Date(data.timestamp);
+        const type = data.type;
 
-document.getElementById("searchInput").addEventListener("input", e => {
-  updateUsageHistory(e.target.value);
-});
+        if (!tableStatus[tableId]) {
+          tableStatus[tableId] = { status: "vacant", startTime: null, deviceId: null };
+        }
 
-// 初期表示
-updateTableStatus();
-updateUsageHistory();
+        if (type === "enter") {
+          tableStatus[tableId] = { status: "occupied", startTime: timestamp, deviceId };
+        } else if (type === "exit" && tableStatus[tableId].status === "occupied") {
+          tableStatus[tableId] = { status: "vacant", startTime: null, deviceId: null };
+        }
+      });
 
-// 利用時間自動更新(1分毎)
-setInterval(updateTableStatus, 60 * 1000);
+      const tbody = document.querySelector("#tableStatusTable tbody");
+      tbody.innerHTML = "";
 
-</script>
+      for (const [tableId, info] of Object.entries(tableStatus)) {
+        const tr = document.createElement("tr");
+        const now = new Date();
+        const duration = info.startTime ? Math.floor((now - info.startTime) / 60000) : "-";
 
+        tr.className = info.status === "occupied" ? "occupied" : "vacant";
+
+        tr.innerHTML = `
+          <td>${tableId}</td>
+          <td>${info.status === "occupied" ? "使用中" : "空席"}</td>
+          <td>${info.startTime ? info.startTime.toLocaleString() : "-"}</td>
+          <td>${info.status === "occupied" ? duration : "-"}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    });
+
+    // 📚 利用履歴の表示
+    db.collection("logs").orderBy("timestamp", "desc").limit(100).onSnapshot(snapshot => {
+      const logs = snapshot.docs.map(doc => doc.data()).reverse();
+      const usageMap = {};  // key: tableId_deviceId, value: {start, end}
+
+      logs.forEach(log => {
+        const key = `${log.table}_${log.device}`;
+        const time = new Date(log.timestamp);
+
+        if (!usageMap[key]) usageMap[key] = { table: log.table, device: log.device };
+
+        if (log.type === "enter") {
+          usageMap[key].start = time;
+        } else if (log.type === "exit") {
+          usageMap[key].end = time;
+        }
+      });
+
+      const tbody = document.querySelector("#usageLogsTable tbody");
+      tbody.innerHTML = "";
+
+      Object.values(usageMap)
+        .filter(log => log.start && log.end)
+        .sort((a, b) => b.start - a.start)
+        .forEach(log => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${log.table}</td>
+            <td>${log.device}</td>
+            <td>${log.start.toLocaleString()}</td>
+            <td>${log.end.toLocaleString()}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+    });
+  </script>
 </body>
 </html>
+
 
 
 
