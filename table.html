@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>テーブル管理</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background: linear-gradient(to right, #f0f4ff, #ffffff);
+    }
+    h1, h2 {
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #eee;
+    }
+    tr.occupied {
+      background-color: #ffe4e1;
+    }
+    tr.vacant {
+      background-color: #e0ffe0;
+    }
+    .btn-clear {
+      background-color: #f66;
+      color: white;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-clear:hover {
+      background-color: #d44;
+    }
+    #searchInput {
+      width: 50%;
+      padding: 8px;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>テーブル管理</h1>
+
+  <h2>テーブル一覧</h2>
+  <table id="tableStatus">
+    <thead>
+      <tr>
+        <th>テーブルID</th>
+        <th>状態</th>
+        <th>使用時間</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="4">読み込み中...</td></tr>
+    </tbody>
+  </table>
+
+  <h2>利用履歴表示</h2>
+  <input type="text" id="searchInput" placeholder="テーブルIDまたは端末IDで検索">
+
+  <table id="usageHistory">
+    <thead>
+      <tr>
+        <th>テーブルID</th>
+        <th>開始時刻</th>
+        <th>終了時刻</th>
+        <th>端末ID</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="4">読み込み中...</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Firebase 初期化
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // 状態更新表示
+    function renderTableStatus(snapshot) {
+      const tbody = document.querySelector("#tableStatus tbody");
+      tbody.innerHTML = "";
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const tr = document.createElement("tr");
+        const status = data.status || "vacant";
+        tr.className = status === "vacant" ? "vacant" : "occupied";
+
+        let usageTime = "-";
+        if (status === "occupied" && data.usageStart) {
+          const usageStartMs = data.usageStart.toDate().getTime();
+          const elapsedMs = Date.now() - usageStartMs;
+          const m = Math.floor(elapsedMs / 60000);
+          usageTime = `${m}分`;
+        }
+
+        tr.innerHTML = `
+          <td>${doc.id}</td>
+          <td>${status === "vacant" ? "空席" : "使用中"}</td>
+          <td>${usageTime}</td>
+          <td>${status === "occupied" ? `<button class="btn-clear" onclick="clearTable('${doc.id}')">クリア</button>` : ""}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 利用履歴表示
+    function renderUsageHistory(snapshot, filterText = "") {
+      const tbody = document.querySelector("#usageHistory tbody");
+      tbody.innerHTML = "";
+
+      const logs = [];
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        logs.push({
+          tableId: d.tableId || "",
+          start: d.start ? d.start.toDate() : null,
+          end: d.end ? d.end.toDate() : null,
+          deviceId: d.deviceId || ""
+        });
+      });
+
+      const filtered = logs.filter(log =>
+        log.tableId.includes(filterText) || log.deviceId.includes(filterText)
+      );
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4">該当データがありません</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(log => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${log.tableId}</td>
+          <td>${log.start ? log.start.toLocaleString() : "-"}</td>
+          <td>${log.end ? log.end.toLocaleString() : "利用中"}</td>
+          <td>${log.deviceId}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // テーブル強制クリア
+    function clearTable(tableId) {
+      if (!confirm(`${tableId}の使用状態をクリアしますか？`)) return;
+
+      db.collection("tables").doc(tableId).update({
+        status: "vacant",
+        usageStart: null,
+        deviceId: null
+      }).then(() => {
+        alert(`${tableId}を空席にしました`);
+      }).catch(error => {
+        alert("状態クリアに失敗しました: " + error.message);
+      });
+    }
+
+    // 検索ボックス
+    let historySnapshotCache = null;
+    document.getElementById("searchInput").addEventListener("input", e => {
+      const filterText = e.target.value.trim();
+      if (historySnapshotCache) {
+        renderUsageHistory(historySnapshotCache, filterText);
+      }
+    });
+
+    // リアルタイムリスナー
+    db.collection("tables").onSnapshot(snapshot => {
+      renderTableStatus(snapshot);
+    });
+
+    db.collection("usageLogs").orderBy("start", "desc").onSnapshot(snapshot => {
+      historySnapshotCache = snapshot;
+      const filterText = document.getElementById("searchInput").value.trim();
+      renderUsageHistory(snapshot, filterText);
+    });
+  </script>
+</body>
+</html>
