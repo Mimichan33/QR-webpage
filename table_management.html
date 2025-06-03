@@ -2,131 +2,79 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>テーブル管理</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
   <style>
     body {
-      font-family: 'Helvetica Neue', sans-serif;
+      font-family: sans-serif;
       margin: 0;
-      padding: 0;
-      background: linear-gradient(to right, #fdfbfb, #ebedee);
-      color: #2c3e50;
-      overflow-x: hidden;
+      padding: 1rem;
+      background: linear-gradient(to right, #e0f7fa, #fffde7);
     }
-
-    header {
-      background-color: #2c3e50;
-      color: white;
-      position: relative;
+    h1 {
+      text-align: center;
     }
-
-    .header-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 20px;
+    .table-status, .history {
+      margin-top: 2rem;
     }
-
-    .header-title {
-      font-size: 1.5em;
-      font-weight: bold;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
     }
-
-    .header-links {
-      display: flex;
-      gap: 20px;
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+      text-align: center;
     }
-
-    .header-links a {
-      color: white;
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .menu-button {
-      position: absolute;
-      left: 20px;
-      top: 12px;
-      width: 30px;
-      height: 24px;
-      cursor: pointer;
-      z-index: 1001;
-    }
-
-    .menu-button span {
-      display: block;
-      height: 4px;
-      background: white;
-      margin: 5px 0;
-      transition: 0.4s;
-    }
-
-    .drawer {
-      position: fixed;
-      top: 0;
-      left: -250px;
-      width: 250px;
-      height: 100%;
-      background-color: #34495e;
-      color: white;
-      transition: 0.3s;
-      z-index: 1000;
-      padding-top: 60px;
-    }
-
-    .drawer.open {
-      left: 0;
-    }
-
-    .drawer a {
-      display: block;
-      padding: 15px 20px;
-      text-decoration: none;
-      color: white;
-      font-weight: bold;
-      border-bottom: 1px solid #2c3e50;
-    }
-
-    .drawer a:hover {
-      background-color: #2c3e50;
-    }
-
-    main {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 30px 20px;
-    }
-
-    h2 {
-      margin-top: 40px;
-      margin-bottom: 10px;
-      border-bottom: 2px solid #2c3e50;
-      padding-bottom: 5px;
-    }
-
-    p {
-      font-size: 16px;
-      margin: 8px 0;
-    }
-
-    .status {
-      font-size: 16px;
-      padding: 6px 0;
-    }
-
     .occupied {
-      color: red;
-      font-weight: bold;
+      background-color: #ffcccb;
     }
-
     .vacant {
-      color: green;
-      font-weight: bold;
+      background-color: #c8e6c9;
+    }
+    .reset-btn {
+      padding: 4px 8px;
+      font-size: 0.8rem;
     }
   </style>
+</head>
+<body>
+  <h1>テーブル管理</h1>
+
+  <div class="table-status">
+    <h2>現在のテーブル状態</h2>
+    <table id="currentStatusTable">
+      <thead>
+        <tr>
+          <th>テーブル番号</th>
+          <th>状態</th>
+          <th>利用開始</th>
+          <th>経過時間</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="history">
+    <h2>利用履歴（最新10件）</h2>
+    <table id="historyTable">
+      <thead>
+        <tr>
+          <th>テーブル</th>
+          <th>端末ID</th>
+          <th>タイプ</th>
+          <th>時刻</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <script>
     const firebaseConfig = {
@@ -137,102 +85,77 @@
       messagingSenderId: "304250341939",
       appId: "1:304250341939:web:b8d5b946590d1f852cf146"
     };
-
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const db = firebase.database();
 
-    const tableStatus = {};
+    const currentStatus = {};
+    const usageStartTimes = {};
 
-    function updateDisplay() {
-      for (let i = 1; i <= 9; i++) {
-        const table = tableStatus[i];
-        const elem = document.getElementById(`table${i}-status`);
-        if (!elem || !table) continue;
+    function updateStatusTable() {
+      const tbody = document.querySelector("#currentStatusTable tbody");
+      tbody.innerHTML = "";
 
-        const inUse = table.enter > table.exit;
-        const time = new Date(table.lastEnterTime);
-        const now = new Date();
-        const diff = now - time;
-        const minutes = Math.floor(diff / 60000);
-        const hours = Math.floor(minutes / 60);
-        const remain = minutes % 60;
-        const elapsed = hours > 0 ? `${hours}時間${remain}分` : `${minutes}分`;
+      for (const tableId in currentStatus) {
+        const row = document.createElement("tr");
+        const status = currentStatus[tableId];
+        const start = usageStartTimes[tableId];
+        const elapsed = start ? dayjs().diff(dayjs(start), "minute") + "分" : "-";
 
-        elem.innerHTML = inUse
-          ? `<span class="occupied">利用中（${elapsed}経過）</span>`
-          : `<span class="vacant">空席</span>`;
+        row.className = status === "使用中" ? "occupied" : "vacant";
+        row.innerHTML = `
+          <td>${tableId}</td>
+          <td>${status}</td>
+          <td>${start ? dayjs(start).format("HH:mm") : "-"}</td>
+          <td>${status === "使用中" ? elapsed : "-"}</td>
+          <td><button class="reset-btn" onclick="resetTable('${tableId}')">リセット</button></td>
+        `;
+        tbody.appendChild(row);
       }
     }
 
-    function loadData(snapshot) {
-      for (let i = 1; i <= 9; i++) {
-        tableStatus[i] = { enter: 0, exit: 0, lastEnterTime: null };
-      }
+    function updateHistoryTable(logs) {
+      const tbody = document.querySelector("#historyTable tbody");
+      tbody.innerHTML = "";
+      logs.slice(-10).reverse().forEach(log => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${log.table}</td>
+          <td>${log.device}</td>
+          <td>${log.type}</td>
+          <td>${dayjs(log.time).format("YYYY-MM-DD HH:mm")}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
 
-      snapshot.forEach(doc => {
-        const d = doc.data();
-        const t = parseInt(d.table);
-        if (!t || t < 1 || t > 9) return;
-        if (d.type === "enter") {
-          tableStatus[t].enter++;
-          if (!tableStatus[t].lastEnterTime || new Date(d.timestamp) > new Date(tableStatus[t].lastEnterTime)) {
-            tableStatus[t].lastEnterTime = d.timestamp;
-          }
-        } else if (d.type === "exit") {
-          tableStatus[t].exit++;
+    function resetTable(tableId) {
+      delete currentStatus[tableId];
+      delete usageStartTimes[tableId];
+      updateStatusTable();
+    }
+
+    db.ref("logs").on("value", snapshot => {
+      const logs = [];
+      const statusMap = {};
+      const startTimes = {};
+
+      snapshot.forEach(child => {
+        const log = child.val();
+        logs.push(log);
+        const table = log.table;
+        if (log.type === "enter") {
+          statusMap[table] = "使用中";
+          startTimes[table] = log.time;
+        } else if (log.type === "exit") {
+          statusMap[table] = "空席";
         }
       });
 
-      updateDisplay();
-    }
-
-    window.onload = () => {
-      db.collection("logs").onSnapshot(loadData);
-      setInterval(updateDisplay, 60000);
-
-      const menuButton = document.querySelector(".menu-button");
-      const drawer = document.querySelector(".drawer");
-      menuButton.addEventListener("click", () => {
-        drawer.classList.toggle("open");
-      });
-    };
+      Object.assign(currentStatus, statusMap);
+      Object.assign(usageStartTimes, startTimes);
+      updateStatusTable();
+      updateHistoryTable(logs);
+    });
   </script>
-</head>
-<body>
-  <header>
-    <div class="menu-button">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
-    <div class="header-bar">
-      <div class="header-title">　　　　テーブル管理</div>
-      <div class="header-links">
-        <a href="#">マニュアル</a>
-        <a href="start.html">ログアウト</a>
-      </div>
-    </div>
-    <div class="drawer">
-      <a href="index.html">ホーム</a>
-      <a href="map.html">店内マップ</a>
-      <a href="histogram.html">混雑状況可視化</a>
-      <a href="admin.html">待ち管理</a>
-    </div>
-  </header>
-
-  <main>
-    <h2>テーブルごとの現在の状態</h2>
-    <div id="table-statuses">
-      <p class="status">テーブル1：<span id="table1-status">読み込み中...</span></p>
-      <p class="status">テーブル2：<span id="table2-status">読み込み中...</span></p>
-      <p class="status">テーブル3：<span id="table3-status">読み込み中...</span></p>
-      <p class="status">テーブル4：<span id="table4-status">読み込み中...</span></p>
-      <p class="status">テーブル5：<span id="table5-status">読み込み中...</span></p>
-      <p class="status">テーブル6：<span id="table6-status">読み込み中...</span></p>
-      <p class="status">テーブル7：<span id="table7-status">読み込み中...</span></p>
-      <p class="status">テーブル8：<span id="table8-status">読み込み中...</span></p>
-      <p class="status">テーブル9：<span id="table9-status">読み込み中...</span></p>
-    </div>
-  </main>
 </body>
 </html>
