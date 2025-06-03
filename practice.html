@@ -240,79 +240,84 @@
     }
 
 window.onload = () => {
-  db.collection("logs").onSnapshot(countVisitors);
-  setInterval(updateTableDisplays, 60000);
-
   const menuButton = document.querySelector(".menu-button");
   const drawer = document.querySelector(".drawer");
   menuButton.addEventListener("click", () => {
     drawer.classList.toggle("open");
   });
 
-    // 今日の00:00のタイムスタンプ取得
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const startTimestamp = startOfToday.getTime();
+  // 時間帯ラベル（10:00～19:00）
+  const labels = [];
+  for (let h = 10; h <= 19; h++) {
+    labels.push(`${h}:00`);
+  }
 
-    // Chart.js初期化
-    const ctx = document.getElementById("enterLineChart").getContext("2d");
-    const chartData = {
-      labels: [], // HH:mm
-      datasets: [{
-        label: "入店数",
-        data: [],
-        borderColor: "rgba(75, 192, 192, 1)",
-        backgroundColor: "rgba(75, 192, 192, 0.2)",
-        fill: true,
-        tension: 0.4
-      }]
-    };
-    const enterChart = new Chart(ctx, {
-      type: "line",
-      data: chartData,
-      options: {
-        responsive: true,
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: "時刻"
-            }
-          },
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: "件数"
-            }
+  const chartData = {
+    labels: labels,
+    datasets: [{
+      label: '滞在人数',
+      data: new Array(labels.length).fill(0),
+      backgroundColor: 'rgba(59, 130, 246, 0.5)',
+      borderColor: 'rgba(59, 130, 246, 1)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.3
+    }]
+  };
+
+  const config = {
+    type: 'line',
+    data: chartData,
+    options: {
+      responsive: true,
+      animation: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: '人数'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: '時間帯'
           }
         }
       }
-    });
-
-    // ログを時間帯（例：10:00、10:10）ごとに集計
-    const timeBuckets = {};
-
-    function updateChart() {
-      const sortedKeys = Object.keys(timeBuckets).sort();
-      chartData.labels = sortedKeys;
-      chartData.datasets[0].data = sortedKeys.map(key => timeBuckets[key]);
-      enterChart.update();
     }
+  };
 
-    db.ref("logs").on("value", (snapshot) => {
-      timeBuckets = {}; // リセット
-      snapshot.forEach(child => {
-        const log = child.val();
-        if (log.type === "enter" && log.timestamp >= startTimestamp) {
-          const date = new Date(log.timestamp);
-          const hhmm = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-          if (!timeBuckets[hhmm]) timeBuckets[hhmm] = 0;
-          timeBuckets[hhmm]++;
-        }
-      });
-      updateChart();
+  const ctx = document.getElementById('stayChart').getContext('2d');
+  const stayChart = new Chart(ctx, config);
+
+  // Firebase リアルタイム監視
+  db.collection("logs").onSnapshot(snapshot => {
+    // データ初期化
+    const newData = new Array(labels.length).fill(0);
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.type !== "enter" || !data.timestamp) return;
+
+      const date = new Date(data.timestamp);
+      date.setHours(date.getHours() + 9); // JSTに補正（FirestoreはUTC）
+
+      const hour = date.getHours();
+      if (hour >= 10 && hour <= 19) {
+        const index = hour - 10;
+        newData[index]++;
+      }
     });
+
+    // グラフデータ更新
+    stayChart.data.datasets[0].data = newData;
+    stayChart.update();
+  });
+};
+
+
   </script>
 </head>
 <body>
@@ -393,6 +398,7 @@ window.onload = () => {
 
 </body>
 </html>
+
 
 
 
