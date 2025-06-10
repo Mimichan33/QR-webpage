@@ -11,6 +11,94 @@
       background: linear-gradient(to right, #e0f7fa, #ffffff);
       padding: 20px;
     }
+
+    header {
+  position: relative;
+  background-color: #00796b;
+  padding: 10px 20px;
+  color: white;
+  font-weight: bold;
+  user-select: none;
+}
+
+.drawer-hidden {
+  display: none;
+}
+
+/* ハンバーガーアイコン */
+.drawer-toggle-label {
+  display: inline-block;
+  cursor: pointer;
+  width: 30px;
+  height: 24px;
+  position: relative;
+}
+
+.drawer-toggle-label span {
+  display: block;
+  height: 4px;
+  background: white;
+  margin-bottom: 5px;
+  border-radius: 2px;
+  transition: 0.3s;
+}
+
+/* ドロワーメニュー */
+.drawer-menu {
+  position: fixed;
+  top: 0;
+  left: -250px;
+  width: 220px;
+  height: 100%;
+  background: #004d40;
+  padding-top: 60px;
+  transition: left 0.3s ease;
+  z-index: 1000;
+}
+
+.drawer-menu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.drawer-menu li {
+  padding: 15px 20px;
+}
+
+.drawer-menu li a {
+  color: white;
+  text-decoration: none;
+  font-weight: normal;
+  display: block;
+}
+
+.drawer-menu li a:hover {
+  background-color: #00695c;
+  border-radius: 4px;
+}
+
+/* チェックボックスがチェックされたらドロワーを表示 */
+.drawer-hidden:checked ~ .drawer-menu {
+  left: 0;
+}
+
+/* ハンバーガーアイコンのアニメーション */
+.drawer-hidden:checked + .drawer-toggle-label span:nth-child(1) {
+  transform: rotate(45deg);
+  top: 8px;
+  position: relative;
+}
+
+.drawer-hidden:checked + .drawer-toggle-label span:nth-child(2) {
+  opacity: 0;
+}
+
+.drawer-hidden:checked + .drawer-toggle-label span:nth-child(3) {
+  transform: rotate(-45deg);
+  top: -8px;
+  position: relative;
+}
     h1 {
       text-align: center;
     }
@@ -58,6 +146,22 @@
   </style>
 </head>
 <body>
+    <header>
+    <input type="checkbox" id="drawerCheckbox" class="drawer-hidden">
+    <label for="drawerCheckbox" class="drawer-toggle-label" aria-label="メニューを開く">
+      <span></span>
+      <span></span>
+      <span></span>
+    </label>
+    <nav class="drawer-menu">
+      <ul>
+        <li><a href="index.html">ホーム</a></li>
+        <li><a href="map.html">店舗マップ</a></li>
+        <li><a href="histogram.html">混雑履歴</a></li>
+        <li><a href="table_management.html">テーブル管理</a></li>
+      </ul>
+    </nav>
+  </header>
 
 
 
