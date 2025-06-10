@@ -37,6 +37,24 @@
     .vacant {
       background-color: #c8e6c9;
     }
+    /* 検索フォームのスタイル */
+    .search-filters {
+      margin-bottom: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    .search-filters label {
+      font-weight: bold;
+      margin-right: 5px;
+    }
+    .search-filters input {
+      padding: 5px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      min-width: 120px;
+    }
   </style>
 </head>
 <body>
@@ -59,18 +77,46 @@
 
   <div class="usage-logs">
     <h2>利用履歴</h2>
-<table id="usageLogsTable">
-  <thead>
-    <tr>
-      <th>テーブルID</th>
-      <th>デバイスタイプ（機種）</th>
-      <th>OS / ブラウザ</th>
-      <th>利用開始</th>
-      <th>利用終了</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+
+    <!-- 検索フォーム追加 -->
+    <div class="search-filters">
+      <div>
+        <label for="searchTableId">テーブルID:</label>
+        <input type="text" id="searchTableId" placeholder="テーブルIDを入力" />
+      </div>
+      <div>
+        <label for="searchDevice">デバイスタイプ（機種）:</label>
+        <input type="text" id="searchDevice" placeholder="例: iPhone 12" />
+      </div>
+      <div>
+        <label for="searchOSBrowser">OS / ブラウザ:</label>
+        <input type="text" id="searchOSBrowser" placeholder="例: iOS / Safari" />
+      </div>
+      <div>
+        <label for="searchStartDate">利用開始(YYYY-MM-DD):</label>
+        <input type="date" id="searchStartDate" />
+      </div>
+      <div>
+        <label for="searchEndDate">利用終了(YYYY-MM-DD):</label>
+        <input type="date" id="searchEndDate" />
+      </div>
+      <div>
+        <button id="clearFilters">クリア</button>
+      </div>
+    </div>
+
+    <table id="usageLogsTable">
+      <thead>
+        <tr>
+          <th>テーブルID</th>
+          <th>デバイスタイプ（機種）</th>
+          <th>OS / ブラウザ</th>
+          <th>利用開始</th>
+          <th>利用終了</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
 <script>
@@ -155,7 +201,6 @@
     let os = "不明";
     let browser = "不明";
 
-    // iPhone
     if (ua.includes("iphone")) {
       device = guessIphoneModel(ua);
       os = "iOS";
@@ -190,7 +235,6 @@
     };
   }
 
-  // iPhoneの機種をUAからできる範囲で推定（精度は限定的）
   function guessIphoneModel(ua) {
     if (ua.includes("iphone os 16")) return "iPhone 14系";
     if (ua.includes("iphone os 15")) return "iPhone 13系";
@@ -199,7 +243,6 @@
     return "iPhone端末";
   }
 
-  // Androidも端末名までは取れないが、ビルド情報などで判別試みる
   function guessAndroidModel(ua) {
     const match = ua.match(/android.*build\/([a-z0-9\-]+)/i);
     if (match && match[1]) {
@@ -208,13 +251,32 @@
     return "Android端末";
   }
 
-  // 利用履歴の表示
-  db.collection("logs").orderBy("timestamp", "desc").limit(100).onSnapshot(snapshot => {
-    const logs = snapshot.docs.map(doc => doc.data()).reverse();
+  // --- ここから利用履歴表示＋検索処理追加部分 ---
 
-    const usageMap = {}; // table_deviceごとにまとめる
+  let allLogs = []; // 全ログ保存用
 
-    logs.forEach(log => {
+  // 検索フォームの各要素を取得
+  const searchTableId = document.getElementById("searchTableId");
+  const searchDevice = document.getElementById("searchDevice");
+  const searchOSBrowser = document.getElementById("searchOSBrowser");
+  const searchStartDate = document.getElementById("searchStartDate");
+  const searchEndDate = document.getElementById("searchEndDate");
+  const clearFilters = document.getElementById("clearFilters");
+
+  function filterAndDisplayLogs() {
+    const tableIdFilter = searchTableId.value.trim().toLowerCase();
+    const deviceFilter = searchDevice.value.trim().toLowerCase();
+    const osBrowserFilter = searchOSBrowser.value.trim().toLowerCase();
+    const startDateFilter = searchStartDate.value; // yyyy-mm-dd
+    const endDateFilter = searchEndDate.value; // yyyy-mm-dd
+
+    const tbody = document.querySelector("#usageLogsTable tbody");
+    tbody.innerHTML = "";
+
+    // table_deviceごとにまとめるロジックは元と同じ
+    const usageMap = {};
+
+    allLogs.forEach(log => {
       const key = `${log.table}_${log.device}`;
       const time = new Date(log.timestamp);
 
@@ -227,27 +289,75 @@
       }
     });
 
-    const tbody = document.querySelector("#usageLogsTable tbody");
-    tbody.innerHTML = "";
-
     Object.values(usageMap)
       .filter(log => log.start && log.end)
-      .sort((a, b) => b.start - a.start)
+      .filter(log => {
+        // テーブルIDフィルター
+        if (tableIdFilter && !log.table.toLowerCase().includes(tableIdFilter)) return false;
+
+        // デバイスタイプ（機種）フィルター
+        if (deviceFilter) {
+          const deviceName = parseDeviceInfo(log.device).device.toLowerCase();
+          if (!deviceName.includes(deviceFilter)) return false;
+        }
+
+        // OS/ブラウザフィルター
+        if (osBrowserFilter) {
+          const info = parseDeviceInfo(log.device);
+          const osBrowser = (info.os + " / " + info.browser).toLowerCase();
+          if (!osBrowser.includes(osBrowserFilter)) return false;
+        }
+
+        // 利用開始日付フィルター
+        if (startDateFilter) {
+          const startDate = new Date(startDateFilter + "T00:00:00");
+          if (log.start < startDate) return false;
+        }
+
+        // 利用終了日付フィルター
+        if (endDateFilter) {
+          const endDate = new Date(endDateFilter + "T23:59:59");
+          if (log.end > endDate) return false;
+        }
+
+        return true;
+      })
       .forEach(log => {
-        const info = parseDeviceInfo(log.device);
         const tr = document.createElement("tr");
+        const deviceInfo = parseDeviceInfo(log.device);
         tr.innerHTML = `
           <td>${log.table}</td>
-          <td title="${log.device}">${info.device}</td>
-          <td>${info.os} / ${info.browser}</td>
+          <td>${deviceInfo.device}</td>
+          <td>${deviceInfo.os} / ${deviceInfo.browser}</td>
           <td>${log.start.toLocaleString()}</td>
           <td>${log.end.toLocaleString()}</td>
         `;
         tbody.appendChild(tr);
       });
-  });
-</script>
+  }
 
+  clearFilters.addEventListener("click", () => {
+    searchTableId.value = "";
+    searchDevice.value = "";
+    searchOSBrowser.value = "";
+    searchStartDate.value = "";
+    searchEndDate.value = "";
+    filterAndDisplayLogs();
+  });
+
+  [searchTableId, searchDevice, searchOSBrowser, searchStartDate, searchEndDate].forEach(input => {
+    input.addEventListener("input", filterAndDisplayLogs);
+  });
+
+  // ログのリアルタイム取得と表示更新
+  db.collection("logs").orderBy("timestamp").onSnapshot(snapshot => {
+    allLogs = [];
+    snapshot.forEach(doc => {
+      allLogs.push(doc.data());
+    });
+    filterAndDisplayLogs();
+  });
+
+</script>
 </body>
 </html>
-
