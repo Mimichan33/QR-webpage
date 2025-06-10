@@ -59,17 +59,18 @@
 
   <div class="usage-logs">
     <h2>利用履歴</h2>
-    <table id="usageLogsTable">
-      <thead>
-        <tr>
-          <th>テーブルID</th>
-          <th>端末情報</th>
-          <th>利用開始</th>
-          <th>利用終了</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+<table id="usageLogsTable">
+  <thead>
+    <tr>
+      <th>テーブルID</th>
+      <th>デバイスタイプ（機種）</th>
+      <th>OS / ブラウザ</th>
+      <th>利用開始</th>
+      <th>利用終了</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
   </div>
 
 <script>
@@ -148,45 +149,70 @@
   }
   setInterval(updateUsageTime, 60000);
 
-  // 端末情報をUser-Agentから解析する関数
-  function parseDeviceInfo(userAgent) {
-    if (!userAgent) return { deviceType: "不明", os: "不明", browser: "不明" };
-    userAgent = userAgent.toLowerCase();
-    let deviceType = "不明";
+  function parseDeviceInfo(ua) {
+    ua = ua.toLowerCase();
+    let device = "不明";
     let os = "不明";
     let browser = "不明";
 
-    if (userAgent.includes("iphone") || userAgent.includes("ipad") || userAgent.includes("ipod")) {
-      deviceType = "スマホ/タブレット";
+    // iPhone
+    if (ua.includes("iphone")) {
+      device = guessIphoneModel(ua);
       os = "iOS";
-    } else if (userAgent.includes("android")) {
-      deviceType = "スマホ/タブレット";
+    } else if (ua.includes("ipad")) {
+      device = "iPad";
+      os = "iOS";
+    } else if (ua.includes("android")) {
+      device = guessAndroidModel(ua);
       os = "Android";
-    } else if (userAgent.includes("windows")) {
-      deviceType = "PC";
+    } else if (ua.includes("windows")) {
+      device = "Windows PC";
       os = "Windows";
-    } else if (userAgent.includes("macintosh")) {
-      deviceType = "PC";
+    } else if (ua.includes("macintosh")) {
+      device = "Mac";
       os = "macOS";
     }
 
-    if (userAgent.includes("chrome")) {
+    if (ua.includes("chrome")) {
       browser = "Chrome";
-    } else if (userAgent.includes("safari") && !userAgent.includes("chrome")) {
+    } else if (ua.includes("safari") && !ua.includes("chrome")) {
       browser = "Safari";
-    } else if (userAgent.includes("firefox")) {
+    } else if (ua.includes("firefox")) {
       browser = "Firefox";
+    } else if (ua.includes("edg")) {
+      browser = "Edge";
     }
 
-    return { deviceType, os, browser };
+    return {
+      device,
+      os,
+      browser
+    };
   }
 
-  // 利用履歴のリアルタイム表示
+  // iPhoneの機種をUAからできる範囲で推定（精度は限定的）
+  function guessIphoneModel(ua) {
+    if (ua.includes("iphone os 16")) return "iPhone 14系";
+    if (ua.includes("iphone os 15")) return "iPhone 13系";
+    if (ua.includes("iphone os 14")) return "iPhone 12系";
+    if (ua.includes("iphone os 13")) return "iPhone 11系";
+    return "iPhone (不明モデル)";
+  }
+
+  // Androidも端末名までは取れないが、ビルド情報などで判別試みる
+  function guessAndroidModel(ua) {
+    const match = ua.match(/android.*build\/([a-z0-9\-]+)/i);
+    if (match && match[1]) {
+      return `Android (${match[1]})`;
+    }
+    return "Android端末";
+  }
+
+  // 利用履歴の表示
   db.collection("logs").orderBy("timestamp", "desc").limit(100).onSnapshot(snapshot => {
     const logs = snapshot.docs.map(doc => doc.data()).reverse();
 
-    // startとendを対応付けるmap
-    const usageMap = {}; // key: table_device
+    const usageMap = {}; // table_deviceごとにまとめる
 
     logs.forEach(log => {
       const key = `${log.table}_${log.device}`;
@@ -208,13 +234,12 @@
       .filter(log => log.start && log.end)
       .sort((a, b) => b.start - a.start)
       .forEach(log => {
-        const deviceInfo = parseDeviceInfo(log.device);
-        const deviceInfoStr = `${deviceInfo.deviceType} / ${deviceInfo.os} / ${deviceInfo.browser}`;
-
+        const info = parseDeviceInfo(log.device);
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${log.table}</td>
-          <td title="${log.device}">${deviceInfoStr}</td>
+          <td title="${log.device}">${info.device}</td>
+          <td>${info.os} / ${info.browser}</td>
           <td>${log.start.toLocaleString()}</td>
           <td>${log.end.toLocaleString()}</td>
         `;
@@ -222,6 +247,7 @@
       });
   });
 </script>
+
 </body>
 </html>
 
