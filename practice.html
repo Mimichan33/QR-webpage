@@ -127,26 +127,62 @@
       }
     });
 
-    // 📚 利用履歴の表示
-    db.collection("logs").orderBy("timestamp", "desc").limit(100).onSnapshot(snapshot => {
-      const logs = snapshot.docs.map(doc => doc.data()).reverse();
-      const usageMap = {};  // key: tableId_deviceId, value: {start, end}
 
-      logs.forEach(log => {
-        const key = `${log.table}_${log.device}`;
-        const time = new Date(log.timestamp);
+let tableStatus = {};  // グローバルで保持しておく
 
-        if (!usageMap[key]) usageMap[key] = { table: log.table, device: log.device };
+// 利用時間を1分ごとに更新する関数
+function updateUsageTime() {
+  const now = new Date();
+  for (const [tableId, info] of Object.entries(tableStatus)) {
+    if (info.status === "occupied" && info.startTime) {
+      const duration = Math.floor((now - info.startTime) / 60000);
+      const row = document.querySelector(`#tableStatusTable tbody tr[data-table-id="${tableId}"]`);
+      if (row) {
+        row.querySelector(".usage-time").textContent = duration;
+      }
+    }
+  }
+}
 
-        if (log.type === "enter") {
-          usageMap[key].start = time;
-        } else if (log.type === "exit") {
-          usageMap[key].end = time;
-        }
-      });
+db.collection("logs").orderBy("timestamp").onSnapshot(snapshot => {
+  tableStatus = {};
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const tableId = data.table;
+    const deviceId = data.device;
+    const timestamp = new Date(data.timestamp);
+    const type = data.type;
 
-      const tbody = document.querySelector("#usageLogsTable tbody");
-      tbody.innerHTML = "";
+    if (!tableStatus[tableId]) {
+      tableStatus[tableId] = { status: "vacant", startTime: null, deviceId: null };
+    }
+
+    if (type === "enter") {
+      tableStatus[tableId] = { status: "occupied", startTime: timestamp, deviceId };
+    } else if (type === "exit" && tableStatus[tableId].status === "occupied") {
+      tableStatus[tableId] = { status: "vacant", startTime: null, deviceId: null };
+    }
+  });
+
+  const tbody = document.querySelector("#tableStatusTable tbody");
+  tbody.innerHTML = "";
+
+  for (const [tableId, info] of Object.entries(tableStatus)) {
+    const tr = document.createElement("tr");
+    tr.dataset.tableId = tableId;
+    tr.className = info.status === "occupied" ? "occupied" : "vacant";
+    tr.innerHTML = `
+      <td>${tableId}</td>
+      <td>${info.status === "occupied" ? "使用中" : "空席"}</td>
+      <td>${info.startTime ? info.startTime.toLocaleString() : "-"}</td>
+      <td class="usage-time">${info.status === "occupied" ? Math.floor((new Date() - info.startTime) / 60000) : "-"}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+});
+
+// 1分ごとに利用時間を更新
+setInterval(updateUsageTime, 60000);
 
       Object.values(usageMap)
         .filter(log => log.start && log.end)
