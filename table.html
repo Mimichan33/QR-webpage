@@ -86,7 +86,11 @@
       </div>
       <div>
         <label for="searchDevice">デバイスタイプ（機種）:</label>
-        <input type="text" id="searchDevice" placeholder="例: iPhone " />
+        <input type="text" id="searchDevice" placeholder="例: iPhone 12" />
+      </div>
+      <div>
+        <label for="searchOSBrowser">OS / ブラウザ:</label>
+        <input type="text" id="searchOSBrowser" placeholder="例: iOS / Safari" />
       </div>
       <div>
         <label for="searchStartDate">利用開始(YYYY-MM-DD):</label>
@@ -131,6 +135,7 @@
   // グローバル変数でテーブル状態を保持
   let tableStatus = {};
 
+  // --- 省略: テーブル状態のリアルタイム監視部分は変わらず ---
 
   db.collection("logs").orderBy("timestamp").onSnapshot(snapshot => {
     tableStatus = {};
@@ -253,6 +258,7 @@
   // 検索フォームの各要素を取得
   const searchTableId = document.getElementById("searchTableId");
   const searchDevice = document.getElementById("searchDevice");
+  const searchOSBrowser = document.getElementById("searchOSBrowser");
   const searchStartDate = document.getElementById("searchStartDate");
   const searchEndDate = document.getElementById("searchEndDate");
   const clearFilters = document.getElementById("clearFilters");
@@ -260,6 +266,7 @@
   function filterAndDisplayLogs() {
     const tableIdFilter = searchTableId.value.trim().toLowerCase();
     const deviceFilter = searchDevice.value.trim().toLowerCase();
+    const osBrowserFilter = searchOSBrowser.value.trim().toLowerCase();
     const startDateFilter = searchStartDate.value; // yyyy-mm-dd
     const endDateFilter = searchEndDate.value; // yyyy-mm-dd
 
@@ -294,6 +301,13 @@
           if (!deviceName.includes(deviceFilter)) return false;
         }
 
+        // OS/ブラウザフィルター
+        if (osBrowserFilter) {
+          const info = parseDeviceInfo(log.device);
+          const osBrowser = (info.os + " / " + info.browser).toLowerCase();
+          if (!osBrowser.includes(osBrowserFilter)) return false;
+        }
+
         // 利用開始日付フィルター
         if (startDateFilter) {
           const startDate = new Date(startDateFilter + "T00:00:00");
@@ -325,6 +339,7 @@
   clearFilters.addEventListener("click", () => {
     searchTableId.value = "";
     searchDevice.value = "";
+    searchOSBrowser.value = "";
     searchStartDate.value = "";
     searchEndDate.value = "";
     filterAndDisplayLogs();
@@ -346,3 +361,4 @@
 </script>
 </body>
 </html>
+
