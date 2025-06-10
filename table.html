@@ -12,12 +12,9 @@
       padding: 20px;
     }
 
-        header {
+    header {
       background-color: #2c3e50;
       color: white;
-      position: relative;
-      margin-bottom: 0;
-      padding-bottom: 0; 
     }
 
     .header-bar {
@@ -47,21 +44,6 @@
       text-decoration: underline;
     }
 
-    .full-width-section {
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-
-  background: #e0f7da;
-  padding: 60px 0;
-  text-align: center;
-  margin-top: 0 !important; 
-}
-
-    /* ハンバーガーメニュー */
     .menu-button {
       position: absolute;
       left: 20px;
@@ -115,6 +97,56 @@
       margin: 0 auto;
       padding: 30px 20px;
     }
+    h1 {
+      text-align: center;
+      padding: 20px;
+    }
+    .queue-item {
+      background: #fff;
+      padding: 15px;
+      margin: 10px auto;
+      max-width: 500px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .queue-item p {
+      margin: 5px 0;
+    }
+    .btn-group {
+      margin-top: 10px;
+    }
+    button {
+      margin-right: 10px;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .btn-enter { background: #2ecc71; color: white; }
+    .btn-exit { background: #e74c3c; color: white; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="menu-button">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <div class="header-bar">
+      <div class="header-title">　　　　　店内管理システム</div>
+      <div class="header-links">
+        <a href="#">マニュアル</a>
+        <a href="#">ログアウト</a>
+      </div>
+    </div>
+    <div class="drawer">
+      <a href="index.html">ホーム</a>
+      <a href="map.html">店内マップ</a>
+      <a href="histogram.html">混雑状況可視化</a>
+      <a href="admin.html">待ち管理</a>
+    </div>
+  </header>
 
     h1 {
       text-align: center;
@@ -164,26 +196,7 @@
 </head>
 <body>
 
-    <header>
-    <div class="menu-button">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
-    <div class="header-bar">
-      <div class="header-title">　　　　　店内管理システム</div>
-      <div class="header-links">
-        <a href="#">マニュアル</a>
-        <a href="start.html">ログアウト</a>
-      </div>
-    </div>
-    <div class="drawer">
-      <a href="index.html">ホーム</a>
-      <a href="map.html">店内マップ</a>
-      <a href="histogram.html">混雑状況可視化</a>
-      <a href="admin.html">待ち管理</a>
-    </div>
-  </header>
+
 
     <h1>テーブル管理画面</h1>
 
