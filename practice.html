@@ -182,33 +182,7 @@
         };
       }
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const table = data.table;
-        const timestamp = data.timestamp;
-        if (!table || !timestamp) return;
 
-        if (data.type === "enter") entries++;
-        if (data.type === "exit") exits++;
-        if (data.type === "wait") waiting++;
-
-        if (tableCounts[table]) {
-          if (data.type === "enter") {
-            tableCounts[table].enter++;
-            if (!tableCounts[table].lastEnterTime || new Date(tableCounts[table].lastEnterTime) < new Date(timestamp)) {
-              tableCounts[table].lastEnterTime = timestamp;
-            }
-          }
-          if (data.type === "exit") {
-            tableCounts[table].exit++;
-          }
-        }
-      });
-
-      //document.getElementById("count").textContent = entries - exits;
-      //document.getElementById("entries").textContent = entries;
-      //document.getElementById("exits").textContent = exits;
-      //document.getElementById("waitingCount").textContent = waiting;
 
       updateTableDisplays();
     }
