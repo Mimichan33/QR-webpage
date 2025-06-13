@@ -277,7 +277,7 @@
   let tableStatus = {};
 
 
-  db.collection("logs").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+  db.collection("logs").orderBy("timestamp").onSnapshot(snapshot => {
     tableStatus = {};
 
     snapshot.forEach(doc => {
