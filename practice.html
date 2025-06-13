@@ -147,20 +147,20 @@
 
 
 
-    function updateTableDisplays() {
-      Object.keys(tableCounts).forEach(tableNum => {
-        const t = tableCounts[tableNum];
-        const currentCount = t.enter - t.exit;
-        const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
-        const status = currentCount > 0 ? "利用中" : "空席";
-        const timeText = formatTimestamp(timeToShow);
-        const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
-        const element = document.getElementById(`table${tableNum}-status`);
-        if (element) {
-          element.textContent = `${status}（${timeText}${elapsed}）`;
-        }
-      });
-    }
+ //   function updateTableDisplays() {
+ //     Object.keys(tableCounts).forEach(tableNum => {
+ //       const t = tableCounts[tableNum];
+ //       const currentCount = t.enter - t.exit;
+ //       const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
+ //       const status = currentCount > 0 ? "利用中" : "空席";
+ //       const timeText = formatTimestamp(timeToShow);
+ //       const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
+ //       const element = document.getElementById(`table${tableNum}-status`);
+ //       if (element) {
+ //         element.textContent = `${status}（${timeText}${elapsed}）`;
+//      }
+//      });
+//    }
 
     function countVisitors(snapshot) {
       updateTableDisplays();
