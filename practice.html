@@ -152,31 +152,6 @@
     const db = firebase.firestore();
     const tableCounts = {};
 
-    function formatTimestamp(isoString) {
-      if (!isoString || typeof isoString !== "string") return "ー";
-      const date = new Date(isoString);
-      const options = {
-        timeZone: "Asia/Tokyo",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit"
-      };
-      return new Intl.DateTimeFormat("ja-JP", options).format(date).replace(/\//g, "-").replace(",", "");
-    }
-
-    function calculateElapsedTime(isoString) {
-      if (!isoString) return "";
-      const start = new Date(isoString);
-      const now = new Date();
-      const diffMs = now - start;
-      if (diffMs < 0) return "";
-      const minutes = Math.floor(diffMs / 60000);
-      const hours = Math.floor(minutes / 60);
-      const remainingMinutes = minutes % 60;
-      return hours > 0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
-    }
 
     function updateTableDisplays() {
       Object.keys(tableCounts).forEach(tableNum => {
