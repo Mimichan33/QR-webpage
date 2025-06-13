@@ -152,6 +152,46 @@
     const db = firebase.firestore();
     const tableCounts = {};
 
+    function formatTimestamp(isoString) {
+      if (!isoString || typeof isoString !== "string") return "ー";
+      const date = new Date(isoString);
+      const options = {
+        timeZone: "Asia/Tokyo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      };
+      return new Intl.DateTimeFormat("ja-JP", options).format(date).replace(/\//g, "-").replace(",", "");
+    }
+
+    function calculateElapsedTime(isoString) {
+      if (!isoString) return "";
+      const start = new Date(isoString);
+      const now = new Date();
+      const diffMs = now - start;
+      if (diffMs < 0) return "";
+      const minutes = Math.floor(diffMs / 60000);
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return hours > 0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
+    }
+
+    function updateTableDisplays() {
+      Object.keys(tableCounts).forEach(tableNum => {
+        const t = tableCounts[tableNum];
+        const currentCount = t.enter - t.exit;
+        const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
+        const status = currentCount > 0 ? "利用中" : "空席";
+        const timeText = formatTimestamp(timeToShow);
+        const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
+        const element = document.getElementById(`table${tableNum}-status`);
+        if (element) {
+          element.textContent = `${status}（${timeText}${elapsed}）`;
+        }
+      });
+    }
 
     function countVisitors(snapshot) {
       let entries = 0;
@@ -164,7 +204,7 @@
           exit: 0,
           lastEnterTime: null
         };
-      }
+      });
 
       document.getElementById("count").textContent = entries - exits;
       document.getElementById("entries").textContent = entries;
@@ -208,6 +248,10 @@
       <a href="admin.html">待ち管理</a>
     </div>
   </header>
+
+  <main>
+
+  </main>
 
 </body>
 </html>
