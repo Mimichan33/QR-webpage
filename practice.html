@@ -497,6 +497,13 @@
     filterAndDisplayLogs();
   });
 
+      function updateTableDisplays() {
+   }
+
+    function countVisitors(snapshot) {
+      updateTableDisplays();
+    }
+
       window.onload = () => {
       db.collection("logs").onSnapshot(countVisitors);
       setInterval(updateTableDisplays, 60000);
