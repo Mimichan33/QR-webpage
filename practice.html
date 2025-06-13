@@ -138,7 +138,116 @@
     }
   </style>
 
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
 
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const tableCounts = {};
+
+    function formatTimestamp(isoString) {
+      if (!isoString || typeof isoString !== "string") return "ー";
+      const date = new Date(isoString);
+      const options = {
+        timeZone: "Asia/Tokyo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      };
+      return new Intl.DateTimeFormat("ja-JP", options).format(date).replace(/\//g, "-").replace(",", "");
+    }
+
+    function calculateElapsedTime(isoString) {
+      if (!isoString) return "";
+      const start = new Date(isoString);
+      const now = new Date();
+      const diffMs = now - start;
+      if (diffMs < 0) return "";
+      const minutes = Math.floor(diffMs / 60000);
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return hours > 0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
+    }
+
+    function updateTableDisplays() {
+      Object.keys(tableCounts).forEach(tableNum => {
+        const t = tableCounts[tableNum];
+        const currentCount = t.enter - t.exit;
+        const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
+        const status = currentCount > 0 ? "利用中" : "空席";
+        const timeText = formatTimestamp(timeToShow);
+        const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
+        const element = document.getElementById(`table${tableNum}-status`);
+        if (element) {
+          element.textContent = `${status}（${timeText}${elapsed}）`;
+        }
+      });
+    }
+
+    function countVisitors(snapshot) {
+      let entries = 0;
+      let exits = 0;
+      let waiting = 0;
+
+      for (let i = 1; i <= 9; i++) {
+        tableCounts[i.toString()] = {
+          enter: 0,
+          exit: 0,
+          lastEnterTime: null
+        };
+      }
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const table = data.table;
+        const timestamp = data.timestamp;
+        if (!table || !timestamp) return;
+
+        if (data.type === "enter") entries++;
+        if (data.type === "exit") exits++;
+        if (data.type === "wait") waiting++;
+
+        if (tableCounts[table]) {
+          if (data.type === "enter") {
+            tableCounts[table].enter++;
+            if (!tableCounts[table].lastEnterTime || new Date(tableCounts[table].lastEnterTime) < new Date(timestamp)) {
+              tableCounts[table].lastEnterTime = timestamp;
+            }
+          }
+          if (data.type === "exit") {
+            tableCounts[table].exit++;
+          }
+        }
+      });
+
+      document.getElementById("count").textContent = entries - exits;
+      document.getElementById("entries").textContent = entries;
+      document.getElementById("exits").textContent = exits;
+      document.getElementById("waitingCount").textContent = waiting;
+
+      updateTableDisplays();
+    }
+
+    window.onload = () => {
+      db.collection("logs").onSnapshot(countVisitors);
+      setInterval(updateTableDisplays, 60000);
+
+      const menuButton = document.querySelector(".menu-button");
+      const drawer = document.querySelector(".drawer");
+      menuButton.addEventListener("click", () => {
+        drawer.classList.toggle("open");
+      });
+    };
+  </script>
 </head>
 <body>
 
@@ -162,5 +271,6 @@
       <a href="admin.html">待ち管理</a>
     </div>
   </header>
+
 </body>
 </html>
