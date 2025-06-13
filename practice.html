@@ -64,80 +64,57 @@
       margin-top: 0 !important; 
     }
 
-/* ハンバーガーアイコン */
-.drawer-toggle-label {
-  display: inline-block;
-  cursor: pointer;
-  width: 30px;
-  height: 24px;
-  position: relative;
-}
+        /* ハンバーガーメニュー */
+    .menu-button {
+      position: absolute;
+      left: 20px;
+      top: 12px;
+      width: 30px;
+      height: 24px;
+      cursor: pointer;
+      z-index: 1001;
+    }
 
-.drawer-toggle-label span {
-  display: block;
-  height: 4px;
-  background: white;
-  margin-bottom: 5px;
-  border-radius: 2px;
-  transition: 0.3s;
-}
+    .menu-button span {
+      display: block;
+      height: 4px;
+      background: white;
+      margin: 5px 0;
+      transition: 0.4s;
+    }
 
-/* ドロワーメニュー */
-.drawer-menu {
-  position: fixed;
-  top: 0;
-  left: -250px;
-  width: 220px;
-  height: 100%;
-  background: #004d40;
-  padding-top: 60px;
-  transition: left 0.3s ease;
-  z-index: 1000;
-}
+    .drawer {
+      position: fixed;
+      top: 0;
+      left: -250px;
+      width: 250px;
+      height: 100%;
+      background-color: #34495e;
+      color: white;
+      transition: 0.3s;
+      z-index: 1000;
+      padding-top: 60px;
+    }
 
-.drawer-menu ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
+    .drawer.open {
+      left: 0;
+    }
 
-.drawer-menu li {
-  padding: 15px 20px;
-}
+    .drawer a {
+      display: block;
+      padding: 15px 20px;
+      text-decoration: none;
+      color: white;
+      font-weight: bold;
+      border-bottom: 1px solid #2c3e50;
+    }
 
-.drawer-menu li a {
-  color: white;
-  text-decoration: none;
-  font-weight: normal;
-  display: block;
-}
+    .drawer a:hover {
+      background-color: #2c3e50;
+    }
 
-.drawer-menu li a:hover {
-  background-color: #00695c;
-  border-radius: 4px;
-}
 
-/* チェックボックスがチェックされたらドロワーを表示 */
-.drawer-hidden:checked ~ .drawer-menu {
-  left: 0;
-}
 
-/* ハンバーガーアイコンのアニメーション */
-.drawer-hidden:checked + .drawer-toggle-label span:nth-child(1) {
-  transform: rotate(45deg);
-  top: 8px;
-  position: relative;
-}
-
-.drawer-hidden:checked + .drawer-toggle-label span:nth-child(2) {
-  opacity: 0;
-}
-
-.drawer-hidden:checked + .drawer-toggle-label span:nth-child(3) {
-  transform: rotate(-45deg);
-  top: -8px;
-  position: relative;
-}
     h1 {
       text-align: center;
     }
