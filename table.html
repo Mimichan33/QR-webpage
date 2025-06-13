@@ -19,8 +19,6 @@
       background-color: #2c3e50;
       color: white;
       position: relative;
-      margin-bottom: 0;
-      padding-bottom: 0; 
     }
 
         .header-bar {
@@ -50,21 +48,7 @@
       text-decoration: underline;
     }
 
-    .full-width-section {
-      width: 100vw;
-      position: relative;
-      left: 50%;
-      right: 50%;
-      margin-left: -50vw;
-      margin-right: -50vw;
-
-      background: #e0f7da;
-      padding: 60px 0;
-      text-align: center;
-      margin-top: 0 !important; 
-    }
-
-        /* ハンバーガーメニュー */
+    /* ハンバーガーメニュー */
     .menu-button {
       position: absolute;
       left: 20px;
@@ -162,10 +146,7 @@
       gap: 10px;
       justify-content: center;
     }
-    .search-filters label {
-      font-weight: bold;
-      margin-right: 5px;
-    }
+
     .search-filters input {
       padding: 5px;
       border-radius: 4px;
@@ -376,10 +357,6 @@
   }
 
   function guessIphoneModel(ua) {
-    if (ua.includes("iphone os 16")) return "iPhone 14系";
-    if (ua.includes("iphone os 15")) return "iPhone 13系";
-    if (ua.includes("iphone os 14")) return "iPhone 12系";
-    if (ua.includes("iphone os 13")) return "iPhone 11系";
     return "iPhone端末";
   }
 
