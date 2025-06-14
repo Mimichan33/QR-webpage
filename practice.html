@@ -279,8 +279,6 @@
   </div>
 
 
-  <script>
-
   <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
@@ -296,7 +294,8 @@ import {
     appId: "1:304250341939:web:b8d5b946590d1f852cf146"
   };
 
-  const app = initializeApp(firebaseConfig);
+  //const app = initializeApp(firebaseConfig);
+  firebase.initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
 
