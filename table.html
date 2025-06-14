@@ -212,7 +212,7 @@
   <!-- 棒グラフ -->
   <div style="margin-top: 40px; background-color: #f9f9f9; padding: 20px; border-radius: 10px;">
     <h3>使用状況（回数・平均滞在時間）</h3>
-  <canvas id="usageChart" width="400" height="300"></canvas>
+    <canvas id="barChart"></canvas>
   </div>
 </section>
 
@@ -381,76 +381,44 @@ async function drawCharts() {
     }
   });
 
-    const tableStats = {};
-  for (const table of Object.keys(usageCount)) {
-    tableStats[table] = {
-      count: usageCount[table],
-      cumulativeCount: usageTime[table]
-    };
-  }
+  // Bar Chart: 使用回数＋平均使用時間
+  const barLabels = Object.keys(usageCount);
+  const countData = Object.values(usageCount);
+  const avgTimeData = barLabels.map(t =>
+    usageCount[t] > 0 ? usageTime[t] / usageCount[t] : 0
+  );
 
-  const ctx = document.getElementById("usageChart").getContext("2d");
-
-// usageCount は既に全期間で集計されている
-const tableIds = Object.keys(usageCount);
-const usageCounts = tableIds.map(id => usageCount[id]);
-const cumulativeCounts = usageCounts; // 累計も全期間の usageCount を使用
-
-new Chart(ctx, {
-  type: "bar",
-  data: {
-    labels: tableIds,
-    datasets: [
-      {
-        label: "利用回数（当日）", // ←必要であれば期間名を分けてもOK
-        data: usageCounts,
-        backgroundColor: "rgba(54, 162, 235, 0.7)"
-      },
-      {
-        label: "累計使用回数（全期間）",
-        data: cumulativeCounts,
-        backgroundColor: "rgba(255, 99, 132, 0.7)"
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      title: {
-        display: true,
-        text: "テーブル別 利用回数・累計使用回数"
-      },
-      tooltip: {
-        mode: "index",
-        intersect: false
-      },
-      legend: {
-        position: "top"
-      }
+  new Chart(document.getElementById("barChart"), {
+    type: "bar",
+    data: {
+      labels: barLabels,
+      datasets: [
+        {
+          label: "使用回数",
+          data: countData,
+          backgroundColor: "#66b3ff"
+        },
+        {
+          label: "平均滞在時間（分）",
+          data: avgTimeData,
+          backgroundColor: "#ffcc66"
+        }
+      ]
     },
-    interaction: {
-      mode: "nearest",
-      axis: "x",
-      intersect: false
-    },
-    scales: {
-      x: {
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "top" },
         title: {
-          display: true,
-          text: "テーブル番号"
+          display: false
         }
       },
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: "回数"
-        }
+      scales: {
+        y: { beginAtZero: true }
       }
     }
-  }
-});
-
+  });
+}
 
 drawCharts();
 
