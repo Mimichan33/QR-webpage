@@ -381,40 +381,63 @@ async function drawCharts() {
     }
   });
 
-  // Bar Chart: 使用回数＋平均使用時間
-  const barLabels = Object.keys(usageCount);
-  const countData = Object.values(usageCount);
-  const avgTimeData = barLabels.map(t =>
-    usageCount[t] > 0 ? usageTime[t] / usageCount[t] : 0
-  );
+  const ctx = document.getElementById("usageChart").getContext("2d");
 
-  new Chart(document.getElementById("barChart"), {
+  const tableIds = Object.keys(tableStats);
+  const usageCounts = tableIds.map(id => tableStats[id].count); // 利用回数
+  const cumulativeCounts = tableIds.map(id => tableStats[id].cumulativeCount || 0); // 累計回数（要フィールド）
+
+  new Chart(ctx, {
     type: "bar",
     data: {
-      labels: barLabels,
+      labels: tableIds,
       datasets: [
         {
-          label: "使用回数",
-          data: countData,
-          backgroundColor: "#66b3ff"
+          label: "利用回数",
+          data: usageCounts,
+          backgroundColor: "rgba(54, 162, 235, 0.7)"
         },
         {
-          label: "平均滞在時間（分）",
-          data: avgTimeData,
-          backgroundColor: "#ffcc66"
+          label: "累計使用回数",
+          data: cumulativeCounts,
+          backgroundColor: "rgba(255, 159, 64, 0.7)"
         }
       ]
     },
     options: {
       responsive: true,
       plugins: {
-        legend: { position: "top" },
         title: {
-          display: false
+          display: true,
+          text: "テーブル別 使用回数・累計回数"
+        },
+        tooltip: {
+          mode: "index",
+          intersect: false
+        },
+        legend: {
+          position: "top"
         }
       },
+      interaction: {
+        mode: "nearest",
+        axis: "x",
+        intersect: false
+      },
       scales: {
-        y: { beginAtZero: true }
+        x: {
+          title: {
+            display: true,
+            text: "テーブル番号"
+          }
+        },
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: "回数"
+          }
+        }
       }
     }
   });
