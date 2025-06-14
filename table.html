@@ -5,6 +5,7 @@
   <title>テーブル管理</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: 'Helvetica Neue', sans-serif;
@@ -171,7 +172,7 @@
     </div>
     <div class="drawer">
       <a href="index.html">ホーム</a>
-      <a href="table.html">テーブル管理</a>
+      <a href="map.html">店内マップ</a>
       <a href="histogram.html">混雑状況可視化</a>
       <a href="admin.html">待ち管理</a>
     </div>
@@ -180,6 +181,42 @@
 
 
     <h1>テーブル管理画面</h1>
+
+  <!-- 統計セクション -->
+<section style="padding: 20px;">
+  <h2>統計概要</h2>
+
+  <!-- 円グラフ3つ横並び -->
+  <div style="display: flex; justify-content: space-around; gap: 20px; flex-wrap: wrap;">
+
+    <!-- 円グラフ①: 現在の使用状況 -->
+    <div style="background-color: #f0f8ff; padding: 15px; border-radius: 10px; text-align: center;">
+      <h3>現在の使用状況</h3>
+      <canvas id="usagePieChart" width="400" height="400"></canvas>
+    </div>
+
+    <!-- 円グラフ②: 各テーブルの使用回数 -->
+    <div style="background-color: #fff0f5; padding: 15px; border-radius: 10px; text-align: center;">
+      <h3>各テーブルの使用回数</h3>
+      <canvas id="countPieChart" width="400" height="400"></canvas>
+    </div>
+
+    <!-- 円グラフ③: 累計使用時間構成 -->
+    <div style="background-color: #f5fff0; padding: 15px; border-radius: 10px; text-align: center;">
+      <h3>累計使用時間構成</h3>
+      <canvas id="timePieChart" width="400" height="400"></canvas>
+    </div>
+
+  </div>
+
+  <!-- 棒グラフ -->
+  <div style="margin-top: 40px; background-color: #f9f9f9; padding: 20px; border-radius: 10px;">
+    <h3>使用状況（回数・平均滞在時間）</h3>
+    <canvas id="barChart"></canvas>
+  </div>
+</section>
+
+
 
 
   <div class="table-list">
@@ -241,25 +278,154 @@
     </table>
   </div>
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
-    authDomain: "qr-visitor-log.firebaseapp.com",
-    projectId: "qr-visitor-log",
-    storageBucket: "qr-visitor-log.appspot.com",
-    messagingSenderId: "304250341939",
-    appId: "1:304250341939:web:b8d5b946590d1f852cf146"
-  };
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getFirestore, collection, query, orderBy, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-  // グローバル変数でテーブル状態を保持
-  let tableStatus = {};
+const firebaseConfig = {
+  apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+  authDomain: "qr-visitor-log.firebaseapp.com",
+  projectId: "qr-visitor-log",
+  storageBucket: "qr-visitor-log.appspot.com",
+  messagingSenderId: "304250341939",
+  appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+let tableStatus = {};  
+
+async function drawCharts() {
+  const logsSnapshot = await getDocs(collection(db, "logs"));
+  const logs = logsSnapshot.docs.map(doc => doc.data());
+
+  const usageCount = {};
+  const usageTime = {};
+  const tableStates = {};
+  const entryTimes = {};
+
+  // タイムスタンプ順に並び替え
+  logs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  logs.forEach(log => {
+    const table = log.table;
+    const time = new Date(log.timestamp);
+    const type = log.type;
+
+    if (!usageCount[table]) usageCount[table] = 0;
+    if (!usageTime[table]) usageTime[table] = 0;
+
+    if (type === "enter") {
+      if (!entryTimes[table]) {
+        entryTimes[table] = time;
+        usageCount[table]++;
+        tableStates[table] = "occupied";
+      }
+    } else if (type === "exit") {
+      if (entryTimes[table]) {
+        const duration = (time - entryTimes[table]) / 1000 / 60; // 分
+        usageTime[table] += duration;
+        delete entryTimes[table];
+        tableStates[table] = "vacant";
+      }
+    }
+  });
+
+  // Pie Chart 1: 全体の使用状況（修正済み）
+  const allTables = new Set([
+    ...Object.keys(usageCount),
+    ...Object.keys(usageTime),
+    ...Object.keys(tableStates)
+  ]);
+  const totalTables = allTables.size;
+  const occupiedCount = Object.values(tableStates).filter(state => state === "occupied").length;
+  const vacantCount = totalTables - occupiedCount;
+
+  new Chart(document.getElementById("usagePieChart"), {
+    type: "pie",
+    data: {
+      labels: ["使用中", "空席"],
+      datasets: [{
+        data: [occupiedCount, vacantCount],
+        backgroundColor: ["#ff9999", "#99ccff"]
+      }]
+    }
+  });
+
+  // Pie Chart 2: 使用中テーブル構成（使用回数）
+  new Chart(document.getElementById("countPieChart"), {
+    type: "pie",
+    data: {
+      labels: Object.keys(usageCount),
+      datasets: [{
+        data: Object.values(usageCount),
+        backgroundColor: Object.keys(usageCount).map((_, i) =>
+          `hsl(${(i * 50) % 360}, 60%, 70%)`
+        )
+      }]
+    }
+  });
+
+  // Pie Chart 3: 使用時間構成（累計時間）
+  new Chart(document.getElementById("timePieChart"), {
+    type: "pie",
+    data: {
+      labels: Object.keys(usageTime),
+      datasets: [{
+        data: Object.values(usageTime),
+        backgroundColor: Object.keys(usageTime).map((_, i) =>
+          `hsl(${(i * 50 + 180) % 360}, 60%, 70%)`
+        )
+      }]
+    }
+  });
+
+  // Bar Chart: 使用回数＋平均使用時間
+  const barLabels = Object.keys(usageCount);
+  const countData = Object.values(usageCount);
+  const avgTimeData = barLabels.map(t =>
+    usageCount[t] > 0 ? usageTime[t] / usageCount[t] : 0
+  );
+
+  new Chart(document.getElementById("barChart"), {
+    type: "bar",
+    data: {
+      labels: barLabels,
+      datasets: [
+        {
+          label: "使用回数",
+          data: countData,
+          backgroundColor: "#66b3ff"
+        },
+        {
+          label: "平均滞在時間（分）",
+          data: avgTimeData,
+          backgroundColor: "#ffcc66"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "top" },
+        title: {
+          display: false
+        }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+drawCharts();
 
 
-  db.collection("logs").orderBy("timestamp").onSnapshot(snapshot => {
-    tableStatus = {};
+
+
+    onSnapshot(query(collection(db, "logs"), orderBy("timestamp")), snapshot => {
 
     snapshot.forEach(doc => {
       const data = doc.data();
@@ -369,128 +535,114 @@
   }
 
 
-  let allLogs = []; // 全ログ保存用
+// --- フィルタ検索とリアルタイムログ取得部分 ---
 
-  // 検索フォームの各要素を取得
-  const searchTableId = document.getElementById("searchTableId");
-  const searchDevice = document.getElementById("searchDevice");
-  const searchOSBrowser = document.getElementById("searchOSBrowser");
-  const searchStartDate = document.getElementById("searchStartDate");
-  const searchEndDate = document.getElementById("searchEndDate");
-  const clearFilters = document.getElementById("clearFilters");
+let allLogs = []; // 全ログ保存用
 
-  function filterAndDisplayLogs() {
-    const tableIdFilter = searchTableId.value.trim().toLowerCase();
-    const deviceFilter = searchDevice.value.trim().toLowerCase();
-    const osBrowserFilter = searchOSBrowser.value.trim().toLowerCase();
-    const startDateFilter = searchStartDate.value; // yyyy-mm-dd
-    const endDateFilter = searchEndDate.value; // yyyy-mm-dd
+// 検索フォームの各要素を取得
+const searchTableId = document.getElementById("searchTableId");
+const searchDevice = document.getElementById("searchDevice");
+const searchOSBrowser = document.getElementById("searchOSBrowser");
+const searchStartDate = document.getElementById("searchStartDate");
+const searchEndDate = document.getElementById("searchEndDate");
+const clearFilters = document.getElementById("clearFilters");
 
-    const tbody = document.querySelector("#usageLogsTable tbody");
-    tbody.innerHTML = "";
+function filterAndDisplayLogs() {
+  const tableIdFilter = searchTableId.value.trim().toLowerCase();
+  const deviceFilter = searchDevice.value.trim().toLowerCase();
+  const osBrowserFilter = searchOSBrowser.value.trim().toLowerCase();
+  const startDateFilter = searchStartDate.value;
+  const endDateFilter = searchEndDate.value;
 
-    // table_deviceごとにまとめるロジックは元と同じ
-    const usageMap = {};
+  const tbody = document.querySelector("#usageLogsTable tbody");
+  tbody.innerHTML = "";
 
-    allLogs.forEach(log => {
-      const key = `${log.table}_${log.device}`;
-      const time = new Date(log.timestamp);
+  const usageMap = {};
 
-      if (!usageMap[key]) usageMap[key] = { table: log.table, device: log.device };
+  allLogs.forEach(log => {
+    const key = `${log.table}_${log.device}`;
+    const time = new Date(log.timestamp);
 
-      if (log.type === "enter") {
-        usageMap[key].start = time;
-      } else if (log.type === "exit") {
-        usageMap[key].end = time;
-      }
-    });
+    if (!usageMap[key]) usageMap[key] = { table: log.table, device: log.device };
 
-    Object.values(usageMap)
-      .filter(log => log.start && log.end)
-      .filter(log => {
-        // テーブルIDフィルター
-        if (tableIdFilter && !log.table.toLowerCase().includes(tableIdFilter)) return false;
-
-        // デバイスタイプ（機種）フィルター
-        if (deviceFilter) {
-          const deviceName = parseDeviceInfo(log.device).device.toLowerCase();
-          if (!deviceName.includes(deviceFilter)) return false;
-        }
-
-        // OS/ブラウザフィルター
-        if (osBrowserFilter) {
-          const info = parseDeviceInfo(log.device);
-          const osBrowser = (info.os + " / " + info.browser).toLowerCase();
-          if (!osBrowser.includes(osBrowserFilter)) return false;
-        }
-
-        // 利用開始日付フィルター
-        if (startDateFilter) {
-          const startDate = new Date(startDateFilter + "T00:00:00");
-          if (log.start < startDate) return false;
-        }
-
-        // 利用終了日付フィルター
-        if (endDateFilter) {
-          const endDate = new Date(endDateFilter + "T23:59:59");
-          if (log.end > endDate) return false;
-        }
-
-        return true;
-      })
-      .forEach(log => {
-        const tr = document.createElement("tr");
-        const deviceInfo = parseDeviceInfo(log.device);
-        tr.innerHTML = `
-          <td>${log.table}</td>
-          <td>${deviceInfo.device}</td>
-          <td>${deviceInfo.os} / ${deviceInfo.browser}</td>
-          <td>${log.start.toLocaleString()}</td>
-          <td>${log.end.toLocaleString()}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-  }
-
-  clearFilters.addEventListener("click", () => {
-    searchTableId.value = "";
-    searchDevice.value = "";
-    searchOSBrowser.value = "";
-    searchStartDate.value = "";
-    searchEndDate.value = "";
-    filterAndDisplayLogs();
-  });
-
-  [searchTableId, searchDevice, searchOSBrowser, searchStartDate, searchEndDate].forEach(input => {
-    input.addEventListener("input", filterAndDisplayLogs);
-  });
-
-  // ログのリアルタイム取得と表示更新
-  db.collection("logs").orderBy("timestamp").onSnapshot(snapshot => {
-    allLogs = [];
-    snapshot.forEach(doc => {
-      allLogs.push(doc.data());
-    });
-    filterAndDisplayLogs();
-  });
-
-      function updateTableDisplays() {
-   }
-
-    function countVisitors(snapshot) {
-      updateTableDisplays();
+    if (log.type === "enter") {
+      usageMap[key].start = time;
+    } else if (log.type === "exit") {
+      usageMap[key].end = time;
     }
+  });
 
-      window.onload = () => {
-      db.collection("logs").onSnapshot(countVisitors);
-      setInterval(updateTableDisplays, 60000);
+  Object.values(usageMap)
+    .filter(log => log.start && log.end)
+    .filter(log => {
+      if (tableIdFilter && !log.table.toLowerCase().includes(tableIdFilter)) return false;
 
-      const menuButton = document.querySelector(".menu-button");
-      const drawer = document.querySelector(".drawer");
-      menuButton.addEventListener("click", () => {
-        drawer.classList.toggle("open");
-      });
-    };
+      if (deviceFilter) {
+        const deviceName = parseDeviceInfo(log.device).device.toLowerCase();
+        if (!deviceName.includes(deviceFilter)) return false;
+      }
+
+      if (osBrowserFilter) {
+        const info = parseDeviceInfo(log.device);
+        const osBrowser = (info.os + " / " + info.browser).toLowerCase();
+        if (!osBrowser.includes(osBrowserFilter)) return false;
+      }
+
+      if (startDateFilter) {
+        const startDate = new Date(startDateFilter + "T00:00:00");
+        if (log.start < startDate) return false;
+      }
+
+      if (endDateFilter) {
+        const endDate = new Date(endDateFilter + "T23:59:59");
+        if (log.end > endDate) return false;
+      }
+
+      return true;
+    })
+    .forEach(log => {
+      const tr = document.createElement("tr");
+      const deviceInfo = parseDeviceInfo(log.device);
+      tr.innerHTML = `
+        <td>${log.table}</td>
+        <td>${deviceInfo.device}</td>
+        <td>${deviceInfo.os} / ${deviceInfo.browser}</td>
+        <td>${log.start.toLocaleString()}</td>
+        <td>${log.end.toLocaleString()}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+}
+
+clearFilters.addEventListener("click", () => {
+  searchTableId.value = "";
+  searchDevice.value = "";
+  searchOSBrowser.value = "";
+  searchStartDate.value = "";
+  searchEndDate.value = "";
+  filterAndDisplayLogs();
+});
+
+[searchTableId, searchDevice, searchOSBrowser, searchStartDate, searchEndDate].forEach(input => {
+  input.addEventListener("input", filterAndDisplayLogs);
+});
+
+onSnapshot(query(collection(db, "logs"), orderBy("timestamp")), snapshot => {
+  allLogs = [];
+  snapshot.forEach(doc => {
+    allLogs.push(doc.data());
+  });
+  filterAndDisplayLogs();
+});
+
+// ハンバーガーメニュー動作
+window.onload = () => {
+  const menuButton = document.querySelector(".menu-button");
+  const drawer = document.querySelector(".drawer");
+  menuButton.addEventListener("click", () => {
+    drawer.classList.toggle("open");
+  });
+};
 
 </script>
 </body>
