@@ -381,6 +381,13 @@ async function drawCharts() {
     }
   });
 
+    const tableStats = {};
+  for (const table of Object.keys(usageCount)) {
+    tableStats[table] = {
+      count: usageCount[table],
+      cumulativeCount: usageTime[table]
+    };
+  }
   const ctx = document.getElementById("usageChart").getContext("2d");
 
   const tableIds = Object.keys(tableStats);
