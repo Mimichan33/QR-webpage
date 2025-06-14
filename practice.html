@@ -182,18 +182,41 @@
 
     <h1>テーブル管理画面</h1>
 
-  <div style="padding: 20px; background: #f9f9f9;">
-  <h2>使用状況サマリー</h2>
-  <canvas id="summaryPieChart" width="400" height="200"></canvas>
-  <canvas id="summaryBarChart" width="400" height="200" style="margin-top: 40px;"></canvas>
-  <table id="usageStatsTable" border="1" style="margin-top: 40px; width: 100%; text-align: center;">
-    <thead>
-      <tr><th>テーブル</th><th>使用回数</th><th>累積使用時間（分）</th><th>平均滞在時間（分）</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-  <button onclick="downloadCSV()">CSVダウンロード</button>
-</div>
+  <!-- 統計セクション -->
+<section style="padding: 20px;">
+  <h2>統計概要</h2>
+
+  <!-- 円グラフ3つ横並び -->
+  <div style="display: flex; justify-content: space-around; gap: 20px; flex-wrap: wrap;">
+
+    <!-- 円グラフ①: 全体の使用状況 -->
+    <div style="background-color: #f0f8ff; padding: 15px; border-radius: 10px; text-align: center;">
+      <h3>全体の使用状況</h3>
+      <canvas id="usagePieChart" width="220" height="220"></canvas>
+    </div>
+
+    <!-- 円グラフ②: 使用中テーブル構成 -->
+    <div style="background-color: #fff0f5; padding: 15px; border-radius: 10px; text-align: center;">
+      <h3>使用中テーブル構成</h3>
+      <canvas id="countPieChart" width="220" height="220"></canvas>
+    </div>
+
+    <!-- 円グラフ③: 使用時間構成 -->
+    <div style="background-color: #f5fff0; padding: 15px; border-radius: 10px; text-align: center;">
+      <h3>使用時間構成</h3>
+      <canvas id="timePieChart" width="220" height="220"></canvas>
+    </div>
+
+  </div>
+
+  <!-- 棒グラフ -->
+  <div style="margin-top: 40px; background-color: #f9f9f9; padding: 20px; border-radius: 10px;">
+    <h3>使用状況（回数・平均滞在時間）</h3>
+    <canvas id="barChart"></canvas>
+  </div>
+</section>
+
+
 
 
   <div class="table-list">
@@ -271,118 +294,140 @@
   // グローバル変数でテーブル状態を保持
   let tableStatus = {};
 
-    const logsRef = firebase.firestore().collection('logs');
-  const tableStats = {};
+  <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  function formatMinutes(ms) {
-    return Math.round(ms / 60000);
-  }
 
-  function downloadCSV() {
-    let csv = "テーブル,使用回数,累積使用時間（分）,平均滞在時間（分）\n";
-    for (const table in tableStats) {
-      const stat = tableStats[table];
-      const avg = stat.count > 0 ? stat.total / stat.count : 0;
-      csv += `${table},${stat.count},${formatMinutes(stat.total)},${formatMinutes(avg)}\n`;
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+async function drawCharts() {
+  const logsSnapshot = await getDocs(collection(db, "logs"));
+  const logs = logsSnapshot.docs.map(doc => doc.data());
+
+  const usageStatus = {};
+  const usageCount = {};
+  const usageTime = {};
+
+  const tableStates = {};
+  const entryTimes = {};
+
+  logs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  logs.forEach(log => {
+    const table = log.table;
+    const time = new Date(log.timestamp);
+    const type = log.type;
+
+    if (!usageStatus[table]) {
+      usageStatus[table] = "vacant";
+      usageCount[table] = 0;
+      usageTime[table] = 0;
     }
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "usage_stats.csv";
-    a.click();
-  }
 
-  async function loadStats() {
-    const snapshot = await logsRef.orderBy('timestamp').get();
-    const logs = snapshot.docs.map(doc => doc.data());
-    const enterMap = {};
+    if (type === "enter") {
+      if (!entryTimes[table]) {
+        entryTimes[table] = time;
+        usageCount[table]++;
+        tableStates[table] = "occupied";
+      }
+    } else if (type === "exit") {
+      if (entryTimes[table]) {
+        const duration = (time - entryTimes[table]) / 1000 / 60; // 分
+        usageTime[table] += duration;
+        delete entryTimes[table];
+        tableStates[table] = "vacant";
+      }
+    }
+  });
 
-    logs.forEach(log => {
-      const { table, timestamp, type, device } = log;
-      const key = table + '-' + device;
+  // Pie Chart 1: 全体の使用状況
+  const totalTables = Object.keys(usageStatus).length;
+  const occupiedCount = Object.values(tableStates).filter(state => state === "occupied").length;
+  const vacantCount = totalTables - occupiedCount;
 
-      if (!tableStats[table]) tableStats[table] = { count: 0, total: 0 };
+  new Chart(document.getElementById("usagePieChart"), {
+    type: "pie",
+    data: {
+      labels: ["使用中", "空席"],
+      datasets: [{
+        data: [occupiedCount, vacantCount],
+        backgroundColor: ["#ff9999", "#99ccff"]
+      }]
+    }
+  });
 
-      if (type === 'enter') {
-        enterMap[key] = timestamp;
-      } else if (type === 'exit' && enterMap[key]) {
-        const enterTime = new Date(enterMap[key]);
-        const exitTime = new Date(timestamp);
-        const duration = exitTime - enterTime;
+  // Pie Chart 2: 使用中テーブル構成（使用回数）
+  new Chart(document.getElementById("countPieChart"), {
+    type: "pie",
+    data: {
+      labels: Object.keys(usageCount),
+      datasets: [{
+        data: Object.values(usageCount),
+        backgroundColor: Object.keys(usageCount).map((_, i) =>
+          `hsl(${(i * 50) % 360}, 60%, 70%)`
+        )
+      }]
+    }
+  });
 
-        if (duration > 0) {
-          tableStats[table].count++;
-          tableStats[table].total += duration;
+  // Pie Chart 3: 使用時間構成（累計時間）
+  new Chart(document.getElementById("timePieChart"), {
+    type: "pie",
+    data: {
+      labels: Object.keys(usageTime),
+      datasets: [{
+        data: Object.values(usageTime),
+        backgroundColor: Object.keys(usageTime).map((_, i) =>
+          `hsl(${(i * 50 + 180) % 360}, 60%, 70%)`
+        )
+      }]
+    }
+  });
+
+  // Bar Chart: 使用回数＋平均使用時間
+  const barLabels = Object.keys(usageCount);
+  const countData = Object.values(usageCount);
+  const avgTimeData = barLabels.map(t => usageCount[t] > 0 ? usageTime[t] / usageCount[t] : 0);
+
+  new Chart(document.getElementById("barChart"), {
+    type: "bar",
+    data: {
+      labels: barLabels,
+      datasets: [
+        {
+          label: "使用回数",
+          data: countData,
+          backgroundColor: "#66b3ff"
+        },
+        {
+          label: "平均滞在時間（分）",
+          data: avgTimeData,
+          backgroundColor: "#ffcc66"
         }
-
-        delete enterMap[key];
-      }
-    });
-
-    drawCharts();
-    drawTable();
-  }
-
-  function drawCharts() {
-    const labels = Object.keys(tableStats);
-    const usageCounts = labels.map(t => tableStats[t].count);
-    const totalTimes = labels.map(t => formatMinutes(tableStats[t].total));
-    const avgTimes = labels.map(t => formatMinutes(tableStats[t].total / (tableStats[t].count || 1)));
-
-    new Chart(document.getElementById('summaryPieChart'), {
-      type: 'pie',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: '使用回数',
-          data: usageCounts,
-          backgroundColor: labels.map((_, i) => `hsl(${i * 60}, 70%, 60%)`)
-        }]
-      }
-    });
-
-    new Chart(document.getElementById('summaryBarChart'), {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: '使用回数',
-            data: usageCounts,
-            backgroundColor: 'rgba(75, 192, 192, 0.6)'
-          },
-          {
-            label: '平均滞在時間（分）',
-            data: avgTimes,
-            backgroundColor: 'rgba(255, 159, 64, 0.6)'
-          }
-        ]
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "top" },
+        title: {
+          display: false
+        }
       },
-      options: {
-        scales: {
-          y: { beginAtZero: true }
-        }
+      scales: {
+        y: { beginAtZero: true }
       }
-    });
-  }
-
-  function drawTable() {
-    const tbody = document.querySelector('#usageStatsTable tbody');
-    tbody.innerHTML = '';
-    for (const table in tableStats) {
-      const stat = tableStats[table];
-      const avg = stat.count > 0 ? stat.total / stat.count : 0;
-      const row = `<tr>
-        <td>${table}</td>
-        <td>${stat.count}</td>
-        <td>${formatMinutes(stat.total)}</td>
-        <td>${formatMinutes(avg)}</td>
-      </tr>`;
-      tbody.innerHTML += row;
     }
-  }
+  });
+}
 
-  loadStats();
+drawCharts();
+
+
 
 
   db.collection("logs").orderBy("timestamp").onSnapshot(snapshot => {
