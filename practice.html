@@ -281,7 +281,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getDocs, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
@@ -294,6 +294,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+let tableStatus = {};  
 
 async function drawCharts() {
   const logsSnapshot = await getDocs(collection(db, "logs"));
@@ -425,7 +426,6 @@ drawCharts();
 
 
     onSnapshot(query(collection(db, "logs"), orderBy("timestamp")), snapshot => {
-    tableStatus = {};
 
     snapshot.forEach(doc => {
       const data = doc.data();
@@ -626,9 +626,6 @@ clearFilters.addEventListener("click", () => {
 [searchTableId, searchDevice, searchOSBrowser, searchStartDate, searchEndDate].forEach(input => {
   input.addEventListener("input", filterAndDisplayLogs);
 });
-
-// Firebase v9モジュール構文でリアルタイムログ取得
-//import { onSnapshot, query, orderBy, collection } from "firebase/firestore";
 
 onSnapshot(query(collection(db, "logs"), orderBy("timestamp")), snapshot => {
   allLogs = [];
