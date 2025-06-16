@@ -150,13 +150,7 @@
     </div>
   </header>
   <h1 style="display:none;" id="mainTitle">順番待ち管理（店員用）</h1>
-    <div id="stats" style="text-align:center; margin-bottom: 20px;">
-    <p><strong>現在の待ち人数:</strong> <span id="waitingCount">0</span>組</p>
-    <p><strong>平均待ち時間:</strong> <span id="avgWaitTime">--</span></p>
-  </div>
   <div id="queueList"></div>
-  <div id="queueList"></div>
-  
 
   <script>
     const firebaseConfig = {
@@ -179,26 +173,6 @@
     }
 
 function renderQueue() {
-      let waitingCount = 0;
-let totalWaitMinutes = 0;
-let waitTimes = [];
-
-const now = new Date();
-
-visibleDocs.forEach(doc => {
-  const data = doc.data();
-  if (data.status === "waiting") {
-    waitingCount++;
-    const waitTime = (now - new Date(data.timestamp.toDate?.() || data.timestamp)) / 60000;
-    waitTimes.push(waitTime);
-    totalWaitMinutes += waitTime;
-  }
-});
-
-// 統計情報の更新
-document.getElementById("waitingCount").textContent = waitingCount;
-document.getElementById("avgWaitTime").textContent =
-  waitTimes.length ? `${Math.round(totalWaitMinutes / waitTimes.length)}分` : "--";
   db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
     const allDocs = snapshot.docs;
 
