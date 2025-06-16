@@ -179,8 +179,7 @@
     }
 
 function renderQueue() {
-  db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
-    let waitingCount = 0;
+      let waitingCount = 0;
 let totalWaitMinutes = 0;
 let waitTimes = [];
 
@@ -200,7 +199,7 @@ visibleDocs.forEach(doc => {
 document.getElementById("waitingCount").textContent = waitingCount;
 document.getElementById("avgWaitTime").textContent =
   waitTimes.length ? `${Math.round(totalWaitMinutes / waitTimes.length)}分` : "--";
-
+  db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
     const allDocs = snapshot.docs;
 
     // 表示対象: waiting と entered
