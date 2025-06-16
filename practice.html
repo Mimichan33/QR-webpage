@@ -180,6 +180,27 @@
 
 function renderQueue() {
   db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
+    let waitingCount = 0;
+let totalWaitMinutes = 0;
+let waitTimes = [];
+
+const now = new Date();
+
+visibleDocs.forEach(doc => {
+  const data = doc.data();
+  if (data.status === "waiting") {
+    waitingCount++;
+    const waitTime = (now - new Date(data.timestamp.toDate?.() || data.timestamp)) / 60000;
+    waitTimes.push(waitTime);
+    totalWaitMinutes += waitTime;
+  }
+});
+
+// 統計情報の更新
+document.getElementById("waitingCount").textContent = waitingCount;
+document.getElementById("avgWaitTime").textContent =
+  waitTimes.length ? `${Math.round(totalWaitMinutes / waitTimes.length)}分` : "--";
+
     const allDocs = snapshot.docs;
 
     // 表示対象: waiting と entered
