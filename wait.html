@@ -213,6 +213,29 @@
       await registerQueue();
       watchQueue();
     };
+
+    //通知
+    const messaging = firebase.messaging();
+
+  // VAPID公開鍵（FirebaseコンソールのCloud Messagingで取得）
+  const VAPID_KEY = BEmpAQ3r7nr-Q4Pf95pShAGwJyjCI9mBljAAZ2RPdBs22TIc9b9Y_VQizTKnOrmr_VM9CskWg0a5yE3qgfBqsc0;
+
+  messaging.getToken({ vapidKey: VAPID_KEY }).then((currentToken) => {
+    if (currentToken) {
+      console.log('通知トークン取得成功:', currentToken);
+      // 🔽 管理者に送るならここでFirestoreなどに保存も可
+    } else {
+      console.warn('通知トークンが取得できませんでした。ユーザーが拒否した可能性があります。');
+    }
+  }).catch((err) => {
+    console.error('通知トークン取得時にエラー:', err);
+  });
+
+  // 通知受信時
+  messaging.onMessage((payload) => {
+    console.log('通知を受信:', payload);
+    alert(payload.notification.title + "\n" + payload.notification.body);
+  });
   </script>
 </body>
 </html>
