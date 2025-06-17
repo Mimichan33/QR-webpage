@@ -191,7 +191,7 @@
     </div>
     <div class="drawer">
       <a href="index.html">ホーム</a>
-      <a href="map.html">店内マップ</a>
+      <a href="table.html">テーブル管理</a>
       <a href="histogram.html">混雑状況可視化</a>
       <a href="admin.html">待ち管理</a>
     </div>
@@ -208,7 +208,6 @@
     <br>
     <div class="tabs" id="tabs"></div>
     <br>
-    <div class="live-status" id="liveStatus"></div> 
     <div class="carousel" id="carousel"></div>
     <br>
     <br><br><br>
@@ -533,19 +532,6 @@ async function updateChartAndTable() {
       document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
       document.querySelectorAll(".tab")[index].classList.add("active");
     }
-
-function showLiveStatus() {
-  const count = dayData[todayIndex][currentHour];
-  const liveStatus = document.getElementById("liveStatus");
-
-  if (count >= 10) {
-    liveStatus.innerText = `● ライブ：混んでいます（${count}件）`;
-  } else if (count >= 6 && count <= 9) {
-    liveStatus.innerText = `● ライブ：やや混んでいます（${count}件）`;
-  } else {
-    liveStatus.innerText = `● ライブ：空いています`;
-  }
-}
 
 
     window.addEventListener("DOMContentLoaded", updateChartAndTable);
