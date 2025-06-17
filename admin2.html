@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>管理画面</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <h1>管理者用入店通知</h1>
+  <label>テーブル番号:
+    <input type="number" id="tableNo" value="1">
+  </label>
+  <button id="notifyBtn">入店通知を送信</button>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    document.getElementById("notifyBtn").onclick = async () => {
+      const tableNo = parseInt(document.getElementById("tableNo").value, 10);
+      const snapshot = await db.collection("tokens")
+        .where("table", "==", tableNo)
+        .get();
+
+      const tokens = snapshot.docs.map(doc => doc.id); // doc.id が FCMトークン
+      if (tokens.length === 0) {
+        alert("対象の利用者が見つかりません");
+        return;
+      }
+
+      // Cloud Functions エンドポイントに POST
+      fetch("https://console.firebase.google.com/project/qr-visitor-log/usage/details", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tokens,
+          title: "入店のご案内",
+          body: `テーブル${tableNo}、お入りください。`
+        })
+      })
+      .then(res => {
+        if (res.ok) alert("通知を送信しました");
+        else alert("失敗しました");
+      })
+      .catch(err => console.error(err));
+    };
+  </script>
+</body>
+</html>
