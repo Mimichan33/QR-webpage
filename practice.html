@@ -1,140 +1,127 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>混雑傾向分析</title>
-
-  <!-- Tailwind CSS (必要に応じて調整) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f9f9f9;
+    }
 
-  <!-- Swiper.js CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    h2 {
+      margin-bottom: 20px;
+    }
 
-  <!-- Firebase SDK (バージョンはプロジェクトに合わせて) -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    .swiper {
+      width: 100%;
+      padding-bottom: 40px;
+    }
+
+    .swiper-slide {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    canvas {
+      max-height: 300px;
+    }
+
+    .live-info {
+      margin: 10px 0;
+      font-size: 14px;
+      color: #d93025;
+      font-weight: bold;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 text-gray-900 px-4 py-6">
 
-  <h1 class="text-2xl font-bold mb-4">混雑傾向分析</h1>
+<body>
+  <h2>混雑傾向分析</h2>
 
-  <!-- ここに既存のヒストグラムや履歴が入っていると仮定 -->
-
-  <!-- ===== 新しい曜日別ヒストグラムセクション ===== -->
-  <h2 class="text-xl font-bold mt-10 mb-4">曜日別混雑傾向（1時間ごと）</h2>
-
-  <div class="swiper mySwiper w-full h-[400px] bg-white rounded-lg shadow">
-    <div class="swiper-wrapper">
-      <!-- JSで曜日ごとのスライド（グラフ）が追加されます -->
+  <div class="swiper">
+    <div class="swiper-wrapper" id="chartContainer">
+      <!-- 曜日ごとのチャートがここに入る -->
     </div>
-    <div class="swiper-button-next"></div>
-    <div class="swiper-button-prev"></div>
-    <div class="swiper-pagination"></div>
   </div>
 
-  <!-- Firebase 初期化とカルーセルグラフ生成 -->
-  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
   <script>
-    // Firebase 設定
-   const firebaseConfig = {
-      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
-      authDomain: "qr-visitor-log.firebaseapp.com",
-      projectId: "qr-visitor-log",
-      storageBucket: "qr-visitor-log.appspot.com",
-      messagingSenderId: "304250341939",
-      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
-    };
+    const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+    const today = new Date().getDay();
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const sampleData = Array.from({ length: 7 }, (_, i) => ({
+      label: weekdays[i],
+      data: Array.from({ length: 24 }, () => Math.floor(Math.random() * 100))
+    }));
 
-    // 曜日 → 時間帯ごとのカウント（0〜23時）
-    const weeklyData = {
-      '日': Array(24).fill(0),
-      '月': Array(24).fill(0),
-      '火': Array(24).fill(0),
-      '水': Array(24).fill(0),
-      '木': Array(24).fill(0),
-      '金': Array(24).fill(0),
-      '土': Array(24).fill(0)
-    };
+    const chartContainer = document.getElementById('chartContainer');
 
-    const weekdayNames = ['日', '月', '火', '水', '木', '金', '土'];
+    sampleData.forEach((day, index) => {
+      const slide = document.createElement('div');
+      slide.className = 'swiper-slide';
 
-    db.collection("logs").get().then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.type !== "enter") return;
+      const liveIndex = new Date().getDay() === index ? new Date().getHours() : -1;
 
-        const date = new Date(data.timestamp);
-        const day = weekdayNames[date.getDay()];
-        const hour = date.getHours();
-        weeklyData[day][hour]++;
-      });
+      const liveInfo = document.createElement('div');
+      if (liveIndex >= 0) {
+        liveInfo.className = 'live-info';
+        liveInfo.textContent = 'ライブ：やや混んでいます';
+      }
 
-      // 曜日ごとのグラフをカルーセルに追加
-      const swiperWrapper = document.querySelector('.swiper-wrapper');
+      const canvas = document.createElement('canvas');
+      canvas.id = `chart-${index}`;
+      slide.appendChild(document.createElement('h3')).textContent = `${day.label}曜日`;
+      if (liveIndex >= 0) slide.appendChild(liveInfo);
+      slide.appendChild(canvas);
+      chartContainer.appendChild(slide);
 
-      weekdayNames.forEach(day => {
-        const slide = document.createElement('div');
-        slide.className = 'swiper-slide flex items-center justify-center';
-
-        const canvas = document.createElement('canvas');
-        canvas.id = `chart-${day}`;
-        canvas.className = "w-full max-w-[90%] h-full";
-
-        slide.appendChild(canvas);
-        swiperWrapper.appendChild(slide);
-
-        new Chart(canvas, {
-          type: 'bar',
-          data: {
-            labels: Array.from({ length: 24 }, (_, i) => `${i}時`),
-            datasets: [{
-              label: `${day}曜日`,
-              data: weeklyData[day],
-              backgroundColor: 'rgba(54, 162, 235, 0.5)',
-              borderColor: 'rgba(54, 162, 235, 1)',
-              borderWidth: 1
-            }]
+      new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: Array.from({ length: 24 }, (_, i) => `${i}時`),
+          datasets: [{
+            label: '混雑度',
+            data: day.data,
+            backgroundColor: day.data.map((_, i) => i === liveIndex ? 'rgba(217, 48, 37, 0.8)' : 'rgba(66, 133, 244, 0.6)')
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false }
           },
-          options: {
-            responsive: true,
-            plugins: {
-              title: {
-                display: true,
-                text: `${day}曜日の1時間ごとの来店数`
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: true
-              }
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 20 }
             }
           }
-        });
+        }
       });
+    });
 
-      // Swiper 初期化
-      new Swiper(".mySwiper", {
-        slidesPerView: 1,
-        spaceBetween: 30,
-        pagination: {
-          el: ".swiper-pagination",
-          clickable: true
-        },
-        navigation: {
-          nextEl: ".swiper-button-next",
-          prevEl: ".swiper-button-prev"
-        },
-        loop: true
-      });
+    new Swiper('.swiper', {
+      slidesPerView: 1,
+      spaceBetween: 20,
+      initialSlide: today,
+      pagination: { el: '.swiper-pagination', clickable: true },
+      navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev'
+      }
     });
   </script>
 </body>
+
 </html>
+
 
