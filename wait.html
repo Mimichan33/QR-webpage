@@ -7,7 +7,6 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
 
   
   
@@ -213,28 +212,6 @@
       await registerQueue();
       watchQueue();
     };
-
-    //通知
-    const messaging = firebase.messaging();
-
-    messaging.getToken({
-  vapidKey: "BEmpAQ3r7nr-Q4Pf95pShAGwJyjCI9mBljAAZ2RPdBs22TIc9b9Y_VQizTKnOrmr_VM9CskWg0a5yE3qgfBqsc0"
-}).then((currentToken) => {
-  if (currentToken) {
-    console.log("通知トークン取得成功:", currentToken);
-  } else {
-    console.warn("通知トークンが取得できませんでした。");
-  }
-}).catch((err) => {
-  console.error("通知トークン取得時にエラー:", err);
-});
-
-
-  // 通知受信時
-  messaging.onMessage((payload) => {
-    console.log('通知を受信:', payload);
-    alert(payload.notification.title + "\n" + payload.notification.body);
-  });
   </script>
 </body>
 </html>
