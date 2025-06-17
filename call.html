@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>通知テスト</title>
+</head>
+<body>
+  <h1>通知の購読テスト</h1>
+  <button id="subscribe">通知を許可する</button>
+
+  <script>
+    const publicVapidKey = 'BFu4tZGz-Tc_lx1mw2toOFLCVXMR4SkNO6ntKzNxhIToWfpgucwFXMJ1dF_VrTqSXGWJ56DdNPGPqODC8_Rm-k8';
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('Service Worker 登録成功'));
+
+      document.getElementById('subscribe').addEventListener('click', async () => {
+        const registration = await navigator.serviceWorker.ready;
+
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+        });
+
+        // サーバーに購読情報を送る（例: fetchで保存）
+        await fetch('https://your-server.com/save-subscription', {
+          method: 'POST',
+          body: JSON.stringify(subscription),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        alert('通知購読完了！');
+      });
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+
+      const rawData = window.atob(base64);
+      return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+    }
+  </script>
+</body>
+</html>
