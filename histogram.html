@@ -430,23 +430,33 @@ async function updateChartAndTable() {
     document.getElementById("interval").addEventListener("change", updateChartAndTable);
     document.getElementById("rangeType").addEventListener("change", updateChartAndTable);
 
-    document.getElementById("downloadCSV").addEventListener("click", () => {
-      const rows = [["日付", "時間帯", "テーブル番号", "滞在時間", "入店時間", "退店時間"]];
-      const trs = document.querySelectorAll("#logTableBody tr");
-      trs.forEach(tr => {
-        const cols = [...tr.children].map(td => td.textContent);
-        rows.push(cols);
-      });
+  // CSVダウンロード機能
+  document.getElementById("downloadCSV").addEventListener("click", () => {
+    const table = document.querySelector("#logTableBody");
+    const rows = Array.from(table.querySelectorAll("tr"));
+    let csvContent = "日付,時間帯,テーブル番号,滞在時間,入店時間,退店時間\n";
 
-      const csv = rows.map(row => row.join(",")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "logs.csv";
-      a.click();
-      URL.revokeObjectURL(url);
+    rows.forEach(row => {
+      const cols = row.querySelectorAll("td");
+      const rowData = Array.from(cols).map(td => `"${td.innerText.replace(/"/g, '""')}"`).join(",");
+      csvContent += rowData + "\n";
     });
+
+    // UTF-8 BOMを付加して日本語対応
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, csvContent], { type: "text/csv;charset=utf-8;" });
+
+    const today = new Date().toISOString().split("T")[0];
+    const filename = `log_${today}.csv`;
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+
 
        const days = ["日", "月", "火", "水", "木", "金", "土"];
     const dayData = Array(7).fill().map(() => Array(24).fill(0));
