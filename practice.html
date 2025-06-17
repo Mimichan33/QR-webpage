@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>混雑傾向分析</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
@@ -16,6 +16,12 @@
     }
     h2 {
       text-align: center;
+      margin-bottom: 10px;
+    }
+    .live-status {
+      text-align: center;
+      color: #d93025;
+      font-weight: bold;
       margin-bottom: 10px;
     }
     .tabs {
@@ -57,19 +63,13 @@
       height: 240px !important;
       margin: 0 auto;
     }
-    .live-status {
-      text-align: center;
-      color: #d93025;
-      font-weight: bold;
-      margin-top: -10px;
-    }
   </style>
 </head>
 <body>
   <h2>混雑傾向分析</h2>
+  <div class="live-status" id="liveStatus"></div> <!-- 上に移動 -->
   <div class="tabs" id="tabs"></div>
   <div class="carousel" id="carousel"></div>
-  <div class="live-status" id="liveStatus"></div>
 
   <script>
     const firebaseConfig = {
@@ -127,9 +127,8 @@
         container.appendChild(canvas);
         carousel.appendChild(container);
 
-        // 淡い青を基本、現在時刻の棒だけ濃くする
-        const backgroundColors = Array(24).fill("rgba(138, 180, 248, 0.6)");
-        if (i === todayIndex) backgroundColors[currentHour] = "rgba(66, 133, 244, 1)";
+        const backgroundColors = Array(24).fill("rgba(100, 140, 230, 0.7)");
+        if (i === todayIndex) backgroundColors[currentHour] = "rgba(220, 53, 69, 1)"; // 赤
 
         new Chart(canvas.getContext("2d"), {
           type: "bar",
@@ -139,7 +138,7 @@
               label: `${days[i]}曜日の混雑`,
               data: dayData[i],
               backgroundColor: backgroundColors,
-              borderRadius: 8, // ← 角を丸く
+              borderRadius: 8,
               barThickness: 16,
               maxBarThickness: 18,
             }]
@@ -148,19 +147,11 @@
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-              y: {
-                display: false // ← y軸非表示
-              },
-              x: {
-                grid: {
-                  display: false
-                }
-              }
+              y: { display: false },
+              x: { grid: { display: false } }
             },
             plugins: {
-              legend: {
-                display: false
-              }
+              legend: { display: false }
             }
           }
         });
@@ -189,3 +180,4 @@
   </script>
 </body>
 </html>
+
