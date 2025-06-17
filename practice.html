@@ -1,180 +1,191 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>混雑傾向分析</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <style>
     body {
       font-family: sans-serif;
       margin: 0;
-      padding: 0;
-      background: #f9f9f9;
+      padding: 20px;
+      background: #f4f4f4;
     }
     h2 {
       text-align: center;
-      margin-top: 1rem;
+      margin-bottom: 10px;
     }
-    .carousel-container {
+    .tabs {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .day-selector {
-      display: flex;
-      gap: 10px;
       justify-content: center;
-      margin: 1rem 0;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
     }
-    .day-button {
-      padding: 8px 14px;
-      border: none;
-      border-radius: 10px;
-      background-color: #e0e0e0;
+    .tab {
+      padding: 6px 12px;
       cursor: pointer;
-      font-weight: bold;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      background: white;
     }
-    .day-button.active {
-      background-color: #4285f4;
+    .tab.active {
+      background: #4285f4;
       color: white;
+      border-color: #4285f4;
     }
-    .chart-wrapper {
-      position: relative;
-      width: 90%;
-      max-width: 700px;
-      margin: 0 auto;
+    .carousel {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE 10+ */
     }
-    .live-label {
-      position: absolute;
-      top: -25px;
-      left: 10px;
-      font-size: 1rem;
-      font-weight: bold;
-      color: red;
+    .carousel::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+    .carousel-item {
+      min-width: 100%;
+      scroll-snap-align: start;
     }
     canvas {
-      margin-top: 30px;
+      width: 100% !important;
+      max-width: 600px;
+      height: 240px !important;
+      margin: 0 auto;
+    }
+    .live-status {
+      text-align: center;
+      color: #d93025;
+      font-weight: bold;
+      margin-top: -10px;
     }
   </style>
 </head>
 <body>
   <h2>混雑傾向分析</h2>
-
-  <div class="carousel-container">
-    <div class="day-selector" id="daySelector"></div>
-
-    <div class="chart-wrapper">
-      <div class="live-label" id="liveLabel">現在の混雑状況</div>
-      <canvas id="carouselChart" height="300"></canvas>
-    </div>
-  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="carousel" id="carousel"></div>
+  <div class="live-status" id="liveStatus"></div>
 
   <script>
-    // Firebase初期化
     const firebaseConfig = {
-      projectId: "YOUR_PROJECT_ID"
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const days = ['日', '月', '火', '水', '木', '金', '土'];
-    const todayIndex = dayjs().day();
-    const daySelector = document.getElementById('daySelector');
-    const ctx = document.getElementById('carouselChart').getContext('2d');
-    const liveLabel = document.getElementById('liveLabel');
+    const days = ["日", "月", "火", "水", "木", "金", "土"];
+    const dayData = Array(7).fill().map(() => Array(24).fill(0));
 
-    let chart;
+    const now = new Date();
+    const todayIndex = now.getDay();
+    const currentHour = now.getHours();
 
-    // 棒グラフを生成
-    function renderChart(hourlyData, selectedHour) {
-      const labels = Array.from({ length: 24 }, (_, i) => `${i}時`);
-      const data = labels.map((_, i) => hourlyData[i] || 0);
+    db.collection("logs")
+      .where("type", "==", "enter")
+      .get()
+      .then(snapshot => {
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const date = new Date(data.timestamp);
+          const day = date.getDay();
+          const hour = date.getHours();
+          dayData[day][hour]++;
+        });
+        renderTabs();
+        renderCharts();
+        showLiveStatus();
+      });
 
-      if (chart) chart.destroy();
+    function renderTabs() {
+      const tabs = document.getElementById("tabs");
+      days.forEach((day, i) => {
+        const tab = document.createElement("div");
+        tab.className = `tab${i === todayIndex ? " active" : ""}`;
+        tab.innerText = day;
+        tab.onclick = () => scrollToDay(i);
+        tabs.appendChild(tab);
+      });
+    }
 
-      chart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            data: data,
-            backgroundColor: data.map((_, i) =>
-              i === selectedHour ? '#c62828' : '#64b5f6'
-            ),
-            borderRadius: 6,
-            barPercentage: 0.8,
-            categoryPercentage: 0.9,
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              display: false
-            },
-            x: {
-              ticks: {
-                color: '#333'
+    function renderCharts() {
+      const carousel = document.getElementById("carousel");
+      days.forEach((day, i) => {
+        const canvas = document.createElement("canvas");
+        canvas.id = `chart-${i}`;
+        const container = document.createElement("div");
+        container.className = "carousel-item";
+        container.appendChild(canvas);
+        carousel.appendChild(container);
+
+        // 淡い青を基本、現在時刻の棒だけ濃くする
+        const backgroundColors = Array(24).fill("rgba(138, 180, 248, 0.6)");
+        if (i === todayIndex) backgroundColors[currentHour] = "rgba(66, 133, 244, 1)";
+
+        new Chart(canvas.getContext("2d"), {
+          type: "bar",
+          data: {
+            labels: Array.from({ length: 24 }, (_, h) => `${h}時`),
+            datasets: [{
+              label: `${days[i]}曜日の混雑`,
+              data: dayData[i],
+              backgroundColor: backgroundColors,
+              borderRadius: 8, // ← 角を丸く
+              barThickness: 16,
+              maxBarThickness: 18,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                display: false // ← y軸非表示
               },
-              grid: {
+              x: {
+                grid: {
+                  display: false
+                }
+              }
+            },
+            plugins: {
+              legend: {
                 display: false
               }
             }
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: context => `${context.parsed.y}人`
-              }
-            }
           }
-        }
-      });
-    }
-
-    // 曜日ボタンを生成
-    function renderDayButtons() {
-      days.forEach((day, index) => {
-        const btn = document.createElement('button');
-        btn.textContent = day + '曜日';
-        btn.className = 'day-button';
-        if (index === todayIndex) btn.classList.add('active');
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.day-button').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          loadChartData(index);
         });
-        daySelector.appendChild(btn);
       });
+      scrollToDay(todayIndex);
     }
 
-    // ログをFirestoreから取得し、指定曜日の1時間単位の人数カウント
-    async function loadChartData(dayIndex) {
-      const logsSnapshot = await db.collection("logs").get();
-      const hourlyCounts = new Array(24).fill(0);
+    function scrollToDay(index) {
+      const carousel = document.getElementById("carousel");
+      const width = carousel.offsetWidth;
+      carousel.scrollTo({ left: width * index, behavior: "smooth" });
 
-      logsSnapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.type === 'enter') {
-          const logTime = dayjs(data.timestamp);
-          if (logTime.day() === dayIndex) {
-            hourlyCounts[logTime.hour()]++;
-          }
-        }
-      });
-
-      const currentHour = dayIndex === dayjs().day() ? dayjs().hour() : -1;
-      renderChart(hourlyCounts, currentHour);
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab")[index].classList.add("active");
     }
 
-    renderDayButtons();
-    loadChartData(todayIndex);
+    function showLiveStatus() {
+      const count = dayData[todayIndex][currentHour];
+      const liveStatus = document.getElementById("liveStatus");
+      if (count > 0) {
+        liveStatus.innerText = `● ライブ：やや混んでいます（${count}件）`;
+      } else {
+        liveStatus.innerText = `● ライブ：空いています`;
+      }
+    }
   </script>
 </body>
 </html>
-
