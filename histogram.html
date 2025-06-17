@@ -118,6 +118,11 @@
       width: 100%;
       border-collapse: collapse;
     }
+
+     h1 {
+      text-align: center;
+    }
+    
     th, td {
       border: 1px solid #ccc;
       padding: 8px;
@@ -126,6 +131,48 @@
     th {
       background-color: #e0e0e0;
     }
+
+
+    .live-status {
+      text-align: center;
+      color: #d93025;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 6px 12px;
+      cursor: pointer;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      background: white;
+    }
+    .tab.active {
+      background: #4285f4;
+      color: white;
+      border-color: #4285f4;
+    }
+    .carousel {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE 10+ */
+    }
+    .carousel::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+    .carousel-item {
+      min-width: 100%;
+      scroll-snap-align: start;
+    }
+
   </style>
 </head>
 <body>
@@ -144,14 +191,28 @@
     </div>
     <div class="drawer">
       <a href="index.html">ホーム</a>
-      <a href="map.html">店内マップ</a>
+      <a href="table.html">テーブル管理</a>
       <a href="histogram.html">混雑状況可視化</a>
       <a href="admin.html">待ち管理</a>
     </div>
   </header>
 
   <main>
-    <h2>混雑傾向分析</h2>
+    <h1>混雑傾向分析</h1>
+    <br>
+    <br>
+
+
+    <h2>曜日別混雑傾向</h2>
+
+    <br>
+    <div class="tabs" id="tabs"></div>
+    <br>
+    <div class="carousel" id="carousel"></div>
+    <br>
+    <br><br><br>
+
+    <h2>日時別混雑傾向</h2>
     <div class="filters">
       日付: <input type="date" id="datePicker">
       時間単位: 
@@ -386,6 +447,92 @@ async function updateChartAndTable() {
       a.click();
       URL.revokeObjectURL(url);
     });
+
+       const days = ["日", "月", "火", "水", "木", "金", "土"];
+    const dayData = Array(7).fill().map(() => Array(24).fill(0));
+
+    const now = new Date();
+    const todayIndex = now.getDay();
+    const currentHour = now.getHours();
+
+    db.collection("logs")
+      .where("type", "==", "enter")
+      .get()
+      .then(snapshot => {
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const date = new Date(data.timestamp);
+          const day = date.getDay();
+          const hour = date.getHours();
+          dayData[day][hour]++;
+        });
+        renderTabs();
+        renderCharts();
+        showLiveStatus();
+      });
+
+    function renderTabs() {
+      const tabs = document.getElementById("tabs");
+      days.forEach((day, i) => {
+        const tab = document.createElement("div");
+        tab.className = `tab${i === todayIndex ? " active" : ""}`;
+        tab.innerText = day;
+        tab.onclick = () => scrollToDay(i);
+        tabs.appendChild(tab);
+      });
+    }
+
+    function renderCharts() {
+      const carousel = document.getElementById("carousel");
+      days.forEach((day, i) => {
+        const canvas = document.createElement("canvas");
+        canvas.id = `chart-${i}`;
+        const container = document.createElement("div");
+        container.className = "carousel-item";
+        container.appendChild(canvas);
+        carousel.appendChild(container);
+
+        const backgroundColors = Array(24).fill("rgba(100, 140, 230, 0.7)");
+        if (i === todayIndex) backgroundColors[currentHour] = "rgba(220, 53, 69, 1)"; // 赤
+
+        new Chart(canvas.getContext("2d"), {
+          type: "bar",
+          data: {
+            labels: Array.from({ length: 24 }, (_, h) => `${h}時`),
+            datasets: [{
+              label: `${days[i]}曜日の混雑`,
+              data: dayData[i],
+              backgroundColor: backgroundColors,
+              borderRadius: 8,
+              barThickness: 16,
+              maxBarThickness: 18,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: { display: false },
+              x: { grid: { display: false } }
+            },
+            plugins: {
+              legend: { display: false }
+            }
+          }
+        });
+      });
+      scrollToDay(todayIndex);
+    }
+
+    function scrollToDay(index) {
+      const carousel = document.getElementById("carousel");
+      const width = carousel.offsetWidth;
+      carousel.scrollTo({ left: width * index, behavior: "smooth" });
+
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab")[index].classList.add("active");
+    }
+
 
     window.addEventListener("DOMContentLoaded", updateChartAndTable);
 
