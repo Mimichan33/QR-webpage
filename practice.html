@@ -1,4 +1,3 @@
-<!-- histogram.html 改良版：機能は前回通り・UIはGoogle風 -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -6,76 +5,68 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>混雑傾向分析</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <style>
     body {
       font-family: sans-serif;
-      background: #f8f9fa;
       margin: 0;
-      padding: 0;
+      padding: 20px;
+      background: #f4f4f4;
     }
     h2 {
-      padding: 1rem;
-      margin: 0;
+      text-align: center;
+      margin-bottom: 10px;
     }
-    .day-tabs {
+    .tabs {
       display: flex;
       justify-content: center;
-      gap: 1rem;
-      padding: 0.5rem 0;
-      background: #fff;
-      border-bottom: 1px solid #ccc;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
     }
-    .day-tab {
+    .tab {
+      padding: 6px 12px;
       cursor: pointer;
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      background-color: #e9ecef;
-      transition: background 0.3s;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      background: white;
     }
-    .day-tab.active {
-      background-color: #007bff;
+    .tab.active {
+      background: #4285f4;
       color: white;
+      border-color: #4285f4;
     }
     .carousel {
       display: flex;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
     }
-    .carousel-slide {
-      flex: none;
-      width: 100%;
-      padding: 2rem;
-      box-sizing: border-box;
+    .carousel-item {
+      min-width: 100%;
       scroll-snap-align: start;
     }
-    .chart-container {
-      position: relative;
-      height: 300px;
+    canvas {
+      width: 100% !important;
+      max-width: 600px;
+      height: 240px !important;
+      margin: 0 auto;
     }
-    .live-label {
-      color: red;
-      font-size: 0.9rem;
+    .live-status {
       text-align: center;
-      margin-bottom: 0.5rem;
+      color: #d93025;
+      font-weight: bold;
+      margin-top: -10px;
     }
   </style>
 </head>
 <body>
   <h2>混雑傾向分析</h2>
-  <div class="day-tabs" id="dayTabs"></div>
-  <div class="live-label" id="liveLabel">● ライブ：やや混んでいます</div>
+  <div class="tabs" id="tabs"></div>
   <div class="carousel" id="carousel"></div>
+  <div class="live-status" id="liveStatus"></div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      getDocs,
-    } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
       authDomain: "qr-visitor-log.firebaseapp.com",
@@ -84,77 +75,105 @@
       messagingSenderId: "304250341939",
       appId: "1:304250341939:web:b8d5b946590d1f852cf146"
     };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
+    const days = ["日", "月", "火", "水", "木", "金", "土"];
+    const dayData = Array(7).fill().map(() => Array(24).fill(0));
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const days = ['日', '月', '火', '水', '木', '金', '土'];
-    const carousel = document.getElementById('carousel');
-    const dayTabs = document.getElementById('dayTabs');
-    const todayIndex = new Date().getDay();
+    const now = new Date();
+    const todayIndex = now.getDay();
+    const currentHour = now.getHours();
 
-    const hourlyData = Array.from({ length: 7 }, () => Array(24).fill(0));
-
-    const logsSnapshot = await getDocs(collection(db, 'logs'));
-    logsSnapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.type === 'enter') {
-        const date = new Date(data.timestamp);
-        const dow = date.getDay();
-        const hour = date.getHours();
-        hourlyData[dow][hour]++;
-      }
-    });
-
-    days.forEach((day, i) => {
-      const tab = document.createElement('div');
-      tab.className = 'day-tab' + (i === todayIndex ? ' active' : '');
-      tab.textContent = day;
-      tab.addEventListener('click', () => scrollToSlide(i));
-      dayTabs.appendChild(tab);
-
-      const slide = document.createElement('div');
-      slide.className = 'carousel-slide';
-
-      const canvas = document.createElement('canvas');
-      canvas.id = `chart-${i}`;
-      canvas.height = 300;
-
-      slide.appendChild(canvas);
-      carousel.appendChild(slide);
-
-      new Chart(canvas.getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: [...Array(24).keys()].map(h => `${h}時`),
-          datasets: [{
-            label: '来店数',
-            data: hourlyData[i],
-            backgroundColor: [...Array(24).keys()].map(h => (i === todayIndex && h === new Date().getHours() ? 'red' : 'rgba(0,123,255,0.6)')),
-            borderRadius: 5,
-            barThickness: 10,
-          }]
-        },
-        options: {
-          scales: {
-            y: { beginAtZero: true }
-          },
-          plugins: {
-            legend: { display: false }
-          }
-        }
+    db.collection("logs")
+      .where("type", "==", "enter")
+      .get()
+      .then(snapshot => {
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const date = new Date(data.timestamp);
+          const day = date.getDay();
+          const hour = date.getHours();
+          dayData[day][hour]++;
+        });
+        renderTabs();
+        renderCharts();
+        showLiveStatus();
       });
-    });
 
-    function scrollToSlide(index) {
-      carousel.scrollTo({ left: index * carousel.clientWidth, behavior: 'smooth' });
-      document.querySelectorAll('.day-tab').forEach((tab, i) => {
-        tab.classList.toggle('active', i === index);
+    function renderTabs() {
+      const tabs = document.getElementById("tabs");
+      days.forEach((day, i) => {
+        const tab = document.createElement("div");
+        tab.className = `tab${i === todayIndex ? " active" : ""}`;
+        tab.innerText = day;
+        tab.onclick = () => scrollToDay(i);
+        tabs.appendChild(tab);
       });
     }
 
-    window.onload = () => {
-      scrollToSlide(todayIndex);
+    function renderCharts() {
+      const carousel = document.getElementById("carousel");
+      days.forEach((day, i) => {
+        const canvas = document.createElement("canvas");
+        canvas.id = `chart-${i}`;
+        const container = document.createElement("div");
+        container.className = "carousel-item";
+        container.appendChild(canvas);
+        carousel.appendChild(container);
+
+        const backgroundColors = Array(24).fill("#8ab4f8");
+        if (i === todayIndex) backgroundColors[currentHour] = "#ea4335";
+
+        new Chart(canvas.getContext("2d"), {
+          type: "bar",
+          data: {
+            labels: Array.from({ length: 24 }, (_, h) => `${h}時`),
+            datasets: [{
+              label: `${days[i]}曜日の混雑`,
+              data: dayData[i],
+              backgroundColor: backgroundColors,
+              borderRadius: 2,
+              barThickness: 16,
+              maxBarThickness: 18,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              }
+            }
+          }
+        });
+      });
+      scrollToDay(todayIndex);
+    }
+
+    function scrollToDay(index) {
+      const carousel = document.getElementById("carousel");
+      const width = carousel.offsetWidth;
+      carousel.scrollTo({ left: width * index, behavior: "smooth" });
+
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab")[index].classList.add("active");
+    }
+
+    function showLiveStatus() {
+      const count = dayData[todayIndex][currentHour];
+      const liveStatus = document.getElementById("liveStatus");
+      if (count > 0) {
+        liveStatus.innerText = `● ライブ：やや混んでいます（${count}件）`;
+      } else {
+        liveStatus.innerText = `● ライブ：空いています`;
+      }
     }
   </script>
 </body>
