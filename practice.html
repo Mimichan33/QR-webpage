@@ -126,11 +126,7 @@
     th {
       background-color: #e0e0e0;
     }
-        h2 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-    .live-status {
+        .live-status {
       text-align: center;
       color: #d93025;
       font-weight: bold;
@@ -175,6 +171,7 @@
       height: 240px !important;
       margin: 0 auto;
     }
+
   </style>
 </head>
 <body>
@@ -204,6 +201,8 @@
     <div class="tabs" id="tabs"></div>
     <div class="live-status" id="liveStatus"></div> 
     <div class="carousel" id="carousel"></div>
+
+
     
     <div class="filters">
       日付: <input type="date" id="datePicker">
@@ -439,9 +438,6 @@ async function updateChartAndTable() {
       a.click();
       URL.revokeObjectURL(url);
     });
-
-
-    
 
     window.addEventListener("DOMContentLoaded", updateChartAndTable);
 
