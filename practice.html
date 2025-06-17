@@ -168,18 +168,19 @@
       document.querySelectorAll(".tab")[index].classList.add("active");
     }
 
-    function showLiveStatus() {
-      const count = dayData[todayIndex][currentHour];
-      const liveStatus = document.getElementById("liveStatus");
-      if (count>9){
-        liveStatus.innerText = `● ライブ：混んでいます（${count}件）`;
-      }
-      else if (count >  5) && (count < 8) {
-        liveStatus.innerText = `● ライブ：やや混んでいます（${count}件）`;
-      } else {
-        liveStatus.innerText = `● ライブ：空いています`;
-      }
-    }
+function showLiveStatus() {
+  const count = dayData[todayIndex][currentHour];
+  const liveStatus = document.getElementById("liveStatus");
+
+  if (count >= 10) {
+    liveStatus.innerText = `● ライブ：混んでいます（${count}件）`;
+  } else if (count >= 6 && count <= 9) {
+    liveStatus.innerText = `● ライブ：やや混んでいます（${count}件）`;
+  } else {
+    liveStatus.innerText = `● ライブ：空いています`;
+  }
+}
+
   </script>
 </body>
 </html>
