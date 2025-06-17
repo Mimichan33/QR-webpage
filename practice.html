@@ -67,8 +67,8 @@
 </head>
 <body>
   <h2>混雑傾向分析</h2>
-  <div class="live-status" id="liveStatus"></div> <!-- 上に移動 -->
   <div class="tabs" id="tabs"></div>
+  <div class="live-status" id="liveStatus"></div> 
   <div class="carousel" id="carousel"></div>
 
   <script>
@@ -171,7 +171,10 @@
     function showLiveStatus() {
       const count = dayData[todayIndex][currentHour];
       const liveStatus = document.getElementById("liveStatus");
-      if (count > 0) {
+      if (count>9){
+        liveStatus.innerText = `● ライブ：混んでいます（${count}件）`;
+      }
+      else if (count >  5) && (count < 8) {
         liveStatus.innerText = `● ライブ：やや混んでいます（${count}件）`;
       } else {
         liveStatus.innerText = `● ライブ：空いています`;
