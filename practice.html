@@ -80,7 +80,7 @@
       border-bottom: 1px solid #2c3e50;
     }
     main {
-      max-width: 900px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 30px 20px;
     }
@@ -106,7 +106,7 @@
     .chart-wrapper {
       position: relative;
       width: 100%;
-      height: 300px;
+      height: 400px;
     }
     canvas {
       width: 100% !important;
@@ -161,14 +161,7 @@
     <p>累計退店数: <span id="exits">-</span></p>
   </main>
   <script>
-        const firebaseConfig = {
-      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
-      authDomain: "qr-visitor-log.firebaseapp.com",
-      projectId: "qr-visitor-log",
-      storageBucket: "qr-visitor-log.appspot.com",
-      messagingSenderId: "304250341939",
-      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
-    };
+    const firebaseConfig = { /* Firebase設定 */ };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
@@ -179,31 +172,63 @@
 
     function loadCharts() {
       const now = new Date();
-      db.collection("logs").where("type", "==", "enter").get().then(snapshot => {
+      db.collection("logs").get().then(snapshot => {
         const dayData = Array(24).fill(0);
         const monthData = {};
         const barData = {};
+        const stays = [];
+        const todayStays = [];
+        const weekdayStays = {};
+        const enterMap = new Map();
 
         snapshot.forEach(doc => {
           const data = doc.data();
           const date = new Date(data.timestamp);
           const hour = date.getHours();
           const dateStr = date.toISOString().split("T")[0];
+          const key = `${data.table}_${data.device}`;
 
-          if (isToday(date)) dayData[hour]++;
-          const monthKey = `${date.getMonth() + 1}/${date.getDate()}`;
-          monthData[monthKey] = (monthData[monthKey] || 0) + 1;
-          barData[dateStr] = (barData[dateStr] || 0) + 1;
+          if (data.type === "enter") {
+            if (isToday(date)) dayData[hour]++;
+            const monthKey = `${date.getMonth() + 1}/${date.getDate()}`;
+            monthData[monthKey] = (monthData[monthKey] || 0) + 1;
+            barData[dateStr] = (barData[dateStr] || 0) + 1;
+            enterMap.set(key, date);
+          }
+
+          if (data.type === "exit" && enterMap.has(key)) {
+            const enterTime = enterMap.get(key);
+            const stay = (date - enterTime) / 60000;
+            stays.push(stay);
+            if (isToday(enterTime)) todayStays.push(stay);
+            const wd = enterTime.getDay();
+            if (!weekdayStays[wd]) weekdayStays[wd] = [];
+            weekdayStays[wd].push(stay);
+            enterMap.delete(key);
+          }
         });
 
         updateLineChart(dayData, monthData);
         updateBarChart(barData);
+        updateAverages(todayStays, weekdayStays, stays);
       });
     }
 
     function isToday(date) {
       const now = new Date();
       return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
+    }
+
+    function average(arr) {
+      return arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : '--';
+    }
+
+    function updateAverages(today, weekdayMap, total) {
+      document.getElementById("avgToday").textContent = average(today) + " 分";
+
+      const day = new Date().getDay();
+      document.getElementById("avgWeekday").textContent = average(weekdayMap[day] || []) + " 分";
+      document.getElementById("avgTotal").textContent = average(total) + " 分";
     }
 
     function updateLineChart(dayData, monthData) {
@@ -223,14 +248,15 @@
     }
 
     function updateBarChart(barData) {
-      const sortedKeys = Object.keys(barData).sort().slice(-7);
-      const values = sortedKeys.map(k => barData[k]);
+      const sortedKeys = Object.keys(barData).sort();
+      const recentKeys = sortedKeys.slice(-7);
+      const values = recentKeys.map(k => barData[k]);
 
       if (barChart) barChart.destroy();
       barChart = new Chart(ctxBar, {
         type: 'bar',
         data: {
-          labels: sortedKeys,
+          labels: recentKeys,
           datasets: [{ label: "直近7日間の入店数", data: values, backgroundColor: "#66bb6a" }]
         },
         options: { responsive: true, maintainAspectRatio: false }
