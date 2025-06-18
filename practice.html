@@ -103,7 +103,15 @@
       padding: 15px;
       margin-top: 15px;
     }
-
+    .chart-wrapper {
+      position: relative;
+      width: 100%;
+      height: 300px;
+    }
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
   </style>
 </head>
 <body>
@@ -135,8 +143,8 @@
           <option value="today">今日</option>
           <option value="month">今月</option>
         </select>
-        <canvas id="entryChart" height="200"></canvas>
-        <canvas id="barChart" height="150" style="margin-top: 15px;"></canvas>
+        <div class="chart-wrapper"><canvas id="entryChart"></canvas></div>
+        <div class="chart-wrapper" style="margin-top: 15px;"><canvas id="barChart"></canvas></div>
       </div>
       <div class="card">
         <h3>平均滞在時間</h3>
@@ -153,7 +161,7 @@
     <p>累計退店数: <span id="exits">-</span></p>
   </main>
   <script>
-       const firebaseConfig = {
+        const firebaseConfig = {
       apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
       authDomain: "qr-visitor-log.firebaseapp.com",
       projectId: "qr-visitor-log",
