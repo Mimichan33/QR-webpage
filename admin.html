@@ -8,8 +8,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging-compat.js"></script>
-
-
   <style>
     body {
       font-family: sans-serif;
@@ -17,38 +15,32 @@
       padding: 0;
       background: linear-gradient(to right, #c2e9fb, #a1c4fd);
     }
-     header {
+    header {
       background-color: #2c3e50;
       color: white;
     }
-
     .header-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 12px 20px;
     }
-
     .header-title {
       font-size: 1.5em;
       font-weight: bold;
     }
-
     .header-links {
       display: flex;
       gap: 20px;
     }
-
     .header-links a {
       color: white;
       text-decoration: none;
       font-weight: 500;
     }
-
     .header-links a:hover {
       text-decoration: underline;
     }
-
     .menu-button {
       position: absolute;
       left: 20px;
@@ -58,7 +50,6 @@
       cursor: pointer;
       z-index: 1001;
     }
-
     .menu-button span {
       display: block;
       height: 4px;
@@ -66,7 +57,6 @@
       margin: 5px 0;
       transition: 0.4s;
     }
-
     .drawer {
       position: fixed;
       top: 0;
@@ -79,11 +69,9 @@
       z-index: 1000;
       padding-top: 60px;
     }
-
     .drawer.open {
       left: 0;
     }
-
     .drawer a {
       display: block;
       padding: 15px 20px;
@@ -92,11 +80,9 @@
       font-weight: bold;
       border-bottom: 1px solid #2c3e50;
     }
-
     .drawer a:hover {
       background-color: #2c3e50;
     }
-
     main {
       max-width: 800px;
       margin: 0 auto;
@@ -106,16 +92,13 @@
       text-align: center;
       padding: 20px;
     }
-
     h2 {
       margin-top: 40px;
       margin-bottom: 10px;
       border-bottom: 2px solid #2c3e50;
       padding-bottom: 5px;
       text-align: center;
-
     }
-
     .queue-item {
       background: #fff;
       padding: 15px;
@@ -139,20 +122,30 @@
     }
     .btn-enter { background: #2ecc71; color: white; }
     .btn-exit { background: #e74c3c; color: white; }
+    #avg-times { text-align: center; margin-top: 20px; font-weight: bold; }
+
+    #avg-times {
+      text-align: center;
+      margin: 20px auto;
+      font-weight: bold;
+      padding: 20px;
+      background-color: #fef6e4;
+      border: 2px solid #f3d250;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      font-size: 1.1em;
+    }
+
   </style>
 </head>
 <body>
   <header>
-    <div class="menu-button">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
+    <div class="menu-button"><span></span><span></span><span></span></div>
     <div class="header-bar">
       <div class="header-title">　　　　　店内管理システム</div>
       <div class="header-links">
-        <a href="#">マニュアル</a>
-        <a href="#">ログアウト</a>
+        <a href="#">マニュアル</a><a href="#">ログアウト</a>
       </div>
     </div>
     <div class="drawer">
@@ -162,121 +155,126 @@
       <a href="admin.html">待ち管理</a>
     </div>
   </header>
+
   <h1 style="display:none;" id="mainTitle">順番待ち管理</h1>
+
   <section>
-  <h2>順番一覧</h2>
+    <div id="avg-times">滞在時間を計算中...</div>
+    <h2>順番一覧</h2>
   </section>
   <div id="queueList"></div>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
-      authDomain: "qr-visitor-log.firebaseapp.com",
-      projectId: "qr-visitor-log",
-      storageBucket: "qr-visitor-log.appspot.com",
-      messagingSenderId: "304250341939",
-      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const messaging = firebase.messaging();
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+    authDomain: "qr-visitor-log.firebaseapp.com",
+    projectId: "qr-visitor-log",
+    storageBucket: "qr-visitor-log.appspot.com",
+    messagingSenderId: "304250341939",
+    appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-    const SERVER_KEY = "7b5031dc61aa522edd787aa0a3abb488c811c789"; 
+  const dayMap = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
 
-    const ticketMap = {};
-    
-    function formatTime(iso) {
-      const d = new Date(iso);
-      const options = { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-      return d.toLocaleString("ja-JP", options);
+function calculateAverages() {
+  db.collection("logs").onSnapshot(snapshot => {
+    const logs = snapshot.docs.map(doc => doc.data());
+    logs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    const sessions = {};
+    const durations = [];
+
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const todayDurations = [];
+    const weekdayDurations = [];
+
+    logs.forEach(log => {
+      const key = log.device + "_" + log.table;
+      const time = new Date(log.timestamp);
+      if (log.type === "enter") {
+        sessions[key] = time;
+      } else if (log.type === "exit" && sessions[key]) {
+        const duration = (time - sessions[key]) / 1000;
+        if (duration > 0 && duration < 60 * 60 * 5) {
+          durations.push(duration);
+
+          const enterDate = sessions[key];
+          const enterStr = enterDate.toISOString().slice(0, 10);
+          const weekday = enterDate.getDay();
+          if (enterStr === todayStr) todayDurations.push(duration);
+          if (weekday === today.getDay()) weekdayDurations.push(duration);
+        }
+        delete sessions[key];
+      }
+    });
+
+    function formatAvg(list) {
+      if (list.length === 0) return "データなし";
+      const avg = list.reduce((a, b) => a + b, 0) / list.length;
+      const m = Math.floor(avg / 60);
+      const s = Math.floor(avg % 60);
+      return `${m}分${s}秒（${list.length}名）`;
     }
 
-      function sendNotification(token, title, body) {
-      fetch("https://fcm.googleapis.com/fcm/send", {
-        method: "POST",
-        headers: {
-          "Authorization": "key=" + SERVER_KEY,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          to: token,
-          notification: {
-            title: title,
-            body: body,
-            click_action: "https://qr-webpage.vercel.app/admit.html",
-            icon: "/icon.png"
-          }
-        })
-      })
-      .then(res => res.json())
-      .then(data => console.log("通知送信:", data))
-      .catch(err => console.error("通知エラー:", err));
-    }
+    document.getElementById("avg-times").innerHTML = `
+      ✅ <strong>今日の平均滞在時間：</strong>${formatAvg(todayDurations)}<br>
+      📅 <strong>${dayMap[today.getDay()]}の平均滞在時間：</strong>${formatAvg(weekdayDurations)}<br>
+      📊 <strong>総合平均滞在時間：</strong>${formatAvg(durations)}
+    `;
+  });
+}
 
-    function renderQueue() {
-      db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
-        const allDocs = snapshot.docs;
-        const visibleDocs = allDocs.filter(doc => {
-          const status = doc.data().status;
-          return status === "waiting" || status === "entered";
-        });
+  function renderQueue() {
+    db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
+      const ticketMap = {};
+      const allDocs = snapshot.docs;
+      const visibleDocs = allDocs.filter(doc => {
+        const status = doc.data().status;
+        return status === "waiting" || status === "entered";
+      });
+      const list = document.getElementById("queueList");
+      list.innerHTML = "";
 
-        const list = document.getElementById("queueList");
-        list.innerHTML = "";
+      allDocs.forEach((doc, index) => {
+        if (!(doc.id in ticketMap)) ticketMap[doc.id] = index + 1;
+      });
 
-        allDocs.forEach((doc, index) => {
-          if (!(doc.id in ticketMap)) {
-            ticketMap[doc.id] = index + 1;
-          }
-        });
+      visibleDocs.forEach(doc => {
+        const data = doc.data();
+        const item = document.createElement("div");
+        item.className = "queue-item";
+        item.innerHTML = `
+          <p><strong>番号札:</strong> ${ticketMap[doc.id]}</p>
+          <p><strong>時刻:</strong> ${new Date(data.timestamp).toLocaleString("ja-JP")}</p>
+          <p><strong>状態:</strong> ${data.status}</p>
+          <div class="btn-group"></div>
+        `;
 
+        const btnGroup = item.querySelector(".btn-group");
 
-    visibleDocs.forEach(doc => {
-      const data = doc.data();
-      const ticketNumber = ticketMap[doc.id] || "?";
+        if (data.status === "waiting") {
+          const btnEnter = document.createElement("button");
+          btnEnter.className = "btn-enter";
+          btnEnter.textContent = "入店通知";
+          btnEnter.onclick = () => {
+            db.collection("queue").doc(doc.id).update({ status: "entered" });
+          };
+          btnGroup.appendChild(btnEnter);
+        }
 
-      const item = document.createElement("div");
-      item.className = "queue-item";
-      item.innerHTML = `
-        <p><strong>番号札:</strong> ${ticketNumber}</p>
-        <p><strong>時刻:</strong> ${formatTime(data.timestamp)}</p>
-        <p><strong>状態:</strong> ${data.status}</p>
-        <div class="btn-group"></div>
-      `;
+        if (data.status === "entered") {
+          const btnConfirm = document.createElement("button");
+          btnConfirm.textContent = "入店確定";
+          btnConfirm.style.backgroundColor = "#2980b9";
+          btnConfirm.style.color = "white";
+          btnConfirm.onclick = () => {
+            db.collection("queue").doc(doc.id).update({ status: "confirmed" });
+          };
+          btnGroup.appendChild(btnConfirm);
+        }
 
-      const btnGroup = item.querySelector(".btn-group");
-
-      // 入店通知（waiting のときのみ表示）
-      if (data.status === "waiting") {
-        const btnEnter = document.createElement("button");
-        btnEnter.className = "btn-enter";
-        btnEnter.textContent = "入店通知";
-        btnEnter.onclick = () => {
-          db.collection("queue").doc(doc.id).update({ status: "entered" });
-               if (data.token) {
-                sendNotification(data.token, "入店のご案内", "順番が来ました。画面を開いてください。");
-              } else {
-                console.warn("通知トークンなし");
-              }
-        };
-
-        btnGroup.appendChild(btnEnter);
-      }
-
-      // 入店確定（entered のときのみ表示）
-      if (data.status === "entered") {
-        const btnConfirm = document.createElement("button");
-        btnConfirm.textContent = "入店確定";
-        btnConfirm.style.backgroundColor = "#2980b9";
-        btnConfirm.style.color = "white";
-        btnConfirm.onclick = () => {
-          db.collection("queue").doc(doc.id).update({ status: "confirmed" });
-        };
-        btnGroup.appendChild(btnConfirm);
-      }
-
-      // キャンセル（waiting/entered のとき常に表示）
-      if (data.status === "waiting" || data.status === "entered") {
         const btnCancel = document.createElement("button");
         btnCancel.className = "btn-exit";
         btnCancel.textContent = "キャンセル";
@@ -284,21 +282,20 @@
           db.collection("queue").doc(doc.id).update({ status: "expired" });
         };
         btnGroup.appendChild(btnCancel);
-      }
 
-      list.appendChild(item);
+        list.appendChild(item);
+      });
     });
-  });
-}
-
+  }
 
   window.onload = () => {
     document.getElementById("mainTitle").style.display = "block";
     renderQueue();
+    calculateAverages();
   };
 
-   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelector('.menu-button').addEventListener('click', function () {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('.menu-button').addEventListener('click', () => {
       document.querySelector('.drawer').classList.toggle('open');
     });
   });
