@@ -123,6 +123,20 @@
     .btn-enter { background: #2ecc71; color: white; }
     .btn-exit { background: #e74c3c; color: white; }
     #avg-times { text-align: center; margin-top: 20px; font-weight: bold; }
+
+    #avg-times {
+      text-align: center;
+      margin: 20px auto;
+      font-weight: bold;
+      padding: 20px;
+      background-color: #fef6e4;
+      border: 2px solid #f3d250;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      font-size: 1.1em;
+    }
+
   </style>
 </head>
 <body>
@@ -164,53 +178,53 @@
 
   const dayMap = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
 
-  function calculateAverages() {
-    db.collection("logs").get().then(snapshot => {
-      const logs = snapshot.docs.map(doc => doc.data());
-      logs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      const sessions = {};
-      const durations = [];
+function calculateAverages() {
+  db.collection("logs").onSnapshot(snapshot => {
+    const logs = snapshot.docs.map(doc => doc.data());
+    logs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    const sessions = {};
+    const durations = [];
 
-      const today = new Date();
-      const todayStr = today.toISOString().slice(0, 10);
-      const todayDurations = [];
-      const weekdayDurations = [];
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const todayDurations = [];
+    const weekdayDurations = [];
 
-      logs.forEach(log => {
-        const key = log.device + "_" + log.table;
-        const time = new Date(log.timestamp);
-        if (log.type === "enter") {
-          sessions[key] = time;
-        } else if (log.type === "exit" && sessions[key]) {
-          const duration = (time - sessions[key]) / 1000;
-          if (duration > 0 && duration < 60 * 60 * 5) {
-            durations.push(duration);
+    logs.forEach(log => {
+      const key = log.device + "_" + log.table;
+      const time = new Date(log.timestamp);
+      if (log.type === "enter") {
+        sessions[key] = time;
+      } else if (log.type === "exit" && sessions[key]) {
+        const duration = (time - sessions[key]) / 1000;
+        if (duration > 0 && duration < 60 * 60 * 5) {
+          durations.push(duration);
 
-            const enterDate = sessions[key];
-            const enterStr = enterDate.toISOString().slice(0, 10);
-            const weekday = enterDate.getDay();
-            if (enterStr === todayStr) todayDurations.push(duration);
-            if (weekday === today.getDay()) weekdayDurations.push(duration);
-          }
-          delete sessions[key];
+          const enterDate = sessions[key];
+          const enterStr = enterDate.toISOString().slice(0, 10);
+          const weekday = enterDate.getDay();
+          if (enterStr === todayStr) todayDurations.push(duration);
+          if (weekday === today.getDay()) weekdayDurations.push(duration);
         }
-      });
-
-      function formatAvg(list) {
-        if (list.length === 0) return "データなし";
-        const avg = list.reduce((a, b) => a + b, 0) / list.length;
-        const m = Math.floor(avg / 60);
-        const s = Math.floor(avg % 60);
-        return `${m}分${s}秒（${list.length}名）`;
+        delete sessions[key];
       }
-
-      document.getElementById("avg-times").innerHTML = `
-        ✅ <strong>今日の平均滞在時間：</strong>${formatAvg(todayDurations)}<br>
-        📅 <strong>${dayMap[today.getDay()]}の平均滞在時間：</strong>${formatAvg(weekdayDurations)}<br>
-        📊 <strong>総合平均滞在時間：</strong>${formatAvg(durations)}
-      `;
     });
-  }
+
+    function formatAvg(list) {
+      if (list.length === 0) return "データなし";
+      const avg = list.reduce((a, b) => a + b, 0) / list.length;
+      const m = Math.floor(avg / 60);
+      const s = Math.floor(avg % 60);
+      return `${m}分${s}秒（${list.length}名）`;
+    }
+
+    document.getElementById("avg-times").innerHTML = `
+      ✅ <strong>今日の平均滞在時間：</strong>${formatAvg(todayDurations)}<br>
+      📅 <strong>${dayMap[today.getDay()]}の平均滞在時間：</strong>${formatAvg(weekdayDurations)}<br>
+      📊 <strong>総合平均滞在時間：</strong>${formatAvg(durations)}
+    `;
+  });
+}
 
   function renderQueue() {
     db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
