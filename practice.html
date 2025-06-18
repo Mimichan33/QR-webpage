@@ -2,19 +2,18 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>混雑分析</title>
+  <title>店外待ち管理（店員用）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging-compat.js"></script>
   <style>
     body {
-      font-family: 'Helvetica Neue', sans-serif;
+      font-family: sans-serif;
       margin: 0;
       padding: 0;
-      background: linear-gradient(to right, #a1c4fd, #c2e9fb);
-      color: #2c3e50;
+      background: linear-gradient(to right, #c2e9fb, #a1c4fd);
     }
     header {
       background-color: #2c3e50;
@@ -42,7 +41,6 @@
     .header-links a:hover {
       text-decoration: underline;
     }
-
     .menu-button {
       position: absolute;
       left: 20px;
@@ -52,7 +50,6 @@
       cursor: pointer;
       z-index: 1001;
     }
-
     .menu-button span {
       display: block;
       height: 4px;
@@ -60,7 +57,6 @@
       margin: 5px 0;
       transition: 0.4s;
     }
-
     .drawer {
       position: fixed;
       top: 0;
@@ -73,11 +69,9 @@
       z-index: 1000;
       padding-top: 60px;
     }
-
     .drawer.open {
       left: 0;
     }
-
     .drawer a {
       display: block;
       padding: 15px 20px;
@@ -86,107 +80,58 @@
       font-weight: bold;
       border-bottom: 1px solid #2c3e50;
     }
-
     .drawer a:hover {
       background-color: #2c3e50;
     }
-
-    
     main {
-      padding: 20px;
-      max-width: 1000px;
+      max-width: 800px;
       margin: 0 auto;
+      padding: 30px 20px;
     }
-    .filters {
-      margin-bottom: 20px;
-    }
-    .chart-container {
-      width: 100%;
-      height: 70vh;
-      overflow-x: auto;
-      background: #fff;
-      border-radius: 10px;
-      padding: 10px;
-    }
-    #details {
-      margin-top: 30px;
-      background-color: #f4f4f4;
+    h1 {
+      text-align: center;
       padding: 20px;
-      border-radius: 10px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-     h1 {
-      text-align: center;
-    }
-    
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: center;
-    }
-    th {
-      background-color: #e0e0e0;
-    }
-
-
-    .live-status {
-      text-align: center;
-      color: #d93025;
-      font-weight: bold;
+    h2 {
+      margin-top: 40px;
       margin-bottom: 10px;
+      border-bottom: 2px solid #2c3e50;
+      padding-bottom: 5px;
+      text-align: center;
     }
-    .tabs {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
+    .queue-item {
+      background: #fff;
+      padding: 15px;
+      margin: 10px auto;
+      max-width: 500px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-    .tab {
+    .queue-item p {
+      margin: 5px 0;
+    }
+    .btn-group {
+      margin-top: 10px;
+    }
+    button {
+      margin-right: 10px;
       padding: 6px 12px;
-      cursor: pointer;
+      border: none;
       border-radius: 5px;
-      border: 1px solid #ccc;
-      background: white;
+      cursor: pointer;
     }
-    .tab.active {
-      background: #4285f4;
-      color: white;
-      border-color: #4285f4;
-    }
-    .carousel {
-      display: flex;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      scrollbar-width: none; /* Firefox */
-      -ms-overflow-style: none; /* IE 10+ */
-    }
-    .carousel::-webkit-scrollbar {
-      display: none; /* Chrome/Safari */
-    }
-    .carousel-item {
-      min-width: 100%;
-      scroll-snap-align: start;
-    }
-
+    .btn-enter { background: #2ecc71; color: white; }
+    .btn-exit { background: #e74c3c; color: white; }
+    #avg-times { text-align: center; margin-top: 20px; font-weight: bold; }
   </style>
 </head>
 <body>
   <header>
-    <div class="menu-button">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
+    <div class="menu-button"><span></span><span></span><span></span></div>
     <div class="header-bar">
       <div class="header-title">　　　　　店内管理システム</div>
       <div class="header-links">
-        <a href="#">マニュアル</a>
-        <a href="#">ログアウト</a>
+        <a href="#">マニュアル</a><a href="#">ログアウト</a>
       </div>
     </div>
     <div class="drawer">
@@ -197,363 +142,149 @@
     </div>
   </header>
 
-  <main>
-    <h1>混雑傾向分析</h1>
-    <br>
-    <br>
+  <h1 style="display:none;" id="mainTitle">順番待ち管理</h1>
 
+  <section>
+    <div id="avg-times">滞在時間を計算中...</div>
+    <h2>順番一覧</h2>
+  </section>
+  <div id="queueList"></div>
 
-    <h2>曜日別混雑傾向</h2>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+    authDomain: "qr-visitor-log.firebaseapp.com",
+    projectId: "qr-visitor-log",
+    storageBucket: "qr-visitor-log.appspot.com",
+    messagingSenderId: "304250341939",
+    appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-    <br>
-    <div class="tabs" id="tabs"></div>
-    <br>
-    <div class="carousel" id="carousel"></div>
-    <br>
-    <br><br><br>
+  const dayMap = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
 
-    <h2>日時別混雑傾向</h2>
-    <div class="filters">
-      日付: <input type="date" id="datePicker">
-      時間単位: 
-      <select id="interval">
-        <option value="60">60分</option>
-        <option value="30">30分</option>
-        <option value="10">10分</option>
-      </select>
-      表示単位:
-      <select id="rangeType">
-        <option value="day" selected>日</option>
-        <option value="week">週</option>
-        <option value="month">月</option>
-      </select>
-        <button id="downloadCSV">CSVダウンロード</button>
-    </div>
-    <div class="chart-container">
-      <canvas id="histogram"></canvas>
-    </div>
-    <div id="details">
-      <h3>詳細データ</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>日付</th>
-            <th>時間帯</th>
-            <th>テーブル番号</th>
-            <th>滞在時間</th>
-            <th>入店時間</th>
-            <th>退店時間</th>
-          </tr>
-        </thead>
-        <tbody id="logTableBody"></tbody>
-      </table>
-    </div>
-  </main>
+  function calculateAverages() {
+    db.collection("logs").get().then(snapshot => {
+      const logs = snapshot.docs.map(doc => doc.data());
+      logs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      const sessions = {};
+      const durations = [];
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
-      authDomain: "qr-visitor-log.firebaseapp.com",
-      projectId: "qr-visitor-log",
-      storageBucket: "qr-visitor-log.appspot.com",
-      messagingSenderId: "304250341939",
-      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    let chart;
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0, 10);
+      const todayDurations = [];
+      const weekdayDurations = [];
 
-    function getDateRange(rangeType, baseDateStr) {
-      const baseDate = new Date(baseDateStr + "T00:00:00+09:00");
-      let start, end;
+      logs.forEach(log => {
+        const key = log.device + "_" + log.table;
+        const time = new Date(log.timestamp);
+        if (log.type === "enter") {
+          sessions[key] = time;
+        } else if (log.type === "exit" && sessions[key]) {
+          const duration = (time - sessions[key]) / 1000;
+          if (duration > 0 && duration < 60 * 60 * 5) {
+            durations.push(duration);
 
-      if (rangeType === "day") {
-        start = new Date(baseDate);
-        end = new Date(baseDate);
-        end.setHours(23, 59, 59);
-      } else if (rangeType === "week") {
-        const day = baseDate.getDay();
-        const diff = day === 0 ? 6 : day - 1;
-        start = new Date(baseDate);
-        start.setDate(baseDate.getDate() - diff);
-        end = new Date(start);
-        end.setDate(start.getDate() + 6);
-        end.setHours(23, 59, 59);
-      } else if (rangeType === "month") {
-        start = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
-        end = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
-        end.setHours(23, 59, 59);
+            const enterDate = sessions[key];
+            const enterStr = enterDate.toISOString().slice(0, 10);
+            const weekday = enterDate.getDay();
+            if (enterStr === todayStr) todayDurations.push(duration);
+            if (weekday === today.getDay()) weekdayDurations.push(duration);
+          }
+          delete sessions[key];
+        }
+      });
+
+      function formatAvg(list) {
+        if (list.length === 0) return "データなし";
+        const avg = list.reduce((a, b) => a + b, 0) / list.length;
+        const m = Math.floor(avg / 60);
+        const s = Math.floor(avg % 60);
+        return `${m}分${s}秒（${list.length}名）`;
       }
 
-      return {
-        startISO: start.toISOString(),
-        endISO: end.toISOString(),
-        startDate: start,
-        endDate: end
-      };
-    }
-
-    function getTimeSlots(interval, rangeType, startDate, endDate) {
-      const labels = [];
-
-      if (rangeType === "day") {
-        for (let i = 0; i < 24 * 60; i += interval) {
-          const h = Math.floor(i / 60).toString().padStart(2, '0');
-          const m = (i % 60).toString().padStart(2, '0');
-          labels.push(`${h}:${m}`);
-        }
-      } else if (rangeType === "week") {
-        for (let i = 0; i < 7; i++) {
-          const d = new Date(startDate);
-          d.setDate(startDate.getDate() + i);
-          labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
-        }
-      } else if (rangeType === "month") {
-        const dayCount = (endDate - startDate) / (1000 * 60 * 60 * 24);
-        for (let i = 0; i <= dayCount; i++) {
-          const d = new Date(startDate);
-          d.setDate(startDate.getDate() + i);
-          labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
-        }
-}
-
-
-      return labels;
-    }
-
-async function updateChartAndTable() {
-  const date = document.getElementById("datePicker").value;
-  const interval = parseInt(document.getElementById("interval").value);
-  const rangeType = document.getElementById("rangeType").value;
-  if (!date) return;
-
-  const { startISO, endISO, startDate, endDate } = getDateRange(rangeType, date);
-  const labels = getTimeSlots(interval, rangeType, startDate, endDate);
-  const counts = Array(labels.length).fill(0);
-
-  const snapshot = await db.collection("logs")
-    .where("timestamp", ">=", startISO)
-    .where("timestamp", "<=", endISO)
-    .orderBy("timestamp")
-    .get();
-
-  const logs = snapshot.docs.map(doc => doc.data());
-  const enters = logs.filter(log => log.type === "enter");
-  const exits = logs.filter(log => log.type === "exit");
-
-  const details = [];
-
-  enters.forEach(entry => {
-    const table = entry.table;
-    const enterTime = new Date(entry.timestamp);
-    const exit = exits.find(e => e.table === table && new Date(e.timestamp) > enterTime);
-    const exitTime = exit ? new Date(exit.timestamp) : null;
-
-    let index = -1;
-
-    if (rangeType === "day") {
-      const minutes = enterTime.getHours() * 60 + enterTime.getMinutes();
-      index = Math.floor(minutes / interval);
-    } else if (rangeType === "week") {
-      const dayDiff = Math.floor((enterTime - startDate) / (1000 * 60 * 60 * 24));
-      index = dayDiff >= 0 && dayDiff < 7 ? dayDiff : -1;
-    } else if (rangeType === "month") {
-  const dayDiff = Math.floor((enterTime - startDate) / (1000 * 60 * 60 * 24));
-  index = dayDiff >= 0 && dayDiff < counts.length ? dayDiff : -1;
-}
-
-
-    if (index >= 0 && index < counts.length) {
-      counts[index]++;
-    }
-
-    const stay = exitTime ? Math.floor((exitTime - enterTime) / 60000) : null;
-    details.push({
-      date: enterTime.toLocaleDateString("ja-JP", { timeZone: 'Asia/Tokyo' }),
-      table,
-      slot: labels[index] ?? "--",
-      stay: stay !== null ? `${Math.floor(stay / 60)}時間${stay % 60}分` : "退店未登録",
-      enter: enterTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }),
-      exit: exitTime ? exitTime.toLocaleString("ja-JP", { timeZone: 'Asia/Tokyo' }) : "--"
+      document.getElementById("avg-times").innerHTML = `
+        ✅ <strong>今日の平均滞在時間：</strong>${formatAvg(todayDurations)}<br>
+        📅 <strong>${dayMap[today.getDay()]}の平均滞在時間：</strong>${formatAvg(weekdayDurations)}<br>
+        📊 <strong>総合平均滞在時間：</strong>${formatAvg(durations)}
+      `;
     });
-  });
+  }
 
-  details.reverse();
+  function renderQueue() {
+    db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
+      const ticketMap = {};
+      const allDocs = snapshot.docs;
+      const visibleDocs = allDocs.filter(doc => {
+        const status = doc.data().status;
+        return status === "waiting" || status === "entered";
+      });
+      const list = document.getElementById("queueList");
+      list.innerHTML = "";
 
-  const ctx = document.getElementById("histogram").getContext("2d");
-  if (chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: labels,
-      datasets: [{
-        label: "入店者数",
-        data: counts,
-        backgroundColor: "#4a90e2"
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          suggestedMax: 10,
-          ticks: {
-            stepSize: 1   
-          }
+      allDocs.forEach((doc, index) => {
+        if (!(doc.id in ticketMap)) ticketMap[doc.id] = index + 1;
+      });
+
+      visibleDocs.forEach(doc => {
+        const data = doc.data();
+        const item = document.createElement("div");
+        item.className = "queue-item";
+        item.innerHTML = `
+          <p><strong>番号札:</strong> ${ticketMap[doc.id]}</p>
+          <p><strong>時刻:</strong> ${new Date(data.timestamp).toLocaleString("ja-JP")}</p>
+          <p><strong>状態:</strong> ${data.status}</p>
+          <div class="btn-group"></div>
+        `;
+
+        const btnGroup = item.querySelector(".btn-group");
+
+        if (data.status === "waiting") {
+          const btnEnter = document.createElement("button");
+          btnEnter.className = "btn-enter";
+          btnEnter.textContent = "入店通知";
+          btnEnter.onclick = () => {
+            db.collection("queue").doc(doc.id).update({ status: "entered" });
+          };
+          btnGroup.appendChild(btnEnter);
         }
-      }
-    }
-  });
 
-  const tbody = document.getElementById("logTableBody");
-  tbody.innerHTML = "";
-  details.forEach(row => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${row.date}</td>
-      <td>${row.slot}</td>
-      <td>${row.table}</td>
-      <td>${row.stay}</td>
-      <td>${row.enter}</td>
-      <td>${row.exit}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+        if (data.status === "entered") {
+          const btnConfirm = document.createElement("button");
+          btnConfirm.textContent = "入店確定";
+          btnConfirm.style.backgroundColor = "#2980b9";
+          btnConfirm.style.color = "white";
+          btnConfirm.onclick = () => {
+            db.collection("queue").doc(doc.id).update({ status: "confirmed" });
+          };
+          btnGroup.appendChild(btnConfirm);
+        }
 
+        const btnCancel = document.createElement("button");
+        btnCancel.className = "btn-exit";
+        btnCancel.textContent = "キャンセル";
+        btnCancel.onclick = () => {
+          db.collection("queue").doc(doc.id).update({ status: "expired" });
+        };
+        btnGroup.appendChild(btnCancel);
 
-    document.getElementById("datePicker").valueAsDate = new Date();
-
-    document.getElementById("datePicker").addEventListener("change", updateChartAndTable);
-    document.getElementById("interval").addEventListener("change", updateChartAndTable);
-    document.getElementById("rangeType").addEventListener("change", updateChartAndTable);
-
-  // CSVダウンロード機能
-  document.getElementById("downloadCSV").addEventListener("click", () => {
-    const table = document.querySelector("#logTableBody");
-    const rows = Array.from(table.querySelectorAll("tr"));
-    let csvContent = "日付,時間帯,テーブル番号,滞在時間,入店時間,退店時間\n";
-
-    rows.forEach(row => {
-      const cols = row.querySelectorAll("td");
-      const rowData = Array.from(cols).map(td => `"${td.innerText.replace(/"/g, '""')}"`).join(",");
-      csvContent += rowData + "\n";
+        list.appendChild(item);
+      });
     });
+  }
 
-    // UTF-8 BOMを付加して日本語対応
-    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
-    const blob = new Blob([bom, csvContent], { type: "text/csv;charset=utf-8;" });
+  window.onload = () => {
+    document.getElementById("mainTitle").style.display = "block";
+    renderQueue();
+    calculateAverages();
+  };
 
-    const today = new Date().toISOString().split("T")[0];
-    const filename = `log_${today}.csv`;
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  });
-
-
-       const days = ["日", "月", "火", "水", "木", "金", "土"];
-    const dayData = Array(7).fill().map(() => Array(24).fill(0));
-
-    const now = new Date();
-    const todayIndex = now.getDay();
-    const currentHour = now.getHours();
-
-    db.collection("logs")
-      .where("type", "==", "enter")
-      .get()
-      .then(snapshot => {
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const date = new Date(data.timestamp);
-          const day = date.getDay();
-          const hour = date.getHours();
-          dayData[day][hour]++;
-        });
-        renderTabs();
-        renderCharts();
-        showLiveStatus();
-      });
-
-    function renderTabs() {
-      const tabs = document.getElementById("tabs");
-      days.forEach((day, i) => {
-        const tab = document.createElement("div");
-        tab.className = `tab${i === todayIndex ? " active" : ""}`;
-        tab.innerText = day;
-        tab.onclick = () => scrollToDay(i);
-        tabs.appendChild(tab);
-      });
-    }
-
-    function renderCharts() {
-      const carousel = document.getElementById("carousel");
-      days.forEach((day, i) => {
-        const canvas = document.createElement("canvas");
-        canvas.id = `chart-${i}`;
-        const container = document.createElement("div");
-        container.className = "carousel-item";
-        container.appendChild(canvas);
-        carousel.appendChild(container);
-
-        const backgroundColors = Array(24).fill("rgba(100, 140, 230, 0.7)");
-        if (i === todayIndex) backgroundColors[currentHour] = "rgba(220, 53, 69, 1)"; // 赤
-
-        new Chart(canvas.getContext("2d"), {
-          type: "bar",
-          data: {
-            labels: Array.from({ length: 24 }, (_, h) => `${h}時`),
-            datasets: [{
-              label: `${days[i]}曜日の混雑`,
-              data: dayData[i],
-              backgroundColor: backgroundColors,
-              borderRadius: 8,
-              barThickness: 16,
-              maxBarThickness: 18,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              y: { display: false },
-              x: { grid: { display: false } }
-            },
-            plugins: {
-              legend: { display: false }
-            }
-          }
-        });
-      });
-      scrollToDay(todayIndex);
-    }
-
-    function scrollToDay(index) {
-      const carousel = document.getElementById("carousel");
-      const width = carousel.offsetWidth;
-      carousel.scrollTo({ left: width * index, behavior: "smooth" });
-
-      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".tab")[index].classList.add("active");
-    }
-
-
-    window.addEventListener("DOMContentLoaded", updateChartAndTable);
-
-    document.addEventListener('DOMContentLoaded', function () {
-    document.querySelector('.menu-button').addEventListener('click', function () {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('.menu-button').addEventListener('click', () => {
       document.querySelector('.drawer').classList.toggle('open');
     });
   });
-
-
-    
-  </script>
+</script>
 </body>
 </html>
