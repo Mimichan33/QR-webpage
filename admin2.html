@@ -76,6 +76,42 @@
 
       const url = `https://qr-webpage.vercel.app/enter2.html?table=${table}&token=${token}`;
       document.getElementById("tableLabel").textContent = `テーブル番号：${table}`;
+        const qrContainer = document.getElementById("qrcode");
+  qrContainer.innerHTML = "";
+
+  const qrCode = new QRCodeStyling({
+    width: 200,
+    height: 200,
+    type: "canvas",
+    data: url,
+    image: "https://cdn-icons-png.flaticon.com/512/60/60525.png", // 中央ロゴ（紙飛行機などに変更可）
+    dotsOptions: {
+      color: "#00c97b",
+      type: "rounded"
+    },
+    cornersSquareOptions: {
+      color: "#00c97b",
+      type: "extra-rounded"
+    },
+    backgroundOptions: {
+      color: "transparent"
+    },
+    imageOptions: {
+      crossOrigin: "anonymous",
+      margin: 4
+    },
+    gradient: {
+      type: "linear",
+      rotation: 90,
+      colorStops: [
+        { offset: 0, color: "#00f5a0" },
+        { offset: 1, color: "#00d9f5" }
+      ]
+    }
+  });
+
+  qrCode.append(qrContainer);
+}
       QRCode.toCanvas(document.getElementById("qrcode"), url, function (error) {
         if (error) {
           console.error(error);
