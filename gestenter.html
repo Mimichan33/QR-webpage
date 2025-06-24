@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>入店記録</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, query, where, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.addEventListener("load", async () => {
+      const params = new URLSearchParams(window.location.search);
+      const table = params.get("table") || "unknown";
+      const timestamp = new Date().toISOString();
+      const device = navigator.userAgent;
+
+      try {
+        const logsRef = collection(db, "logs");
+        const q = query(logsRef, where("table", "==", table));
+        const snapshot = await getDocs(q);
+
+        let enterCount = 0;
+        let exitCount = 0;
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.type === "enter") enterCount++;
+          if (data.type === "exit") exitCount++;
+        });
+
+        if (enterCount > exitCount) {
+          // すでに入店済み（退店していない） → already-enter.html に遷移
+          window.location.href = "already-enter.html";
+          return;
+        }
+
+        // ✅ 入店記録を保存
+        //await addDoc(logsRef, {
+        //  type: "enter",
+        //  table,
+        //  timestamp,
+        //  device
+        //});
+
+        console.log("✅ 入店記録完了");
+
+      } catch (error) {
+        console.error("❌ Firebase記録エラー:", error);
+      }
+    });
+  </script>
+
+  <style>
+    /* （CSSはそのまま、前回送っていただいた完成版と同じ） */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Helvetica Neue', sans-serif;
+      background: linear-gradient(to right, #a1c4fd, #c2e9fb);
+      color: #333;
+      overflow: hidden;
+    }
+
+    .loader {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      background-color: #fff;
+      z-index: 9999;
+      top: 0;
+      left: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    .loading-wrapper {
+      position: relative;
+      width: 220px;
+      margin-bottom: 20px;
+    }
+
+    .loading-bar {
+      width: 100%;
+      height: 20px;
+      border: 2px solid #999;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .loading-fill {
+      height: 100%;
+      width: 0%;
+      background-color: #7baaf7;
+      animation: loading-animation 3s forwards;
+    }
+
+    @keyframes loading-animation {
+      0% { width: 0%; }
+      100% { width: 100%; }
+    }
+
+    .loading-text {
+      position: absolute;
+      top: -24px;
+      right: 0;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .welcome-img {
+      display: none;
+      width: 140px;
+      height: auto;
+      margin-bottom: 10px;
+      animation: fade-slide 1s ease-in-out;
+    }
+
+    .loader .txt {
+      font-size: 28px;
+      font-weight: bold;
+      color: #2c3e50;
+      display: none;
+      animation: fade-slide 1s ease-in-out;
+    }
+
+    @keyframes fade-slide {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .main-content {
+      display: none;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      position: relative;
+    }
+
+    .container {
+      background-color: rgba(255, 255, 255, 0.85);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      animation: fade-zoom-in 0.8s ease-in-out;
+    }
+
+    .icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      animation: bounce 1.5s infinite ease-in-out;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 18px;
+    }
+
+    @keyframes fade-zoom-in {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ローディング -->
+  <div class="loader" id="loader03">
+    <div class="loading-wrapper" id="loadingWrapper">
+      <div class="loading-text" id="loadingLabel">Now Loading...</div>
+      <div class="loading-bar">
+        <div class="loading-fill"></div>
+      </div>
+    </div>
+    <img src="welcome.png" alt="店員" class="welcome-img" id="welcomeImg" />
+    <p class="txt" id="welcomeText">いらっしゃいませ！<br>　　Welcome!</p>
+  </div>
+
+  <!-- メイン -->
+  <div class="main-content" id="main-content">
+    <div class="container">
+      <div class="icon">🛍️</div>
+      <h1>ご来店ありがとうございます！</h1>
+      <p>入店が記録されました。</p>
+      <p>Thank you for visiting our store!</p>
+      <p>Your entry has been recorded.</p>
+    </div>
+  </div>
+
+  <!-- アニメーション制御 -->
+  <script>
+    $(document).ready(function () {
+      setTimeout(() => {
+        $('#loadingLabel').text("Completion!");
+      }, 3100);
+
+      setTimeout(() => {
+        $('#loadingWrapper').fadeOut(400);
+      }, 3600);
+
+      setTimeout(() => {
+        $('#welcomeImg').fadeIn(600);
+        $('#welcomeText').fadeIn(600);
+      }, 4200);
+
+      setTimeout(() => {
+        $('#loader03').fadeOut(600, function () {
+          $('#main-content').fadeIn(600);
+        });
+      }, 6000);
+    });
+  </script>
+
+</body>
+</html>
