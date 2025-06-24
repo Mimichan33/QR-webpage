@@ -11,7 +11,7 @@
   <h2>QRコード生成（ワンタイム）</h2>
   <label>テーブル番号: <input type="number" id="tableNum" min="1" max="9"></label>
   <button onclick="generateQR()">生成</button>
-  <div id="qrcode"></div>
+  <canvas id="qrcode"></canvas>
 
   <script>
     const firebaseConfig = {
@@ -27,12 +27,16 @@
 
     async function generateQR() {
       const table = document.getElementById("tableNum").value;
-      if (!table) return alert("テーブル番号を入力してください");
+      if (!table || isNaN(table)) {
+        alert("テーブル番号を入力してください");
+        return;
+      }
 
       const token = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2分後
+      const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2分有効
 
-      await db.collection("qr_tokens").doc(token).set({
+      const docRef = db.collection("qr_tokens").doc(token);
+      await docRef.set({
         table: table,
         token: token,
         expiresAt: expiresAt.toISOString(),
@@ -40,9 +44,18 @@
       });
 
       const url = `https://qr-webpage.vercel.app/enter2.html?table=${table}&token=${token}`;
-      QRCode.toCanvas(document.getElementById("qrcode"), url, function (error) {
-        if (error) console.error(error);
-      });
+
+      try {
+        QRCode.toCanvas(document.getElementById("qrcode"), url, function (error) {
+          if (error) {
+            console.error("QRコード生成エラー:", error);
+            alert("QRコードの生成に失敗しました");
+          }
+        });
+      } catch (e) {
+        console.error("例外:", e);
+        alert("QRコードの生成でエラーが発生しました");
+      }
     }
   </script>
 </body>
