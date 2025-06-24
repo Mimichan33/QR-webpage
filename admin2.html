@@ -2,16 +2,48 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>QRコード生成</title>
+  <title>QRコード生成と印刷</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+  <style>
+    #printArea {
+      width: 58mm;
+      text-align: center;
+      font-family: sans-serif;
+      margin: auto;
+      padding: 5mm;
+      border: 1px dashed #ccc;
+    }
+    #printArea canvas {
+      width: 100%;
+      height: auto;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printArea, #printArea * {
+        visibility: visible;
+      }
+      body {
+        margin: 0;
+      }
+    }
+  </style>
 </head>
 <body>
   <h2>QRコード生成（ワンタイム）</h2>
   <label>テーブル番号: <input type="number" id="tableNum" min="1" max="9"></label>
   <button onclick="generateQR()">生成</button>
-  <canvas id="qrcode"></canvas>
+  <button onclick="window.print()">印刷する</button>
+
+  <div id="printArea">
+    <p id="tableLabel">テーブル番号：</p>
+    <canvas id="qrcode"></canvas>
+  </div>
 
   <script>
     const firebaseConfig = {
@@ -33,10 +65,9 @@
       }
 
       const token = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2分有効
+      const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2分後
 
-      const docRef = db.collection("qr_tokens").doc(token);
-      await docRef.set({
+      await db.collection("qr_tokens").doc(token).set({
         table: table,
         token: token,
         expiresAt: expiresAt.toISOString(),
@@ -44,18 +75,13 @@
       });
 
       const url = `https://qr-webpage.vercel.app/enter2.html?table=${table}&token=${token}`;
-
-      try {
-        QRCode.toCanvas(document.getElementById("qrcode"), url, function (error) {
-          if (error) {
-            console.error("QRコード生成エラー:", error);
-            alert("QRコードの生成に失敗しました");
-          }
-        });
-      } catch (e) {
-        console.error("例外:", e);
-        alert("QRコードの生成でエラーが発生しました");
-      }
+      document.getElementById("tableLabel").textContent = `テーブル番号：${table}`;
+      QRCode.toCanvas(document.getElementById("qrcode"), url, function (error) {
+        if (error) {
+          console.error(error);
+          alert("QRコード生成に失敗しました");
+        }
+      });
     }
   </script>
 </body>
