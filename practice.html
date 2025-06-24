@@ -8,6 +8,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+
 
   
   <style>
@@ -174,32 +176,64 @@
     function countVisitors(snapshot) {
       updateTableDisplays();
     }
-        async function generateQR() {
-      const table = document.getElementById("tableNum").value;
-      if (!table || isNaN(table)) {
-        alert("テーブル番号を入力してください");
-        return;
-      }
+    async function generateQR() {
+  const table = document.getElementById("tableNum").value;
+  if (!table || isNaN(table)) {
+    alert("テーブル番号を入力してください");
+    return;
+  }
 
-      const token = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2分後
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2分後
 
-      await db.collection("qr_tokens").doc(token).set({
-        table: table,
-        token: token,
-        expiresAt: expiresAt.toISOString(),
-        used: false
-      });
+  await db.collection("qr_tokens").doc(token).set({
+    table: table,
+    token: token,
+    expiresAt: expiresAt.toISOString(),
+    used: false
+  });
 
-      const url = `https://qr-webpage.vercel.app/enter2.html?table=${table}&token=${token}`;
-      document.getElementById("tableLabel").textContent = `テーブル番号：${table}`;
-      QRCode.toCanvas(document.getElementById("qrcode"), url, function (error) {
-        if (error) {
-          console.error(error);
-          alert("QRコード生成に失敗しました");
-        }
-      });
+  const url = `https://qr-webpage.vercel.app/enter2.html?table=${table}&token=${token}`;
+  document.getElementById("tableLabel").textContent = `テーブル番号：${table}`;
+
+  // QRコード描画クリア
+  const qrContainer = document.getElementById("qrcode");
+  qrContainer.innerHTML = "";
+
+  const qrCode = new QRCodeStyling({
+    width: 200,
+    height: 200,
+    type: "canvas",
+    data: url,
+    image: "https://cdn-icons-png.flaticon.com/512/60/60525.png", // 中央ロゴ（紙飛行機などに変更可）
+    dotsOptions: {
+      color: "#00c97b",
+      type: "rounded"
+    },
+    cornersSquareOptions: {
+      color: "#00c97b",
+      type: "extra-rounded"
+    },
+    backgroundOptions: {
+      color: "transparent"
+    },
+    imageOptions: {
+      crossOrigin: "anonymous",
+      margin: 4
+    },
+    gradient: {
+      type: "linear",
+      rotation: 90,
+      colorStops: [
+        { offset: 0, color: "#00f5a0" },
+        { offset: 1, color: "#00d9f5" }
+      ]
     }
+  });
+
+  qrCode.append(qrContainer);
+}
+
 
     window.onload = () => {
       db.collection("logs").onSnapshot(countVisitors);
