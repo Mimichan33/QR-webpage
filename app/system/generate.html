@@ -191,7 +191,7 @@
         used: false
       });
 
-      const url = `https://qr-webpage.vercel.app/enter2.html?table=${table}&token=${token}`;
+      const url = `https://qr-webpage.vercel.app/enter.html?table=${table}&token=${token}`;
       document.getElementById("tableLabel").textContent = `テーブル番号：${table}`;
       QRCode.toCanvas(document.getElementById("qrcode"), url, function (error) {
         if (error) {
