@@ -187,7 +187,7 @@
         if (data.used) {
           location.href = "already-enter.html";
         } else if (expires < now || data.table !== table) {
-          location.href = "expired2.html";
+          location.href = "error.html";
         } else {
           await docRef.update({ used: true });
           await db.collection("logs").add({
