@@ -173,12 +173,12 @@
       const params = new URLSearchParams(location.search);
       const table = params.get("table");
       const token = params.get("token");
-      if (!token || !table) return location.href = "error0.html";
+      if (!token || !table) return location.href = "error.html";
 
       try {
         const docRef = db.collection("qr_tokens").doc(token);
         const doc = await docRef.get();
-        if (!doc.exists) return location.href = "error1.html";
+        if (!doc.exists) return location.href = "error.html";
 
         const data = doc.data();
         const now = new Date();
@@ -221,7 +221,7 @@
         }
       } catch (e) {
         console.error("Error processing QR:", e);
-        location.href = "error3.html";
+        location.href = "error.html";
       }
     }
 
