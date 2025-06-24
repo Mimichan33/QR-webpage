@@ -2,11 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>混雑状況</title>
+  <title>QRコード生成と印刷</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+  
   <style>
     body {
       font-family: 'Helvetica Neue', sans-serif;
@@ -128,6 +131,27 @@
       padding-bottom: 5px;
     }
 
+    #printArea {
+      width: 58mm;
+      text-align: center;
+      font-family: sans-serif;
+      margin: auto;
+      padding: 5mm;
+      border: 1px dashed #ccc;
+    }
+    #printArea canvas {
+      width: 100%;
+      height: auto;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printArea, #printArea * {
+        visibility: visible;
+      }
+
 
   </style>
 
@@ -150,6 +174,31 @@
     function countVisitors(snapshot) {
       updateTableDisplays();
     }
+        async function generateQR() {
+      const table = document.getElementById("tableNum").value;
+      if (!table || isNaN(table)) {
+        alert("テーブル番号を入力してください");
+        return;
+      }
+
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2分後
+
+      await db.collection("qr_tokens").doc(token).set({
+        table: table,
+        token: token,
+        expiresAt: expiresAt.toISOString(),
+        used: false
+      });
+
+      const url = `https://qr-webpage.vercel.app/enter2.html?table=${table}&token=${token}`;
+      document.getElementById("tableLabel").textContent = `テーブル番号：${table}`;
+      QRCode.toCanvas(document.getElementById("qrcode"), url, function (error) {
+        if (error) {
+          console.error(error);
+          alert("QRコード生成に失敗しました");
+        }
+      });
 
     window.onload = () => {
       db.collection("logs").onSnapshot(countVisitors);
@@ -187,6 +236,15 @@
   </header>
 
   <main>
+      <h2>QRコード生成（ワンタイム）</h2>
+  <label>テーブル番号: <input type="number" id="tableNum" min="1" max="9"></label>
+  <button onclick="generateQR()">生成</button>
+  <button onclick="window.print()">印刷する</button>
+
+  <div id="printArea">
+    <p id="tableLabel">テーブル番号：</p>
+    <canvas id="qrcode"></canvas>
+  </div>
 
     
   </main>
