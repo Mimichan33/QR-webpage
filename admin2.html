@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>QRコード生成</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+</head>
+<body>
+  <h2>QRコード生成（ワンタイム）</h2>
+  <label>テーブル番号: <input type="number" id="tableNum" min="1" max="9"></label>
+  <button onclick="generateQR()">生成</button>
+  <div id="qrcode"></div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function generateQR() {
+      const table = document.getElementById("tableNum").value;
+      if (!table) return alert("テーブル番号を入力してください");
+
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2分後
+
+      await db.collection("qr_tokens").doc(token).set({
+        table: table,
+        token: token,
+        expiresAt: expiresAt.toISOString(),
+        used: false
+      });
+
+      const url = `https://qr-webpage.vercel.app/enter2.html?table=${table}&token=${token}`;
+      QRCode.toCanvas(document.getElementById("qrcode"), url, function (error) {
+        if (error) console.error(error);
+      });
+    }
+  </script>
+</body>
+</html>
