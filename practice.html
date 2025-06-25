@@ -335,7 +335,7 @@
 
           let waited = "不明";
           if (enteredAt) {
-            const diff = timestamp - enteredAt;
+            const diff = enteredAt - timestamp;
             const m = Math.floor(diff / 60000);
             const s = Math.floor((diff % 60000) / 1000);
             waited = `${m}分${s}秒`;
