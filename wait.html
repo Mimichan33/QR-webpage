@@ -186,8 +186,8 @@
         myIndex = ticketMap[myDocId];
         const peopleAhead = waitingList.filter(doc => ticketMap[doc.id] < myIndex).length;
 
-        // 🔁 予想待ち時間 = 人数×30 + 基本30分
-        const estimated = (peopleAhead * 30) + 30;
+        // 🔁 予想待ち時間 = 人数×10 + 基本10分
+        const estimated = (peopleAhead * 10) + 10;
 
         document.getElementById("ticketNumber").textContent = `番号札:  No. ${myIndex}`;
 
