@@ -7,7 +7,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging-compat.js"></script>
   <style>
     body {
       font-family: sans-serif;
@@ -122,7 +121,6 @@
     }
     .btn-enter { background: #2ecc71; color: white; }
     .btn-exit { background: #e74c3c; color: white; }
-    #avg-times { text-align: center; margin-top: 20px; font-weight: bold; }
 
     #avg-times {
       text-align: center;
@@ -137,6 +135,21 @@
       font-size: 1.1em;
     }
 
+    table {
+      width: 90%;
+      margin: 20px auto;
+      border-collapse: collapse;
+      background-color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+    th {
+      background-color: #ecf0f1;
+    }
   </style>
 </head>
 <body>
@@ -155,8 +168,6 @@
       <a href="admin.html">順番待ち管理</a>
       <a href="/QR/qrcode.html">QRコード一覧</a>
       <a href="generate.html">QRコード生成</a>
-
-
     </div>
   </header>
 
@@ -167,6 +178,21 @@
     <h2>順番一覧</h2>
   </section>
   <div id="queueList"></div>
+
+  <section>
+    <h2>順番待ち履歴</h2>
+    <table id="queueHistory">
+      <thead>
+        <tr>
+          <th>番号札</th>
+          <th>時刻</th>
+          <th>状態</th>
+          <th>待たせた時間</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
 
 <script>
   const firebaseConfig = {
@@ -182,53 +208,51 @@
 
   const dayMap = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
 
-function calculateAverages() {
-  db.collection("logs").onSnapshot(snapshot => {
-    const logs = snapshot.docs.map(doc => doc.data());
-    logs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    const sessions = {};
-    const durations = [];
+  function calculateAverages() {
+    db.collection("logs").onSnapshot(snapshot => {
+      const logs = snapshot.docs.map(doc => doc.data());
+      logs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      const sessions = {};
+      const durations = [];
 
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
-    const todayDurations = [];
-    const weekdayDurations = [];
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0, 10);
+      const todayDurations = [];
+      const weekdayDurations = [];
 
-    logs.forEach(log => {
-      const key = log.device + "_" + log.table;
-      const time = new Date(log.timestamp);
-      if (log.type === "enter") {
-        sessions[key] = time;
-      } else if (log.type === "exit" && sessions[key]) {
-        const duration = (time - sessions[key]) / 1000;
-        if (duration > 0 && duration < 60 * 60 * 5) {
-          durations.push(duration);
-
-          const enterDate = sessions[key];
-          const enterStr = enterDate.toISOString().slice(0, 10);
-          const weekday = enterDate.getDay();
-          if (enterStr === todayStr) todayDurations.push(duration);
-          if (weekday === today.getDay()) weekdayDurations.push(duration);
+      logs.forEach(log => {
+        const key = log.device + "_" + log.table;
+        const time = new Date(log.timestamp);
+        if (log.type === "enter") {
+          sessions[key] = time;
+        } else if (log.type === "exit" && sessions[key]) {
+          const duration = (time - sessions[key]) / 1000;
+          if (duration > 0 && duration < 60 * 60 * 5) {
+            durations.push(duration);
+            const enterStr = sessions[key].toISOString().slice(0, 10);
+            const weekday = sessions[key].getDay();
+            if (enterStr === todayStr) todayDurations.push(duration);
+            if (weekday === today.getDay()) weekdayDurations.push(duration);
+          }
+          delete sessions[key];
         }
-        delete sessions[key];
+      });
+
+      function formatAvg(list) {
+        if (list.length === 0) return "データなし";
+        const avg = list.reduce((a, b) => a + b, 0) / list.length;
+        const m = Math.floor(avg / 60);
+        const s = Math.floor(avg % 60);
+        return `${m}分${s}秒（${list.length}名）`;
       }
+
+      document.getElementById("avg-times").innerHTML = `
+        ✅ <strong>今日の平均滞在時間：</strong>${formatAvg(todayDurations)}<br>
+        📅 <strong>${dayMap[today.getDay()]}の平均滞在時間：</strong>${formatAvg(weekdayDurations)}<br>
+        📊 <strong>総合平均滞在時間：</strong>${formatAvg(durations)}
+      `;
     });
-
-    function formatAvg(list) {
-      if (list.length === 0) return "データなし";
-      const avg = list.reduce((a, b) => a + b, 0) / list.length;
-      const m = Math.floor(avg / 60);
-      const s = Math.floor(avg % 60);
-      return `${m}分${s}秒（${list.length}名）`;
-    }
-
-    document.getElementById("avg-times").innerHTML = `
-      ✅ <strong>今日の平均滞在時間：</strong>${formatAvg(todayDurations)}<br>
-      📅 <strong>${dayMap[today.getDay()]}の平均滞在時間：</strong>${formatAvg(weekdayDurations)}<br>
-      📊 <strong>総合平均滞在時間：</strong>${formatAvg(durations)}
-    `;
-  });
-}
+  }
 
   function renderQueue() {
     db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
@@ -263,7 +287,10 @@ function calculateAverages() {
           btnEnter.className = "btn-enter";
           btnEnter.textContent = "入店通知";
           btnEnter.onclick = () => {
-            db.collection("queue").doc(doc.id).update({ status: "entered" });
+            db.collection("queue").doc(doc.id).update({
+              status: "entered",
+              enteredAt: new Date().toISOString()
+            });
           };
           btnGroup.appendChild(btnEnter);
         }
@@ -292,9 +319,44 @@ function calculateAverages() {
     });
   }
 
+  function renderHistoryQueue() {
+    db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
+      const tbody = document.querySelector("#queueHistory tbody");
+      tbody.innerHTML = "";
+
+      snapshot.docs.forEach((doc, index) => {
+        const data = doc.data();
+        const status = data.status;
+
+        if (status === "confirmed" || status === "expired") {
+          const row = document.createElement("tr");
+          const enteredAt = data.enteredAt ? new Date(data.enteredAt) : null;
+          const timestamp = new Date(data.timestamp);
+
+          let waited = "不明";
+          if (enteredAt) {
+            const diff = enteredAt - timestamp;
+            const m = Math.floor(diff / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            waited = `${m}分${s}秒`;
+          }
+
+          row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${timestamp.toLocaleString("ja-JP")}</td>
+            <td>${status}</td>
+            <td>${waited}</td>
+          `;
+          tbody.appendChild(row);
+        }
+      });
+    });
+  }
+
   window.onload = () => {
     document.getElementById("mainTitle").style.display = "block";
     renderQueue();
+    renderHistoryQueue();
     calculateAverages();
   };
 
