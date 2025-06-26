@@ -174,32 +174,34 @@
     function countVisitors(snapshot) {
       updateTableDisplays();
     }
-        async function generateQR() {
-      const table = document.getElementById("tableNum").value;
-      if (!table || isNaN(table)) {
-        alert("テーブル番号を入力してください");
-        return;
-      }
 
-      const token = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2分後
+    async function generateQR() {
+  const table = document.getElementById("tableNum").value;
+  if (!table || isNaN(table)) {
+    alert("テーブル番号を入力してください");
+    return;
+  }
 
-      await db.collection("qr_tokens").doc(token).set({
-        table: table,
-        token: token,
-        expiresAt: expiresAt.toISOString(),
-        used: false
-      });
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2分後
 
-      const url = `https://qr-webpage.vercel.app/app/register/enter.html?table=${table}&token=${token}`;
-      document.getElementById("tableLabel").textContent = `テーブル番号：${table}`;
-      QRCode.toCanvas(document.getElementById("qrcode"), url, function (error) {
-        if (error) {
-          console.error(error);
-          alert("QRコード生成に失敗しました");
-        }
-      });
+  await db.collection("qr_tokens").doc(token).set({
+    table: table,
+    token: token,
+    expiresAt: expiresAt.toISOString(),
+    used: false
+  });
+
+  const url = `https://qr-webpage.vercel.app/app/register/enter.html?table=${table}&token=${token}`;
+  document.getElementById("tableLabel").textContent = `テーブル番号：${table}`;
+  QRCode.toCanvas(document.getElementById("qrcode"), url, function (error) {
+    if (error) {
+      console.error(error);
+      alert("QRコード生成に失敗しました");
     }
+  });
+}
+
 
     window.onload = () => {
       db.collection("logs").onSnapshot(countVisitors);
@@ -239,9 +241,22 @@
     </div>
   </header>
 
-  <main>
-      <h2>QRコード生成（ワンタイム）</h2>
-  <label>テーブル番号: <input type="number" id="tableNum" min="1" max="9"></label>
+<main>
+  <h2>QRコード生成（ワンタイム）</h2>
+  <label>テーブル番号:
+    <select id="tableNum">
+      <option value="">選択してください</option>
+      <option value="1">テーブル 1</option>
+      <option value="2">テーブル 2</option>
+      <option value="3">テーブル 3</option>
+      <option value="4">テーブル 4</option>
+      <option value="5">テーブル 5</option>
+      <option value="6">テーブル 6</option>
+      <option value="7">テーブル 7</option>
+      <option value="8">テーブル 8</option>
+      <option value="9">テーブル 9</option>
+    </select>
+  </label>
   <button onclick="generateQR()">生成</button>
   <button onclick="window.print()">印刷する</button>
 
@@ -249,9 +264,8 @@
     <p id="tableLabel">テーブル番号：</p>
     <canvas id="qrcode"></canvas>
   </div>
+</main>
 
-    
-  </main>
 
 </body>
 </html>
