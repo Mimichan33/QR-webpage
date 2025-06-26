@@ -85,7 +85,7 @@
       background-color: #2c3e50;
     }
     main {
-      max-width: 800px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 30px 20px;
     }
@@ -157,7 +157,10 @@
     </table>
   </div>
 </main>
-<script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+  import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
   const firebaseConfig = {
     apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
     authDomain: "qr-visitor-log.firebaseapp.com",
@@ -166,54 +169,52 @@
     messagingSenderId: "304250341939",
     appId: "1:304250341939:web:b8d5b946590d1f852cf146"
   };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
   const tableStatus = {};
 
-  function renderTableList() {
-    db.collection("logs").orderBy("timestamp").onSnapshot(snapshot => {
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const id = data.table;
-        const time = new Date(data.timestamp);
-        const type = data.type;
-        if (!tableStatus[id]) tableStatus[id] = { status: "vacant", startTime: null, deviceId: null };
-        if (type === "enter") {
-          tableStatus[id] = { status: "occupied", startTime: time, deviceId: data.device };
-        } else if (type === "exit") {
-          tableStatus[id] = { status: "vacant", startTime: null, deviceId: null };
-        }
-      });
-
-      const tbody = document.querySelector("#tableStatusTable tbody");
-      tbody.innerHTML = "";
-      for (const [id, status] of Object.entries(tableStatus)) {
-        const tr = document.createElement("tr");
-        tr.className = status.status === "occupied" ? "occupied" : "vacant";
-        const duration = status.startTime ? Math.floor((Date.now() - status.startTime.getTime()) / 60000) : "-";
-        tr.innerHTML = `
-          <td>${id}</td>
-          <td>${status.status === "occupied" ? "使用中" : "空席"}</td>
-          <td>${status.startTime ? status.startTime.toLocaleString() : "-"}</td>
-          <td>${duration}</td>
-          <td>
-            ${status.status === "occupied" ? `<button onclick="forceExit('${id}', '${status.deviceId}')">強制退出</button>` : "-"}
-          </td>
-        `;
-        tbody.appendChild(tr);
+  onSnapshot(query(collection(db, "logs"), orderBy("timestamp")), snapshot => {
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const id = data.table;
+      const time = new Date(data.timestamp);
+      const type = data.type;
+      if (!tableStatus[id]) tableStatus[id] = { status: "vacant", startTime: null, deviceId: null };
+      if (type === "enter") {
+        tableStatus[id] = { status: "occupied", startTime: time, deviceId: data.device };
+      } else if (type === "exit") {
+        tableStatus[id] = { status: "vacant", startTime: null, deviceId: null };
       }
     });
-  }
+
+    const tbody = document.querySelector("#tableStatusTable tbody");
+    tbody.innerHTML = "";
+    for (const [id, status] of Object.entries(tableStatus)) {
+      const tr = document.createElement("tr");
+      tr.className = status.status === "occupied" ? "occupied" : "vacant";
+      const duration = status.startTime ? Math.floor((Date.now() - status.startTime.getTime()) / 60000) : "-";
+      tr.innerHTML = `
+        <td>${id}</td>
+        <td>${status.status === "occupied" ? "使用中" : "空席"}</td>
+        <td>${status.startTime ? status.startTime.toLocaleString() : "-"}</td>
+        <td>${duration}</td>
+        <td>
+          ${status.status === "occupied" ? `<button onclick="forceExit('${id}', '${status.deviceId}')">強制退出</button>` : "-"}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+  });
 
   async function forceExit(tableId, deviceId) {
     const timestamp = new Date().toISOString();
-    await db.collection("logs").add({
+    await addDoc(collection(db, "logs"), {
       table: tableId,
       device: deviceId,
       type: "exit",
       timestamp
     });
-    await db.collection("force_exit_flags").doc(deviceId).set({
+    await setDoc(doc(db, "force_exit_flags", deviceId), {
       table: tableId,
       timestamp,
       force: true
@@ -221,12 +222,13 @@
     alert(`テーブル ${tableId} を強制退出させました。`);
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    renderTableList();
-    document.querySelector(".menu-button").addEventListener("click", () => {
-      document.querySelector(".drawer").classList.toggle("open");
+  window.onload = () => {
+    const menuButton = document.querySelector(".menu-button");
+    const drawer = document.querySelector(".drawer");
+    menuButton.addEventListener("click", () => {
+      drawer.classList.toggle("open");
     });
-  });
+  };
 </script>
 </body>
 </html>
