@@ -172,7 +172,6 @@
 
   function renderTableList() {
     db.collection("logs").orderBy("timestamp").onSnapshot(snapshot => {
-      const now = new Date();
       snapshot.forEach(doc => {
         const data = doc.data();
         const id = data.table;
