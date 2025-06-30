@@ -78,6 +78,20 @@
     h1 {
       text-align: center;
     }
+        .qr-frame {
+      flex: 1 1 300px;
+      text-align: center;
+    }
+
+    .qr-frame p {
+      font-size: 1.1em;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    .map-frame, .qr-frame iframe {
+        width: 90% !important;
+        height: auto;
+    }
 
   </style>
 
@@ -130,7 +144,10 @@
     <h2>店内マップ</h2>
     <h1>
     <iframe src="/app/system/map.html" width="850" height="650" style="border: 2px solid #444; border-radius: 8px;"></iframe>
-    <iframe src="/QR/waitQR.png" width="300" height="300" style="border: 2px solid #444; border-radius: 8px;"></iframe>
+      <div class="qr-frame">
+        <p>受付はこのQRコードをお読みください</p>
+        <iframe src="/QR/waitQR.png" width="300" height="300"></iframe>
+      </div>
     </h1>
 
 </main>
