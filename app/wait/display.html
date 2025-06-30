@@ -20,21 +20,20 @@
     header {
       background-color: #2c3e50;
       color: white;
-      position: relative;
       margin-bottom: 0;
-      padding-bottom: 0; 
-    }
-
-    .header-bar {
-      display: flex;
-      justify-content: center;
-      align-items: center;
       padding: 12px 20px;
+      text-align: center;
     }
 
     .header-title {
       font-size: 1.5em;
       font-weight: bold;
+    }
+
+    main {
+      padding: 30px 20px;
+      max-width: 1200px;
+      margin: auto;
     }
 
     h2 {
@@ -44,49 +43,45 @@
       padding-bottom: 5px;
     }
 
-    main {
-      padding: 30px 20px;
-    }
-
-    .map-qr-container {
+    .map-container {
       display: flex;
-      justify-content: center;
+      justify-content: space-around;
       align-items: flex-start;
-      gap: 40px;
       flex-wrap: wrap;
+      gap: 40px;
+      margin-top: 20px;
     }
 
-    .map-iframe {
+    .map-container iframe {
       border: 2px solid #444;
       border-radius: 8px;
-      width: 1000px;
-      height: 700px;
     }
 
-    .qr-section {
+    .map-frame {
+      flex: 1 1 60%;
+      max-width: 850px;
+      height: 650px;
+    }
+
+    .qr-frame {
+      flex: 1 1 300px;
       text-align: center;
     }
 
-    .qr-section p {
-      font-size: 1.2em;
-      font-weight: bold;
+    .qr-frame p {
+      font-size: 1.1em;
       margin-bottom: 10px;
+      font-weight: bold;
     }
 
-    .qr-iframe {
-      border: 2px solid #444;
-      border-radius: 8px;
-      width: 300px;
-      height: 300px;
-    }
-
-    @media (max-width: 900px) {
-      .map-iframe {
-        width: 90%;
-        height: auto;
+    @media (max-width: 768px) {
+      .map-container {
+        flex-direction: column;
+        align-items: center;
       }
-      .qr-iframe {
-        width: 80%;
+
+      .map-frame, .qr-frame iframe {
+        width: 90% !important;
         height: auto;
       }
     }
@@ -120,22 +115,19 @@
 <body>
 
   <header>
-    <div class="header-bar">
-      <div class="header-title">店内表示</div>
-    </div>
+    <div class="header-title">店内表示</div>
   </header>
 
   <main>
-    <h2 style="text-align: center;">店内マップと受付QRコード</h2>
-
-    <div class="map-qr-container">
+    <h2>店内マップ</h2>
+    <div class="map-container">
       <!-- 店内マップ -->
-      <iframe src="/app/system/map.html" class="map-iframe"></iframe>
+      <iframe class="map-frame" src="/app/system/map.html"></iframe>
 
-      <!-- QRコードと案内 -->
-      <div class="qr-section">
+      <!-- QRコード -->
+      <div class="qr-frame">
         <p>受付はこのQRコードをお読みください</p>
-        <iframe src="/QR/waitQR.png" class="qr-iframe"></iframe>
+        <iframe src="/QR/waitQR.png" width="300" height="300"></iframe>
       </div>
     </div>
   </main>
