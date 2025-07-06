@@ -216,7 +216,6 @@
         if (data.type === "exit") exits++;
         if (data.type === "wait") waiting++;
 
-        const table = String(data.table);  
         if (tableCounts[table]) {
           if (data.type === "enter") {
             tableCounts[table].enter++;
