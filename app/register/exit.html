@@ -49,7 +49,9 @@
         });
 
         if (exitCount >= enterCount) {
-          return window.location.href = "already-exit.html";
+          console.warn("このテーブルはすでに退店済みです");
+          window.location.href = "already-exit.html";
+          return;
         }
 
         // ログ記録
