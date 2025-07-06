@@ -196,6 +196,8 @@
             device: navigator.userAgent,
             timestamp: new Date().toISOString()
           });
+          localStorage.setItem("entered", "true");
+
 
           // ローディング表示開始
           $(document).ready(function () {
