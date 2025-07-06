@@ -6,11 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-  <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
-      getFirestore, collection, addDoc, query, where, getDocs
+      getFirestore, collection, addDoc, query, where, getDocs, setDoc, doc
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -25,20 +24,24 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    window.addEventListener("load", async () => {
+    window.addEventListener("DOMContentLoaded", async () => {
       const params = new URLSearchParams(window.location.search);
       const table = params.get("table") || "unknown";
       const timestamp = new Date().toISOString();
       const device = navigator.userAgent;
+      
+      // ローカルに deviceId を保存（存在しない場合のみ生成）
+      if (!localStorage.getItem("deviceId")) {
+        localStorage.setItem("deviceId", `dev-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`);
+      }
+      const deviceId = localStorage.getItem("deviceId");
 
       try {
         const logsRef = collection(db, "logs");
         const q = query(logsRef, where("table", "==", table));
         const snapshot = await getDocs(q);
 
-        let enterCount = 0;
-        let exitCount = 0;
-
+        let enterCount = 0, exitCount = 0;
         snapshot.forEach(doc => {
           const data = doc.data();
           if (data.type === "enter") enterCount++;
@@ -46,42 +49,32 @@
         });
 
         if (exitCount >= enterCount) {
-          console.warn("このテーブルはすでに退店済みです");
-          window.location.href = "already-exit.html";
-          return;
+          return window.location.href = "already-exit.html";
         }
 
+        // ログ記録
         await addDoc(logsRef, {
           type: "exit",
           table,
           timestamp,
           device
         });
-        console.log("✅ 退店記録完了");
-        await addDoc(logsRef, {
-  type: "exit",
-  table,
-  timestamp,
-  device
-});
 
-// ✅ ここに追加！
-localStorage.setItem("exited", "true");
+        // クーポン登録
+        await setDoc(doc(db, "coupons", deviceId), {
+          used: false,
+          issuedAt: timestamp
+        });
 
-import { setDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-const deviceId = localStorage.getItem("deviceId") || navigator.userAgent;
+        // フラグ設定
+        localStorage.setItem("exited", "true");
 
-await setDoc(doc(db, "coupons", deviceId), {
-  used: false,
-  issuedAt: new Date().toISOString()
-});
-
-
-         window.table = table;
+        // 画面に必要な変数保存
+        window.table = table;
         window.device = device;
 
       } catch (error) {
-        console.error("❌ 退店記録失敗:", error);
+        console.error("❌ エラー:", error);
       }
     });
   </script>
