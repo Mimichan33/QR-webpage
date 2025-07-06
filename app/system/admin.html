@@ -287,30 +287,30 @@
         btnEnter.className = "btn-enter";
         btnEnter.textContent = "入店通知";
         btnEnter.onclick = async () => {
-    const email = data.email;
-    if (email) {
-      try {
-        const res = await fetch("/app/api/send-email", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            to: email,
-            subject: "順番になりました！",
-            message: `お客様の順番が来ましたのでご来店ください。\n5分以内に来店がない場合キャンセルとなります。`
-          })
-        });
-
-        if (!res.ok) {
-          console.error("メール送信失敗:", await res.text());
-        } else {
-          console.log("メール送信成功");
-        }
-      } catch (error) {
-        console.error("送信エラー:", error);
+          const email = data.email;
+if (email) {
+  fetch("/api/send-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to: email,
+      subject: "順番が来ました！",
+      message: "お客様の順番になりました。店内へご案内できます。"
+    })
+  })
+    .then(res => res.json())
+    .then(result => {
+      if (result.success) {
+        alert("メール送信完了！");
+      } else {
+        alert("送信エラー：" + result.error);
       }
-    }
+    })
+    .catch(err => {
+      alert("通信エラー：" + err.message);
+    });
+}
+
 
     db.collection("queue").doc(doc.id).update({
       status: "entered",
