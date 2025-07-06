@@ -2,158 +2,154 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>QRコード生成と印刷</title>
+  <title>順番待ち確認</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
-  
   <style>
     body {
-      font-family: 'Helvetica Neue', sans-serif;
       margin: 0;
-      padding: 0;
+      font-family: 'Helvetica Neue', sans-serif;
       background: linear-gradient(to right, #a1c4fd, #c2e9fb);
       color: #2c3e50;
-      overflow-x: hidden;
-    }
-
-    header {
-      background-color: #2c3e50;
-      color: white;
-      position: relative;
-      margin-bottom: 0;
-      padding-bottom: 0; 
-    }
-
-    .header-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 20px;
-    }
-
-    .header-title {
-      font-size: 1.5em;
-      font-weight: bold;
-    }
-
-    .header-links {
-      display: flex;
-      gap: 20px;
-    }
-
-    .header-links a {
-      color: white;
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .header-links a:hover {
-      text-decoration: underline;
-    }
-
-    .full-width-section {
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-
-  background: #e0f7da;
-  padding: 60px 0;
-  text-align: center;
-  margin-top: 0 !important; 
-}
-
-    /* ハンバーガーメニュー */
-    .menu-button {
-      position: absolute;
-      left: 20px;
-      top: 12px;
-      width: 30px;
-      height: 24px;
-      cursor: pointer;
-      z-index: 1001;
-    }
-
-    .menu-button span {
-      display: block;
-      height: 4px;
-      background: white;
-      margin: 5px 0;
-      transition: 0.4s;
-    }
-
-    .drawer {
-      position: fixed;
-      top: 0;
-      left: -250px;
-      width: 250px;
-      height: 100%;
-      background-color: #34495e;
-      color: white;
-      transition: 0.3s;
-      z-index: 1000;
-      padding-top: 60px;
-    }
-
-    .drawer.open {
-      left: 0;
-    }
-
-    .drawer a {
-      display: block;
-      padding: 15px 20px;
-      text-decoration: none;
-      color: white;
-      font-weight: bold;
-      border-bottom: 1px solid #2c3e50;
-    }
-
-    .drawer a:hover {
-      background-color: #2c3e50;
-    }
-
-    main {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 30px 20px;
-    }
-
-    h2 {
-      margin-top: 40px;
-      margin-bottom: 10px;
-      border-bottom: 2px solid #2c3e50;
-      padding-bottom: 5px;
-    }
-
-    #printArea {
-      width: 58mm;
       text-align: center;
-      font-family: sans-serif;
-      margin: auto;
-      padding: 5mm;
-      border: 1px dashed #ccc;
-    }
-    #printArea canvas {
-      width: 100%;
-      height: auto;
     }
 
-    @media print {
-      body * {
-        visibility: hidden;
-      }
-      #printArea, #printArea * {
-        visibility: visible;
-      }
+    .loader {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
 
+    .loading-bar {
+      width: 220px;
+      height: 20px;
+      border: 2px solid #999;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
 
+    .loading-fill {
+      height: 100%;
+      width: 0%;
+      background-color: #7baaf7;
+      animation: loading-animation 3s forwards;
+    }
+
+    .loading-text {
+      font-size: 16px;
+      margin-top: 10px;
+    }
+
+    @keyframes loading-animation {
+      0% { width: 0%; }
+      100% { width: 100%; }
+    }
+
+    .wait-section {
+      display: none;
+      padding: 60px 20px;
+    }
+
+    .wait-section h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .status-box {
+      background: white;
+      padding: 20px;
+      margin: 20px auto;
+      border-radius: 15px;
+      max-width: 320px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .highlight {
+      font-size: 28px;
+      font-weight: bold;
+      color: #e74c3c;
+    }
+
+    .notice {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 50px;
+      color: #27ae60;
+    }
+
+    .ticket-number {
+      font-size: 22px;
+      font-weight: bold;
+      margin-top: 10px;
+      color: #34495e;
+    }
+
+    .email-section {
+      margin-top: 20px;
+    }
+
+    .email-section input {
+      padding: 8px;
+      font-size: 16px;
+      width: 240px;
+      border-radius: 6px;
+      border: 1px solid #999;
+    }
+
+    .email-section button {
+      margin-left: 8px;
+      padding: 8px 16px;
+      font-size: 16px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
   </style>
+</head>
+<body>
+
+  <div class="loader" id="loader">
+    <div class="loading-text" id="loadingLabel">Now Loading...</div>
+    <div class="loading-bar">
+      <div class="loading-fill"></div>
+    </div>
+  </div>
+
+  <div class="wait-section" id="waitSection">
+    <h1>少々お待ちください<br><span style="font-size:16px;">Please wait a moment</span></h1>
+    <p class="ticket-number" id="ticketNumber">番号札: --<br><span style="font-size:14px;">Ticket No.</span></p>
+
+    <div class="status-box">
+      <p>あなたの前に待っている人数：<br><span style="font-size:14px;">People ahead of you</span></p>
+      <p class="highlight" id="peopleAhead">--</p>
+      <p>予想待ち時間：<br><span style="font-size:14px;">Estimated waiting time</span></p>
+      <p class="highlight" id="estimatedTime">--</p>
+    </div>
+
+    <div class="email-section">
+      <label for="emailInput">メールで通知を希望する：</label><br>
+      <input type="email" id="emailInput" placeholder="your@example.com" />
+      <button onclick="submitEmail()">登録</button>
+      <p id="emailStatus" style="margin-top:10px; font-size:14px; color:green;"></p>
+    </div>
+  </div>
+
+  <div style="margin-top: 60px; padding: 20px 0; border-top: 2px solid #2c3e50; font-size: 18px;">
+    <a href="/app/system/map.html" style="text-decoration: underline; color: #2c3e50;">
+      店内マップ / Store Map
+    </a>
+  </div>
 
   <script>
     const firebaseConfig = {
@@ -168,104 +164,100 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    function updateTableDisplays() {
-   }
+    let myDocId = null;
+    let myIndex = -1;
+    let ticketMap = {};
 
-    function countVisitors(snapshot) {
-      updateTableDisplays();
-    }
+    setTimeout(() => {
+      $('#loadingLabel').text("Completion!");
+    }, 3000);
 
-    async function generateQR() {
-  const table = document.getElementById("tableNum").value;
-  if (!table || isNaN(table)) {
-    alert("テーブル番号を入力してください");
-    return;
-  }
+    setTimeout(() => {
+      $('#loader').fadeOut(600);
+      $('#waitSection').fadeIn(800);
+    }, 4000);
 
-  const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2分後
-
-  await db.collection("qr_tokens").doc(token).set({
-    table: table,
-    token: token,
-    expiresAt: expiresAt.toISOString(),
-    used: false
-  });
-
-  const url = `https://qr-webpage.vercel.app/app/register/enter.html?table=${table}&token=${token}`;
-  document.getElementById("tableLabel").textContent = `テーブル番号：${table}`;
-  QRCode.toCanvas(document.getElementById("qrcode"), url, function (error) {
-    if (error) {
-      console.error(error);
-      alert("QRコード生成に失敗しました");
-    }
-  });
-}
-
-
-    window.onload = () => {
-      db.collection("logs").onSnapshot(countVisitors);
-      setInterval(updateTableDisplays, 60000);
-
-      const menuButton = document.querySelector(".menu-button");
-      const drawer = document.querySelector(".drawer");
-      menuButton.addEventListener("click", () => {
-        drawer.classList.toggle("open");
+    async function registerQueue() {
+      const docRef = await db.collection("queue").add({
+        timestamp: new Date().toISOString(),
+        status: "waiting",
+        email: "" // 最初は空で追加、あとで更新
       });
+      myDocId = docRef.id;
+    }
+
+    function submitEmail() {
+      const email = document.getElementById("emailInput").value.trim();
+      const statusEl = document.getElementById("emailStatus");
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        statusEl.style.color = "red";
+        statusEl.textContent = "正しいメールアドレスを入力してください。";
+        return;
+      }
+
+      db.collection("queue").doc(myDocId).update({ email })
+        .then(() => {
+          statusEl.style.color = "green";
+          statusEl.textContent = "メールアドレスを登録しました。";
+        })
+        .catch(() => {
+          statusEl.style.color = "red";
+          statusEl.textContent = "登録に失敗しました。";
+        });
+    }
+
+    function watchQueue() {
+      db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
+        const allDocs = snapshot.docs;
+        const waitingList = allDocs.filter(doc => doc.data().status === "waiting");
+        const selfDoc = snapshot.docs.find(doc => doc.id === myDocId);
+
+        if (!selfDoc) return;
+        const selfData = selfDoc.data();
+
+        if (selfData.status === "expired") {
+          location.href = "expired.html";
+          return;
+        } else if (selfData.status === "entered") {
+          sessionStorage.setItem("myDocId", myDocId);
+          location.href = "admit.html";
+          return;
+        }
+
+        allDocs.forEach((doc, index) => {
+          if (!(doc.id in ticketMap)) {
+            ticketMap[doc.id] = index + 1;
+          }
+        });
+
+        myIndex = ticketMap[myDocId];
+        const peopleAhead = waitingList.filter(doc => ticketMap[doc.id] < myIndex).length;
+        const estimated = (peopleAhead * 10) + 10;
+
+        document.getElementById("ticketNumber").textContent = `番号札:  No. ${myIndex}`;
+
+        const peopleAheadElement = document.getElementById("peopleAhead");
+        if (peopleAhead === 0) {
+          peopleAheadElement.innerHTML = `次はあなたの番です<br><span style="font-size:14px;">It's your turn next</span>`;
+        } else {
+          peopleAheadElement.textContent = `${peopleAhead}人`;
+        }
+
+        document.getElementById("estimatedTime").innerHTML = `
+          約${estimated}分<br>
+          <div style="margin-top: 10px; font-size: 14px; color: #c0392b;">
+            <br>※5分以内に来店しない場合、自動キャンセルされます<br>
+            <span style="font-size:13px;">*Your spot will be automatically cancelled if you don't arrive within 5 minutes.</span>
+          </div>
+        `;
+      });
+    }
+
+    window.onload = async () => {
+      await registerQueue();
+      watchQueue();
     };
   </script>
-</head>
-<body>
-
-  <header>
-    <div class="menu-button">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
-    <div class="header-bar">
-      <div class="header-title">　　　　　店内管理システム</div>
-      <div class="header-links">
-        <a href="index.html">ログアウト</a>
-      </div>
-    </div>
-    <div class="drawer">
-      <a href="dashboard.html">ホーム</a>
-      <a href="table.html">テーブル管理</a>
-      <a href="histogram.html">混雑状況可視化</a>
-      <a href="admin.html">順番待ち管理</a>
-      <a href="/QR/qrcode.html">QRコード一覧</a>
-      <a href="generate.html">QRコード生成</a>
-
-
-    </div>
-  </header>
-
-<main>
-  <h2>QRコード生成（ワンタイム）</h2>
-  <label>テーブル番号:
-    <select id="tableNum">
-      <option value="">選択してください</option>
-      <option value="1">テーブル 1</option>
-      <option value="2">テーブル 2</option>
-      <option value="3">テーブル 3</option>
-      <option value="4">テーブル 4</option>
-      <option value="5">テーブル 5</option>
-      <option value="6">テーブル 6</option>
-      <option value="7">テーブル 7</option>
-      <option value="8">テーブル 8</option>
-      <option value="9">テーブル 9</option>
-    </select>
-  </label>
-  <button onclick="generateQR()">生成</button>
-  <button onclick="window.print()">印刷する</button>
-
-  <div id="printArea">
-    <p id="tableLabel">テーブル番号：</p>
-    <canvas id="qrcode"></canvas>
-  </div>
-</main>
-
-
 </body>
 </html>
