@@ -198,7 +198,7 @@
       let exits = 0;
       let waiting = 0;
 
-      for (let i = 1; i <= 9; i++) {
+      for (let i = 1; i <= 14; i++) {
         tableCounts[i.toString()] = {
           enter: 0,
           exit: 0,
@@ -307,12 +307,14 @@
       <p>テーブル7：<span id="table7-status">読み込み中...</span></p>
       <p>テーブル8：<span id="table8-status">読み込み中...</span></p>
       <p>テーブル9：<span id="table9-status">読み込み中...</span></p>
+      <p>テーブル10：<span id="table9-status">読み込み中...</span></p>
+      <p>テーブル11：<span id="table9-status">読み込み中...</span></p>
+      <p>テーブル12：<span id="table9-status">読み込み中...</span></p>
+      <p>テーブル13：<span id="table9-status">読み込み中...</span></p>
+      <p>テーブル14：<span id="table9-status">読み込み中...</span></p>
+
     </section>
 
-    <section>
-      <h2>待機人数</h2>
-      <p>現在の待機人数: <span id="waitingCount">読み込み中...</span></p>
-    </section>
 
     <h2>店内マップ</h2>
     <iframe src="map.html" width="850" height="650" style="border: 2px solid #444; border-radius: 8px;"></iframe>
