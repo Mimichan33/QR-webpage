@@ -238,8 +238,15 @@
     }
 
     window.onload = () => {
-      db.collection("logs").onSnapshot(countVisitors);
-      setInterval(updateTableDisplays, 60000);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // 今日の0時
+
+  db.collection("logs")
+    .where("timestamp", ">=", today.toISOString())  // ← フィルタを追加！
+    .onSnapshot(countVisitors);
+
+  setInterval(updateTableDisplays, 60000);
+
 
       const menuButton = document.querySelector(".menu-button");
       const drawer = document.querySelector(".drawer");
