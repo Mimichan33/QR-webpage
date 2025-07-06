@@ -8,8 +8,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
-  
-  
   <style>
     body {
       margin: 0;
@@ -94,6 +92,29 @@
       margin-top: 10px;
       color: #34495e;
     }
+
+    .email-section {
+      margin-top: 20px;
+    }
+
+    .email-section input {
+      padding: 8px;
+      font-size: 16px;
+      width: 240px;
+      border-radius: 6px;
+      border: 1px solid #999;
+    }
+
+    .email-section button {
+      margin-left: 8px;
+      padding: 8px 16px;
+      font-size: 16px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -115,6 +136,13 @@
       <p>予想待ち時間：<br><span style="font-size:14px;">Estimated waiting time</span></p>
       <p class="highlight" id="estimatedTime">--</p>
     </div>
+
+    <div class="email-section">
+      <label for="emailInput">メールで通知を希望する：</label><br>
+      <input type="email" id="emailInput" placeholder="your@example.com" />
+      <button onclick="submitEmail()">登録</button>
+      <p id="emailStatus" style="margin-top:10px; font-size:14px; color:green;"></p>
+    </div>
   </div>
 
   <div style="margin-top: 60px; padding: 20px 0; border-top: 2px solid #2c3e50; font-size: 18px;">
@@ -122,7 +150,6 @@
       店内マップ / Store Map
     </a>
   </div>
-
 
   <script>
     const firebaseConfig = {
@@ -153,9 +180,31 @@
     async function registerQueue() {
       const docRef = await db.collection("queue").add({
         timestamp: new Date().toISOString(),
-        status: "waiting"
+        status: "waiting",
+        email: "" // 最初は空で追加、あとで更新
       });
       myDocId = docRef.id;
+    }
+
+    function submitEmail() {
+      const email = document.getElementById("emailInput").value.trim();
+      const statusEl = document.getElementById("emailStatus");
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        statusEl.style.color = "red";
+        statusEl.textContent = "正しいメールアドレスを入力してください。";
+        return;
+      }
+
+      db.collection("queue").doc(myDocId).update({ email })
+        .then(() => {
+          statusEl.style.color = "green";
+          statusEl.textContent = "メールアドレスを登録しました。";
+        })
+        .catch(() => {
+          statusEl.style.color = "red";
+          statusEl.textContent = "登録に失敗しました。";
+        });
     }
 
     function watchQueue() {
@@ -176,7 +225,6 @@
           return;
         }
 
-        // 番号札固定
         allDocs.forEach((doc, index) => {
           if (!(doc.id in ticketMap)) {
             ticketMap[doc.id] = index + 1;
@@ -185,8 +233,6 @@
 
         myIndex = ticketMap[myDocId];
         const peopleAhead = waitingList.filter(doc => ticketMap[doc.id] < myIndex).length;
-
-        // 🔁 予想待ち時間 = 人数×10 + 基本10分
         const estimated = (peopleAhead * 10) + 10;
 
         document.getElementById("ticketNumber").textContent = `番号札:  No. ${myIndex}`;
@@ -195,7 +241,7 @@
         if (peopleAhead === 0) {
           peopleAheadElement.innerHTML = `次はあなたの番です<br><span style="font-size:14px;">It's your turn next</span>`;
         } else {
-        peopleAheadElement.textContent = `${peopleAhead}人`;
+          peopleAheadElement.textContent = `${peopleAhead}人`;
         }
 
         document.getElementById("estimatedTime").innerHTML = `
