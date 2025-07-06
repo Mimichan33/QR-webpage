@@ -58,6 +58,24 @@
           device
         });
         console.log("✅ 退店記録完了");
+        await addDoc(logsRef, {
+  type: "exit",
+  table,
+  timestamp,
+  device
+});
+
+// ✅ ここに追加！
+localStorage.setItem("exited", "true");
+
+import { setDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const deviceId = localStorage.getItem("deviceId") || navigator.userAgent;
+
+await setDoc(doc(db, "coupons", deviceId), {
+  used: false,
+  issuedAt: new Date().toISOString()
+});
+
 
          window.table = table;
         window.device = device;
