@@ -286,36 +286,37 @@ if (data.status === "waiting") {
   const btnEnter = document.createElement("button");
   btnEnter.className = "btn-enter";
   btnEnter.textContent = "入店通知";
-  btnEnter.onclick = () => {
-    db.collection("queue").doc(doc.id).update({
-      status: "entered",
-      enteredAt: new Date().toISOString()
-    });
+btnEnter.onclick = () => {
+  db.collection("queue").doc(doc.id).update({
+    status: "entered",
+    enteredAt: new Date().toISOString()
+  });
 
-    const email = data.email;
-    if (email) {
-      fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: email,
-          subject: "順番が来ました！",
-          message: "お客様の順番になりました。店内へご案内できます。"
-        })
+  const email = data.email;
+  if (email) {
+    fetch("/api/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: email,
+        subject: "順番が来ました！",
+        message: "お客様の順番になりました。店内へご案内できます。"
       })
-        .then(res => res.json())
-        .then(result => {
-          if (result.success) {
-            alert("メール送信完了！");
-          } else {
-            alert("送信エラー：" + result.error);
-          }
-        })
-        .catch(err => {
-          alert("通信エラー：" + err.message);
-        });
-    }
-  };
+    })
+    .then(res => res.json())
+    .then(result => {
+      if (result.success) {
+        alert("メール送信完了！");
+      } else {
+        alert("送信エラー：" + result.error);
+      }
+    })
+    .catch(err => {
+      alert("通信エラー：" + err.message);
+    });
+  }
+};
+
   btnGroup.appendChild(btnEnter);
 }
 
