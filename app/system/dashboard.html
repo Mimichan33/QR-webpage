@@ -245,7 +245,7 @@
     .where("timestamp", ">=", today.toISOString())  // ← フィルタを追加！
     .onSnapshot(countVisitors);
 
-  setInterval(updateTableDisplays, 60000);
+  setInterval(updateTableDisplays, 6000);
 
 
       const menuButton = document.querySelector(".menu-button");
