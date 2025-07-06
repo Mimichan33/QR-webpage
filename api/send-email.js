@@ -1,27 +1,27 @@
-// /app/api/send-email.js
-
 import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).end('Method Not Allowed');
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { to, subject, message } = req.body;
+  if (!req.body || !req.body.to) {
+    return res.status(400).json({ error: "メールアドレスがありません" });
+  }
+
+  const resend = new Resend("re_SfZmJJcP_LkHRmo2SuS1pKZFMNZ6SNpKM");
 
   try {
-    const data = await resend.emails.send({
-      from: 'onboarding@resend.dev', // ← 必ずこれを使う
-      to,
-      subject,
-      text: message,
+    const result = await resend.emails.send({
+      from: 'notify@qr-webpage.vercel.app',
+      to: req.body.to,
+      subject: req.body.subject || '通知',
+      text: req.body.text || 'お知らせがあります。'
     });
 
-    return res.status(200).json({ success: true, id: data.id });
+    return res.status(200).json({ success: true, result });
   } catch (error) {
-    console.error('送信エラー:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 }
+
