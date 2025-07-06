@@ -238,12 +238,12 @@
     }
 
     window.onload = () => {
-  //const today = new Date();
-  //today.setHours(0, 0, 0, 0); // 今日の0時
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // 今日の0時
 
-  //db.collection("logs")
-  //  .where("timestamp", ">=", today.toISOString())  // ← フィルタを追加！
-  //  .onSnapshot(countVisitors);
+    db.collection("logs")
+      .where("timestamp", ">=", today.toISOString())  // ← フィルタを追加！
+      .onSnapshot(countVisitors);
 
   setInterval(updateTableDisplays, 600);
 
