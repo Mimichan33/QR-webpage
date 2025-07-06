@@ -295,14 +295,15 @@ btnEnter.onclick = () => {
   const email = data.email;
   if (email) {
 fetch("https://qr-webpage.vercel.app/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: email,
-        subject: "順番が来ました！",
-        message: "お客様の順番になりました。店内へご案内できます。"
-      })
-    })
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    to: email,
+    subject: "順番が来ました！",
+    text: "お客様の順番になりました。店内へご案内できます。"
+  })
+})
+
     .then(res => res.json())
     .then(result => {
       if (result.success) {
