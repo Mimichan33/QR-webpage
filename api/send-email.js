@@ -1,27 +1,31 @@
-import { Resend } from 'resend';
+const { Resend } = require('resend');
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+const resend = new Resend("re_SfZmJJcP_LkHRmo2SuS1pKZFMNZ6SNpKM");
+
+module.exports = async (req, res) => {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  if (!req.body || !req.body.to) {
-    return res.status(400).json({ error: "メールアドレスがありません" });
-  }
+  const { to, subject, text } = req.body;
 
-  const resend = new Resend("re_SfZmJJcP_LkHRmo2SuS1pKZFMNZ6SNpKM");
+  if (!to) {
+    return res.status(400).json({ error: "送信先メールアドレスがありません。" });
+  }
 
   try {
     const result = await resend.emails.send({
-      from: 'notify@qr-webpage.vercel.app',
-      to: req.body.to,
-      subject: req.body.subject || '通知',
-      text: req.body.text || 'お知らせがあります。'
+      from: "notify@qr-webpage.vercel.app",
+      to,
+      subject: subject || "順番通知",
+      text: text || "順番が来ました。ご入店ください。"
     });
 
     return res.status(200).json({ success: true, result });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error("送信エラー:", err);
+    return res.status(500).json({ error: err.message || "サーバーエラー" });
   }
-}
+};
+
 
