@@ -2,71 +2,109 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>クーポンプレゼント</title>
+  <title>クーポン</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, doc, getDoc, updateDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const deviceId = localStorage.getItem("deviceId") || navigator.userAgent;
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      // 🔐 URL直打ち防止
+      if (localStorage.getItem("exited") !== "true") {
+        alert("クーポンは退店後にのみ表示されます");
+        location.href = "index.html"; // または home へリダイレクト
+        return;
+      }
+
+      const docRef = doc(db, "coupons", deviceId);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.used) {
+          document.getElementById("status").textContent = "このクーポンはすでに使用済みです。";
+          document.getElementById("coupon-img").style.display = "none";
+          document.getElementById("use-btn").style.display = "none";
+        } else {
+          document.getElementById("status").textContent = "このクーポンは有効です。";
+        }
+      } else {
+        document.getElementById("status").textContent = "クーポン情報が見つかりません。";
+        document.getElementById("coupon-img").style.display = "none";
+        document.getElementById("use-btn").style.display = "none";
+      }
+    });
+
+    async function markAsUsed() {
+      const confirmUse = confirm("このクーポンを使用済みにしますか？元に戻せません。");
+      if (!confirmUse) return;
+
+      const docRef = doc(db, "coupons", deviceId);
+      await updateDoc(docRef, { used: true });
+      alert("クーポンを使用済みにしました");
+      location.reload();
+    }
+  </script>
   <style>
     body {
       font-family: 'Helvetica Neue', sans-serif;
       margin: 0;
-      padding: 40px 20px;
-      background: linear-gradient(to right, #f9fbe7, #e8f5e9);
-      color: #2e7d32;
+      padding: 0;
       text-align: center;
+      background: linear-gradient(to right, #fceabb, #f8b500);
+      color: #333;
     }
-
     h1 {
-      font-size: 2em;
-      margin-bottom: 20px;
-    }
-
-    .coupon-box {
-      background: #fff;
-      border: 3px dashed #66bb6a;
-      padding: 20px;
-      margin: 30px auto;
-      max-width: 400px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    .coupon-box img {
-      max-width: 100%;
-      height: auto;
-    }
-
-    .note {
-      font-size: 0.95em;
-      color: #555;
-      margin-top: 10px;
-    }
-
-    .footer {
       margin-top: 30px;
-      font-size: 0.9em;
-      color: #888;
+      font-size: 2em;
+    }
+    #status {
+      margin: 20px 0;
+      font-size: 1.2em;
+    }
+    #coupon-img {
+      max-width: 90%;
+      margin: 20px auto;
+      border: 3px dashed #e67e22;
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px;
+    }
+    button {
+      padding: 12px 24px;
+      background-color: #e67e22;
+      color: white;
+      border: none;
+      font-size: 1em;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #cf711f;
     }
   </style>
 </head>
 <body>
-
-  <h1>🎁 ご来店ありがとうございました 🎁</h1>
-
-  <p>次回使える <strong>10%OFFクーポン</strong> をプレゼント！</p>
-
-  <div class="coupon-box">
-    <img src="img/coupon_10percent.png" alt="10%OFFクーポン">
-  </div>
-
-  <p class="note">
-    この画面をスクリーンショットして、<br>
-    次回ご来店時にスタッフへご提示ください。
-  </p>
-
-  <p class="note">有効期限：<strong>3日以内</strong> ／ 他クーポンとの併用不可</p>
-
-  <div class="footer">
-    ※本クーポンはQRコード退店記録後にのみ配布されます。
-  </div>
-
+  <h1>🎁 次回使えるクーポン</h1>
+  <div id="status">読み込み中...</div>
+  <img id="coupon-img" src="coupon.png" alt="クーポン画像">
+  <br>
+  <button id="use-btn" onclick="markAsUsed()">✅ このクーポンを使用する</button>
 </body>
 </html>
