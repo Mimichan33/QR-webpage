@@ -294,7 +294,7 @@ btnEnter.onclick = () => {
 
   const email = data.email;
   if (email) {
-    fetch("/api/send-email", {
+fetch("https://qr-webpage.vercel.app/app/api/send-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
