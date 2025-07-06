@@ -58,7 +58,9 @@
           device
         });
         console.log("✅ 退店記録完了");
-        window.location.href = "coupon.html";
+
+         window.table = table;
+        window.device = device;
 
       } catch (error) {
         console.error("❌ 退店記録失敗:", error);
@@ -181,6 +183,9 @@
       レジでお支払いください
       <small>Please proceed to checkout.</small>
     </div>
+     <div class="coupon-button">
+      <button id="show-coupon">🎁 クーポンを受け取る</button>
+    </div>
   </div>
 
   <!-- jQuery アニメーション制御 -->
@@ -199,6 +204,12 @@
           $('#main-content').fadeIn(600);
         });
       }, 4800);
+
+      $('#show-coupon').on('click', function () {
+        const table = window.table || "unknown";
+        const device = encodeURIComponent(window.device || navigator.userAgent);
+        window.location.href = `coupon.html?table=${table}&device=${device}`;
+      });
     });
   </script>
 
