@@ -4,14 +4,33 @@
   <meta charset="UTF-8">
   <title>店外待ち管理（店員用）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+  <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
-  <script>
-    (function(){
-      emailjs.init("WvittRqWHcl7CD4At");
-    })();
+
+  <!-- EmailJS SDK v4 via JSDelivr -->
+  <script type="module">
+    import emailjs from 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+
+    emailjs.init('WvittRqWHcl7CD4At'); // ユーザーID（公開鍵）
+
+    window.sendEmail = function(email) {
+      emailjs.send("service_0bg0xsl", "template_lr90jx9", {
+        to_email: email,
+        message: "お客様の順番になりました。店内へご案内できます。",
+        subject: "順番が来ました！"
+      })
+      .then(() => {
+        alert("メールを送信しました！");
+      })
+      .catch((error) => {
+        alert("メール送信失敗: " + error.text);
+      });
+    };
   </script>
   <style>
     body {
@@ -200,194 +219,175 @@
     </table>
   </section>
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
-    authDomain: "qr-visitor-log.firebaseapp.com",
-    projectId: "qr-visitor-log",
-    storageBucket: "qr-visitor-log.appspot.com",
-    messagingSenderId: "304250341939",
-    appId: "1:304250341939:web:b8d5b946590d1f852cf146"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-  const dayMap = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
+    function calculateAverages() {
+      const dayMap = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
+      db.collection("logs").onSnapshot(snapshot => {
+        const logs = snapshot.docs.map(doc => doc.data());
+        logs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const sessions = {};
+        const durations = [];
 
-  function calculateAverages() {
-    db.collection("logs").onSnapshot(snapshot => {
-      const logs = snapshot.docs.map(doc => doc.data());
-      logs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      const sessions = {};
-      const durations = [];
+        const today = new Date();
+        const todayStr = today.toISOString().slice(0, 10);
+        const todayDurations = [];
+        const weekdayDurations = [];
 
-      const today = new Date();
-      const todayStr = today.toISOString().slice(0, 10);
-      const todayDurations = [];
-      const weekdayDurations = [];
-
-      logs.forEach(log => {
-        const key = log.device + "_" + log.table;
-        const time = new Date(log.timestamp);
-        if (log.type === "enter") {
-          sessions[key] = time;
-        } else if (log.type === "exit" && sessions[key]) {
-          const duration = (time - sessions[key]) / 1000;
-          if (duration > 0 && duration < 60 * 60 * 5) {
-            durations.push(duration);
-            const enterStr = sessions[key].toISOString().slice(0, 10);
-            const weekday = sessions[key].getDay();
-            if (enterStr === todayStr) todayDurations.push(duration);
-            if (weekday === today.getDay()) weekdayDurations.push(duration);
+        logs.forEach(log => {
+          const key = log.device + "_" + log.table;
+          const time = new Date(log.timestamp);
+          if (log.type === "enter") {
+            sessions[key] = time;
+          } else if (log.type === "exit" && sessions[key]) {
+            const duration = (time - sessions[key]) / 1000;
+            if (duration > 0 && duration < 60 * 60 * 5) {
+              durations.push(duration);
+              const enterStr = sessions[key].toISOString().slice(0, 10);
+              const weekday = sessions[key].getDay();
+              if (enterStr === todayStr) todayDurations.push(duration);
+              if (weekday === today.getDay()) weekdayDurations.push(duration);
+            }
+            delete sessions[key];
           }
-          delete sessions[key];
+        });
+
+        function formatAvg(list) {
+          if (list.length === 0) return "データなし";
+          const avg = list.reduce((a, b) => a + b, 0) / list.length;
+          const m = Math.floor(avg / 60);
+          const s = Math.floor(avg % 60);
+          return `${m}分${s}秒（${list.length}名）`;
         }
-      });
 
-      function formatAvg(list) {
-        if (list.length === 0) return "データなし";
-        const avg = list.reduce((a, b) => a + b, 0) / list.length;
-        const m = Math.floor(avg / 60);
-        const s = Math.floor(avg % 60);
-        return `${m}分${s}秒（${list.length}名）`;
-      }
-
-      document.getElementById("avg-times").innerHTML = `
-        ✅ <strong>今日の平均滞在時間：</strong>${formatAvg(todayDurations)}<br>
-        📅 <strong>${dayMap[today.getDay()]}の平均滞在時間：</strong>${formatAvg(weekdayDurations)}<br>
-        📊 <strong>総合平均滞在時間：</strong>${formatAvg(durations)}
-      `;
-    });
-  }
-
-  function renderQueue() {
-    db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
-      const ticketMap = {};
-      const allDocs = snapshot.docs;
-      const visibleDocs = allDocs.filter(doc => {
-        const status = doc.data().status;
-        return status === "waiting" || status === "entered";
-      });
-      const list = document.getElementById("queueList");
-      list.innerHTML = "";
-
-      allDocs.forEach((doc, index) => {
-        if (!(doc.id in ticketMap)) ticketMap[doc.id] = index + 1;
-      });
-
-      visibleDocs.forEach(doc => {
-        const data = doc.data();
-        const item = document.createElement("div");
-        item.className = "queue-item";
-        item.innerHTML = `
-          <p><strong>番号札:</strong> ${ticketMap[doc.id]}</p>
-          <p><strong>時刻:</strong> ${new Date(data.timestamp).toLocaleString("ja-JP")}</p>
-          <p><strong>状態:</strong> ${data.status}</p>
-          <div class="btn-group"></div>
+        document.getElementById("avg-times").innerHTML = `
+          ✅ <strong>今日の平均滞在時間：</strong>${formatAvg(todayDurations)}<br>
+          📅 <strong>${dayMap[today.getDay()]}の平均滞在時間：</strong>${formatAvg(weekdayDurations)}<br>
+          📊 <strong>総合平均滞在時間：</strong>${formatAvg(durations)}
         `;
-
-        const btnGroup = item.querySelector(".btn-group");
-
-if (data.status === "waiting") {
-  const btnEnter = document.createElement("button");
-  btnEnter.className = "btn-enter";
-  btnEnter.textContent = "入店通知";
-btnEnter.onclick = () => {
-  db.collection("queue").doc(doc.id).update({
-    status: "entered",
-    enteredAt: new Date().toISOString()
-  });
-
-  const email = data.email;
-  if (email) {
-    emailjs.send("service_0bg0xsl", "template_lr90jx9", {
-  to_email: email, // wait.html 側で登録されたメール
-  message: "お客様の順番になりました。店内へご案内できます。",
-  subject: "順番が来ました！"
-})
-.then(function(response) {
-  alert("メールを送信しました！");
-}, function(error) {
-  alert("メール送信失敗: " + error.text);
-});
-
-  }
-};
-
-  btnGroup.appendChild(btnEnter);
-}
-
-
-        if (data.status === "entered") {
-          const btnConfirm = document.createElement("button");
-          btnConfirm.textContent = "入店確定";
-          btnConfirm.style.backgroundColor = "#2980b9";
-          btnConfirm.style.color = "white";
-          btnConfirm.onclick = () => {
-            db.collection("queue").doc(doc.id).update({ status: "confirmed" });
-          };
-          btnGroup.appendChild(btnConfirm);
-        }
-
-        const btnCancel = document.createElement("button");
-        btnCancel.className = "btn-exit";
-        btnCancel.textContent = "キャンセル";
-        btnCancel.onclick = () => {
-          db.collection("queue").doc(doc.id).update({ status: "expired" });
-        };
-        btnGroup.appendChild(btnCancel);
-
-        list.appendChild(item);
       });
-    });
-  }
+    }
 
-  function renderHistoryQueue() {
-    db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
-      const tbody = document.querySelector("#queueHistory tbody");
-      tbody.innerHTML = "";
+    function renderQueue() {
+      db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
+        const ticketMap = {};
+        const allDocs = snapshot.docs;
+        const visibleDocs = allDocs.filter(doc => {
+          const status = doc.data().status;
+          return status === "waiting" || status === "entered";
+        });
+        const list = document.getElementById("queueList");
+        list.innerHTML = "";
 
-      snapshot.docs.forEach((doc, index) => {
-        const data = doc.data();
-        const status = data.status;
+        allDocs.forEach((doc, index) => {
+          if (!(doc.id in ticketMap)) ticketMap[doc.id] = index + 1;
+        });
 
-        if (status === "confirmed" || status === "expired") {
-          const row = document.createElement("tr");
-          const enteredAt = data.enteredAt ? new Date(data.enteredAt) : null;
-          const timestamp = new Date(data.timestamp);
+        visibleDocs.forEach(doc => {
+          const data = doc.data();
+          const item = document.createElement("div");
+          item.className = "queue-item";
+          item.innerHTML = `
+            <p><strong>番号札:</strong> ${ticketMap[doc.id]}</p>
+            <p><strong>時刻:</strong> ${new Date(data.timestamp).toLocaleString("ja-JP")}</p>
+            <p><strong>状態:</strong> ${data.status}</p>
+            <div class="btn-group"></div>
+          `;
 
-          let waited = "不明";
-          if (enteredAt) {
-            const diff = enteredAt - timestamp;
-            const m = Math.floor(diff / 60000);
-            const s = Math.floor((diff % 60000) / 1000);
-            waited = `${m}分${s}秒`;
+          const btnGroup = item.querySelector(".btn-group");
+
+          if (data.status === "waiting") {
+            const btnEnter = document.createElement("button");
+            btnEnter.className = "btn-enter";
+            btnEnter.textContent = "入店通知";
+            btnEnter.onclick = () => {
+              db.collection("queue").doc(doc.id).update({
+                status: "entered",
+                enteredAt: new Date().toISOString()
+              });
+
+              const email = data.email;
+              if (email) {
+                sendEmail(email); // 上で定義したwindow.sendEmail関数
+              }
+            };
+            btnGroup.appendChild(btnEnter);
           }
 
-          row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${timestamp.toLocaleString("ja-JP")}</td>
-            <td>${status}</td>
-            <td>${waited}</td>
-          `;
-          tbody.appendChild(row);
-        }
+          if (data.status === "entered") {
+            const btnConfirm = document.createElement("button");
+            btnConfirm.textContent = "入店確定";
+            btnConfirm.style.backgroundColor = "#2980b9";
+            btnConfirm.style.color = "white";
+            btnConfirm.onclick = () => {
+              db.collection("queue").doc(doc.id).update({ status: "confirmed" });
+            };
+            btnGroup.appendChild(btnConfirm);
+          }
+
+          const btnCancel = document.createElement("button");
+          btnCancel.className = "btn-exit";
+          btnCancel.textContent = "キャンセル";
+          btnCancel.onclick = () => {
+            db.collection("queue").doc(doc.id).update({ status: "expired" });
+          };
+          btnGroup.appendChild(btnCancel);
+
+          list.appendChild(item);
+        });
       });
-    });
-  }
+    }
 
-  window.onload = () => {
-    document.getElementById("mainTitle").style.display = "block";
-    renderQueue();
-    renderHistoryQueue();
-    calculateAverages();
-  };
+    function renderHistoryQueue() {
+      db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
+        const tbody = document.querySelector("#queueHistory tbody");
+        tbody.innerHTML = "";
 
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelector('.menu-button').addEventListener('click', () => {
-      document.querySelector('.drawer').classList.toggle('open');
-    });
-  });
-</script>
+        snapshot.docs.forEach((doc, index) => {
+          const data = doc.data();
+          const status = data.status;
+
+          if (status === "confirmed" || status === "expired") {
+            const row = document.createElement("tr");
+            const enteredAt = data.enteredAt ? new Date(data.enteredAt) : null;
+            const timestamp = new Date(data.timestamp);
+
+            let waited = "不明";
+            if (enteredAt) {
+              const diff = enteredAt - timestamp;
+              const m = Math.floor(diff / 60000);
+              const s = Math.floor((diff % 60000) / 1000);
+              waited = `${m}分${s}秒`;
+            }
+
+            row.innerHTML = `
+              <td>${index + 1}</td>
+              <td>${timestamp.toLocaleString("ja-JP")}</td>
+              <td>${status}</td>
+              <td>${waited}</td>
+            `;
+            tbody.appendChild(row);
+          }
+        });
+      });
+    }
+
+    window.onload = () => {
+      document.getElementById("mainTitle").style.display = "block";
+      renderQueue();
+      renderHistoryQueue();
+      calculateAverages();
+    };
+  </script>
 </body>
 </html>
