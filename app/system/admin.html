@@ -249,14 +249,14 @@
         const avg = list.reduce((a, b) => a + b, 0) / list.length;
         const m = Math.floor(avg / 60);
         const s = Math.floor(avg % 60);
-        return ${m}分${s}秒（${list.length}名）;
+        return `${m}分${s}秒（${list.length}名）`;
       }
 
-      document.getElementById("avg-times").innerHTML = 
+      document.getElementById("avg-times").innerHTML = `
         ✅ <strong>今日の平均滞在時間：</strong>${formatAvg(todayDurations)}<br>
         📅 <strong>${dayMap[today.getDay()]}の平均滞在時間：</strong>${formatAvg(weekdayDurations)}<br>
         📊 <strong>総合平均滞在時間：</strong>${formatAvg(durations)}
-      ;
+      `;
     });
   }
 
@@ -279,12 +279,12 @@
         const data = doc.data();
         const item = document.createElement("div");
         item.className = "queue-item";
-        item.innerHTML = 
+        item.innerHTML = `
           <p><strong>番号札:</strong> ${ticketMap[doc.id]}</p>
           <p><strong>時刻:</strong> ${new Date(data.timestamp).toLocaleString("ja-JP")}</p>
           <p><strong>状態:</strong> ${data.status}</p>
           <div class="btn-group"></div>
-        ;
+        `;
 
         const btnGroup = item.querySelector(".btn-group");
 
@@ -361,15 +361,15 @@ btnEnter.onclick = () => {
             const diff = enteredAt - timestamp;
             const m = Math.floor(diff / 60000);
             const s = Math.floor((diff % 60000) / 1000);
-            waited = ${m}分${s}秒;
+            waited = `${m}分${s}秒`;
           }
 
-          row.innerHTML = 
+          row.innerHTML = `
             <td>${index + 1}</td>
             <td>${timestamp.toLocaleString("ja-JP")}</td>
             <td>${status}</td>
             <td>${waited}</td>
-          ;
+          `;
           tbody.appendChild(row);
         }
       });
