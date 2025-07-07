@@ -299,19 +299,17 @@ btnEnter.onclick = () => {
   });
 
   const email = data.email;
-  if (email) {
-    emailjs.send("service_0bg0xsl", "template_lr90jx9", {
-  to_email: email, // wait.html 側で登録されたメール
-  message: "お客様の順番になりました。店内へご案内できます。",
-  subject: "順番が来ました！"
-})
-.then(function(response) {
-  alert("メールを送信しました！");
-}, function(error) {
-  alert("メール送信失敗: " + error.text);
-});
-
-  }
+if (email) {
+  emailjs.send("service_0bg0xsl", "template_lr90jx9", {
+    to_email: email,
+    message: "お客様の順番になりました。店内へご案内できます。",
+    subject: "順番が来ました！"
+  }).then(function(response) {
+    alert("メールを送信しました！");
+  }, function(error) {
+    alert("メール送信失敗: " + JSON.stringify(error));
+  });
+}
 };
 
   btnGroup.appendChild(btnEnter);
