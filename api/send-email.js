@@ -1,4 +1,7 @@
-import nodemailer from "nodemailer";
+// api/send-email.js
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -7,25 +10,21 @@ export default async function handler(req, res) {
 
   const { to, subject, message } = req.body;
 
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: "qrken0123@gmail.com",
-      pass: "aeov eotx zamz gmcd"
-    }
-  });
+  if (!to) {
+    return res.status(400).json({ error: "送信先メールアドレスがありません。" });
+  }
 
   try {
-    const info = await transporter.sendMail({
-      from: `"順番待ち通知" <あなたのGmail@gmail.com>`,
+    const result = await resend.emails.send({
+      from: "notify@qr-webpage.vercel.app",
       to,
-      subject: subject || "順番が来ました！",
-      text: message || "お客様の順番になりました。店内へご案内できます。"
+      subject: subject || "順番通知",
+      text: message || "順番が来ました。ご入店ください。"
     });
 
-    return res.status(200).json({ success: true, info });
-  } catch (error) {
-    console.error("送信エラー:", error);
-    return res.status(500).json({ error: error.message || "サーバーエラー" });
+    return res.status(200).json({ success: true, result });
+  } catch (err) {
+    console.error("送信エラー:", err);
+    return res.status(500).json({ error: err.message || "サーバーエラー" });
   }
 }
