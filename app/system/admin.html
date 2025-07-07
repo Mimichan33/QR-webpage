@@ -7,7 +7,24 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+  <script type="module">
+  import EmailJS from 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.mjs';
+
+  EmailJS.init('WvittRqWHcl7CD4At');
+
+  window.sendEmail = function(to_email) {
+    EmailJS.send("service_0bg0xsl", "template_lr90jx9", {
+      to_email: to_email,
+      subject: "順番が来ました！",
+      message: "お客様の順番になりました。店内へご案内できます。"
+    }).then(() => {
+      alert("メールを送信しました！");
+    }).catch(error => {
+      alert("メール送信失敗: " + error.text);
+    });
+  };
+</script>
+
   <script>
     (function(){
       emailjs.init("WvittRqWHcl7CD4At");
@@ -292,24 +309,16 @@ if (data.status === "waiting") {
   const btnEnter = document.createElement("button");
   btnEnter.className = "btn-enter";
   btnEnter.textContent = "入店通知";
-btnEnter.onclick = () => {
+  btnEnter.onclick = () => {
   db.collection("queue").doc(doc.id).update({
     status: "entered",
     enteredAt: new Date().toISOString()
   });
 
   const email = data.email;
-if (email) {
-  emailjs.send("service_0bg0xsl", "template_lr90jx9", {
-    to_email: email,
-    message: "お客様の順番になりました。店内へご案内できます。",
-    subject: "順番が来ました！"
-  }).then(function(response) {
-    alert("メールを送信しました！");
-  }, function(error) {
-    alert("メール送信失敗: " + JSON.stringify(error));
-  });
-}
+  if (email) {
+    sendEmail(email); // 上のwindow.sendEmailを呼び出す
+  }
 };
 
   btnGroup.appendChild(btnEnter);
