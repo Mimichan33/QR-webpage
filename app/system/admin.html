@@ -294,27 +294,29 @@ btnEnter.onclick = () => {
 
   const email = data.email;
   if (email) {
-fetch("https://qr-webpage.vercel.app/api/send-email", {
+    fetch("https://qr-webpage.vercel.app/api/send-email", {
   method: "POST",
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json"
+  },
   body: JSON.stringify({
-    to: email,
+    to: email, // Firestoreから取得したお客さんのメールアドレス
     subject: "順番が来ました！",
-    text: "お客様の順番になりました。店内へご案内できます。"
+    message: "お客様の順番になりました。店内へご案内できます。"
   })
 })
+.then(response => response.json())
+.then(data => {
+  if (data.success) {
+    alert("メールを送信しました！");
+  } else {
+    alert("メール送信失敗: " + data.error);
+  }
+})
+.catch(error => {
+  alert("通信エラー: " + error.message);
+});
 
-    .then(res => res.json())
-    .then(result => {
-      if (result.success) {
-        alert("メール送信完了！");
-      } else {
-        alert("送信エラー：" + result.error);
-      }
-    })
-    .catch(err => {
-      alert("通信エラー：" + err.message);
-    });
   }
 };
 
