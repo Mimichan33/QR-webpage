@@ -7,6 +7,12 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+  <script>
+    (function(){
+      emailjs.init("WvittRqWHcl7CD4At");
+    })();
+  </script>
   <style>
     body {
       font-family: sans-serif;
@@ -294,15 +300,16 @@ btnEnter.onclick = () => {
 
   const email = data.email;
   if (email) {
-fetch("/api/send-email", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    to: email,
-    subject: "順番が来ました！",
-    message: "お客様の順番になりました。店内へご案内できます。"
-  })
+    emailjs.send("service_0bg0xsl", "template_lr90jx9", {
+  to_email: email, // wait.html 側で登録されたメール
+  message: "お客様の順番になりました。店内へご案内できます。",
+  subject: "順番が来ました！"
 })
+.then(function(response) {
+  alert("メールを送信しました！");
+}, function(error) {
+  alert("メール送信失敗: " + error.text);
+});
 
 .then(async response => {
   const text = await response.text();
