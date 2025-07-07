@@ -294,7 +294,7 @@ btnEnter.onclick = () => {
 
   const email = data.email;
   if (email) {
-    fetch("https://qr-webpage.vercel.app/api/send-email", {
+fetch("/api/send-email", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -303,6 +303,7 @@ btnEnter.onclick = () => {
     message: "お客様の順番になりました。店内へご案内できます。"
   })
 })
+
 .then(async response => {
   const text = await response.text();
   try {
