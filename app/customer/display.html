@@ -10,28 +10,49 @@
   <style>
     body {
       margin: 0;
-      background: black;
+      padding: 0;
+      font-family: sans-serif;
+      background: url('logo.png') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      color: white;
-      font-family: sans-serif;
-    }
-    #qrcode-container {
+      flex-direction: column;
       text-align: center;
     }
-    canvas {
-      width: 300px;
-      height: 300px;
+
+    #status {
+      font-size: 1.5em;
+      margin-bottom: 20px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px 20px;
+      border-radius: 10px;
+    }
+
+    #qrcode {
+      display: none;
+      margin-top: 10px;
+    }
+
+    #loading {
+      display: none;
+      font-size: 24px;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
     }
   </style>
 </head>
 <body>
-  <div id="qrcode-container">
-    <p id="status">準備中...</p>
-    <canvas id="qrcode"></canvas>
-  </div>
+  <div id="status">準備中です…</div>
+  <canvas id="qrcode"></canvas>
+  <div id="loading">読み取り中です…</div>
 
   <script>
     const firebaseConfig = {
@@ -47,28 +68,49 @@
 
     const table = new URLSearchParams(location.search).get("table");
     const docRef = db.collection("display_queue").doc(`table_${table}`);
+
     const statusEl = document.getElementById("status");
+    const qrcodeCanvas = document.getElementById("qrcode");
+    const loadingEl = document.getElementById("loading");
+
+    let displayed = false;
 
     docRef.onSnapshot(async (doc) => {
       const data = doc.data();
       if (!data || !data.url) {
-        statusEl.textContent = "QRコードを待っています...";
+        statusEl.textContent = "QRコードを待っています…";
+        qrcodeCanvas.style.display = "none";
         return;
       }
 
       const now = new Date();
       if (new Date(data.expiresAt) < now) {
         statusEl.textContent = "有効期限切れ";
+        qrcodeCanvas.style.display = "none";
         return;
       }
 
       if (data.status === "waiting") {
-        QRCode.toCanvas(document.getElementById("qrcode"), data.url);
-        statusEl.textContent = `テーブル${data.table} 入店QRコード`;
+        QRCode.toCanvas(qrcodeCanvas, data.url, (err) => {
+          if (!err) {
+            qrcodeCanvas.style.display = "block";
+            statusEl.textContent = `テーブル${data.table} 入店QRコード`;
+          }
+        });
       }
 
-      if (data.status === "scanned") {
-        window.location.href = `menu.html?table=${table}`;
+      if (data.status === "scanned" && !displayed) {
+        displayed = true;
+        statusEl.style.display = "none";
+        qrcodeCanvas.style.display = "none";
+        loadingEl.style.display = "block";
+
+        // 削除して再利用防止
+        await docRef.delete();
+
+        setTimeout(() => {
+          window.location.href = `menu.html?table=${table}`;
+        }, 3000);
       }
     });
   </script>
