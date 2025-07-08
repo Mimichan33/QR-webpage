@@ -225,8 +225,7 @@
         console.error("Error processing QR:", e);
         location.href = "error.html";
       }
-      const urlParams = new URLSearchParams(window.location.search);
-const table = urlParams.get("table");
+
 
 const displayRef = db.collection("display_queue").doc(`table_${table}`);
 displayRef.update({ status: "scanned" });
