@@ -9,7 +9,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
-  
   <style>
     body {
       font-family: 'Helvetica Neue', sans-serif;
@@ -23,9 +22,6 @@
     header {
       background-color: #2c3e50;
       color: white;
-      position: relative;
-      margin-bottom: 0;
-      padding-bottom: 0; 
     }
 
     .header-bar {
@@ -55,21 +51,6 @@
       text-decoration: underline;
     }
 
-    .full-width-section {
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-
-  background: #e0f7da;
-  padding: 60px 0;
-  text-align: center;
-  margin-top: 0 !important; 
-}
-
-    /* ハンバーガーメニュー */
     .menu-button {
       position: absolute;
       left: 20px;
@@ -119,7 +100,7 @@
     }
 
     main {
-      max-width: 800px;
+      max-width: 1000px;
       margin: 0 auto;
       padding: 30px 20px;
     }
@@ -131,17 +112,64 @@
       padding-bottom: 5px;
     }
 
+    label, select, button {
+      font-size: 1.1em;
+      margin: 10px;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: #3498db;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #2980b9;
+    }
+
+    #contentWrap {
+      display: flex;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+
     #printArea {
       width: 58mm;
       text-align: center;
       font-family: sans-serif;
-      margin: auto;
       padding: 5mm;
       border: 1px dashed #ccc;
+      background: white;
     }
+
     #printArea canvas {
       width: 100%;
       height: auto;
+    }
+
+    #historyWrap {
+      flex: 1;
+      min-width: 300px;
+    }
+
+    #historyList {
+      margin-top: 10px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .history-item {
+      padding: 8px;
+      border-bottom: 1px solid #ccc;
+      cursor: pointer;
+    }
+
+    .history-item:hover {
+      background-color: #e0e0e0;
     }
 
     @media print {
@@ -151,8 +179,7 @@
       #printArea, #printArea * {
         visibility: visible;
       }
-
-
+    }
   </style>
 
   <script>
@@ -168,50 +195,77 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    function updateTableDisplays() {
-   }
-
-    function countVisitors(snapshot) {
-      updateTableDisplays();
-    }
+    const historyItems = [];
 
     async function generateQR() {
-  const table = document.getElementById("tableNum").value;
-  if (!table || isNaN(table)) {
-    alert("テーブル番号を入力してください");
-    return;
-  }
+      const table = document.getElementById("tableNum").value;
+      if (!table || isNaN(table)) {
+        alert("テーブル番号を入力してください");
+        return;
+      }
 
-  const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1日後
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const timestamp = new Date();
+      const url = `https://qr-webpage.vercel.app/app/register/enter.html?table=${table}&token=${token}`;
 
-  await db.collection("qr_tokens").doc(token).set({
-    table: table,
-    token: token,
-    expiresAt: expiresAt.toISOString(),
-    used: false
-  });
+      await db.collection("qr_tokens").doc(token).set({
+        table: table,
+        token: token,
+        expiresAt: expiresAt.toISOString(),
+        used: false,
+        createdAt: timestamp.toISOString()
+      });
 
-  const url = `https://qr-webpage.vercel.app/app/register/enter.html?table=${table}&token=${token}`;
-  document.getElementById("tableLabel").textContent = `テーブル番号：${table}`;
-  QRCode.toCanvas(document.getElementById("qrcode"), url, function (error) {
-    if (error) {
-      console.error(error);
-      alert("QRコード生成に失敗しました");
+      const entry = { table, url, timestamp, expiresAt };
+      renderQRCode(entry);
+      updateHistory(entry);
     }
-  });
-}
 
+    function renderQRCode(entry) {
+      document.getElementById("tableLabel").textContent = `テーブル番号：${entry.table}`;
+      QRCode.toCanvas(document.getElementById("qrcode"), entry.url, function (error) {
+        if (error) {
+          console.error(error);
+          alert("QRコード表示に失敗しました");
+        }
+      });
+    }
+
+    function updateHistory(entry) {
+      historyItems.unshift(entry);
+      if (historyItems.length > 10) {
+        historyItems.pop();
+      }
+      const container = document.getElementById("historyList");
+      container.innerHTML = "";
+      historyItems.forEach((item, idx) => {
+        const div = document.createElement("div");
+        div.className = "history-item";
+        div.innerHTML = `
+          <strong>テーブル ${item.table}</strong><br>
+          発行: ${item.timestamp.toLocaleString()}<br>
+          有効期限: ${item.expiresAt.toLocaleString()}
+        `;
+        div.onclick = () => renderQRCode(item);
+        container.appendChild(div);
+      });
+    }
 
     window.onload = () => {
-      db.collection("logs").onSnapshot(countVisitors);
-      setInterval(updateTableDisplays, 60000);
-
       const menuButton = document.querySelector(".menu-button");
       const drawer = document.querySelector(".drawer");
       menuButton.addEventListener("click", () => {
         drawer.classList.toggle("open");
       });
+
+      const tableSelect = document.getElementById("tableNum");
+      for (let i = 1; i <= 14; i++) {
+        const option = document.createElement("option");
+        option.value = i;
+        option.textContent = `テーブル ${i}`;
+        tableSelect.appendChild(option);
+      }
     };
   </script>
 </head>
@@ -236,8 +290,6 @@
       <a href="admin.html">順番待ち管理</a>
       <a href="/QR/qrcode.html">QRコード一覧</a>
       <a href="generate.html">QRコード生成</a>
-
-
     </div>
   </header>
 
@@ -246,32 +298,23 @@
   <label>テーブル番号:
     <select id="tableNum">
       <option value="">選択してください</option>
-      <option value="1">テーブル 1</option>
-      <option value="2">テーブル 2</option>
-      <option value="3">テーブル 3</option>
-      <option value="4">テーブル 4</option>
-      <option value="5">テーブル 5</option>
-      <option value="6">テーブル 6</option>
-      <option value="7">テーブル 7</option>
-      <option value="8">テーブル 8</option>
-      <option value="9">テーブル 9</option>
-      <option value="10">テーブル 10</option>
-      <option value="11">テーブル 11</option>
-      <option value="12">テーブル 12</option>
-      <option value="13">テーブル 13</option>
-      <option value="14">テーブル 14</option>
-
     </select>
   </label>
   <button onclick="generateQR()">生成</button>
   <button onclick="window.print()">印刷する</button>
 
-  <div id="printArea">
-    <p id="tableLabel">テーブル番号：</p>
-    <canvas id="qrcode"></canvas>
+  <div id="contentWrap">
+    <div id="printArea">
+      <p id="tableLabel">テーブル番号：</p>
+      <canvas id="qrcode"></canvas>
+    </div>
+
+    <div id="historyWrap">
+      <h3>生成履歴（最大10件）</h3>
+      <div id="historyList"></div>
+    </div>
   </div>
 </main>
-
 
 </body>
 </html>
