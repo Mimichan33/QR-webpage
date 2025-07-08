@@ -11,68 +11,76 @@
     html, body {
       margin: 0;
       padding: 0;
-      width: 100%;
       height: 100%;
       overflow: hidden;
       font-family: 'Helvetica Neue', sans-serif;
-      background: #0f2027; /* fallback */
-      background: linear-gradient(to right, #2c5364, #203a43, #0f2027);
-      color: #f0f0f0;
-      position: relative;
+      background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+      color: #333;
     }
 
-    canvas#bg {
+    #background-canvas {
       position: absolute;
-      top: 0; left: 0;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       z-index: 0;
     }
 
-    .content {
+    #content {
       position: relative;
       z-index: 1;
       display: flex;
       flex-direction: column;
-      align-items: center;
       justify-content: center;
-      height: 100%;
+      align-items: center;
+      height: 100vh;
       text-align: center;
     }
 
-    h1 {
-      font-size: 2em;
+    #logo {
+      width: 120px;
       margin-bottom: 20px;
-      text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
+      animation: hop-in 1.5s ease-out forwards;
     }
 
     #status {
-      font-size: 1.4em;
+      font-size: 24px;
       margin-bottom: 20px;
-      text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
+      background: rgba(255, 255, 255, 0.85);
+      padding: 10px 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      animation: hop-in 1.5s ease-out 0.3s forwards;
+      opacity: 0;
     }
 
-    canvas#qrcode {
-      width: 240px;
-      height: 240px;
+    #qrcode {
+      width: 300px;
+      height: 300px;
       background: white;
-      padding: 10px;
+      padding: 20px;
       border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      animation: hop-in 1.5s ease-out 0.6s forwards;
+      opacity: 0;
+    }
+
+    @keyframes hop-in {
+      0% { opacity: 0; transform: translateY(30px); }
+      100% { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
-  <canvas id="bg"></canvas>
-  <div class="content">
-    <img src="logo.png" alt="ロゴ" style="width: 180px; margin-bottom: 20px;">
-    <h1>QRコードをお読みください</h1>
+  <canvas id="background-canvas"></canvas>
+  <div id="content">
+    <img id="logo" src="logo.png" alt="ロゴ">
     <div id="status">QRコードを送信すると表示されます</div>
     <canvas id="qrcode"></canvas>
   </div>
 
   <script>
-    // Firebase 初期化
     const firebaseConfig = {
       apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
       authDomain: "qr-visitor-log.firebaseapp.com",
@@ -86,70 +94,68 @@
 
     const table = new URLSearchParams(location.search).get("table");
     const docRef = db.collection("display_queue").doc(`table_${table}`);
+
     const statusEl = document.getElementById("status");
+    const qrCanvas = document.getElementById("qrcode");
 
     docRef.onSnapshot(async (doc) => {
       const data = doc.data();
       if (!data || !data.url) {
         statusEl.textContent = "QRコードを送信すると表示されます";
+        qrCanvas.style.display = "none";
         return;
       }
 
       const now = new Date();
       if (new Date(data.expiresAt) < now) {
-        statusEl.textContent = "QRコードの有効期限が切れています";
+        statusEl.textContent = "有効期限切れ";
+        qrCanvas.style.display = "none";
         return;
       }
 
       if (data.status === "waiting") {
-        QRCode.toCanvas(document.getElementById("qrcode"), data.url);
-        statusEl.textContent = `テーブル ${data.table} 入店QRコード`;
-      } else if (data.status === "scanned") {
-        statusEl.textContent = "読み取りを確認しました...";
-        setTimeout(() => {
-          window.location.href = `loading.html?table=${table}`;
-        }, 1500);
+        statusEl.textContent = `テーブル${data.table} 入店QRコード`;
+        qrCanvas.style.display = "block";
+        QRCode.toCanvas(qrCanvas, data.url);
+      }
+
+      if (data.status === "scanned") {
+        location.href = `menu.html?table=${table}`;
       }
     });
 
     // 背景アニメーション（水滴風）
-    const bg = document.getElementById("bg");
-    const ctx = bg.getContext("2d");
+    const canvas = document.getElementById('background-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
     let drops = [];
-
-    function resizeCanvas() {
-      bg.width = window.innerWidth;
-      bg.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 30; i++) {
       drops.push({
-        x: Math.random() * bg.width,
-        y: Math.random() * bg.height,
-        r: Math.random() * 3 + 1,
-        d: Math.random() * 2 + 1
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 2 + 1,
+        speed: Math.random() * 1.5 + 0.5
       });
     }
 
-    function drawRain() {
-      ctx.clearRect(0, 0, bg.width, bg.height);
-      for (let i = 0; i < drops.length; i++) {
-        const d = drops[i];
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let drop of drops) {
         ctx.beginPath();
-        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.arc(drop.x, drop.y, drop.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
         ctx.fill();
-        d.y += d.d;
-        if (d.y > bg.height) {
-          d.y = -5;
-          d.x = Math.random() * bg.width;
+        drop.y += drop.speed;
+        if (drop.y > canvas.height) {
+          drop.y = 0;
+          drop.x = Math.random() * canvas.width;
         }
       }
-      requestAnimationFrame(drawRain);
+      requestAnimationFrame(animate);
     }
-    drawRain();
+    animate();
   </script>
 </body>
 </html>
