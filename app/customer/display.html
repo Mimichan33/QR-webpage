@@ -8,71 +8,75 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <style>
-    html, body {
+    body {
       margin: 0;
       padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
       font-family: 'Helvetica Neue', sans-serif;
-      background: #0f2027; /* fallback */
-      background: linear-gradient(to right, #2c5364, #203a43, #0f2027);
-      color: #f0f0f0;
-      position: relative;
-    }
-
-    canvas#bg {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-    }
-
-    .content {
-      position: relative;
-      z-index: 1;
+      background: linear-gradient(to right, #4facfe, #00f2fe);
+      color: #fff;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
-      height: 100%;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
       text-align: center;
     }
 
-    h1 {
-      font-size: 2em;
+    #logo {
+      width: 180px;
       margin-bottom: 20px;
-      text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
+      animation: fade-slide 1.2s ease-in-out;
     }
 
     #status {
-      font-size: 1.4em;
+      font-size: 1.8em;
       margin-bottom: 20px;
-      text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.5);
+      padding: 12px 24px;
+      border-radius: 12px;
+      animation: fade-slide 1s ease-in-out;
     }
 
-    canvas#qrcode {
-      width: 240px;
-      height: 240px;
-      background: white;
+    #qrcode {
+      display: none;
+      margin-top: 20px;
+      background-color: #fff;
       padding: 10px;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      border-radius: 12px;
+    }
+
+    #explanation {
+      font-size: 1.2em;
+      margin-top: 20px;
+      animation: fade-slide 1.2s ease-in-out;
+    }
+
+    #loading {
+      display: none;
+      font-size: 24px;
+      margin-top: 20px;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes fade-slide {
+      0% { opacity: 0; transform: translateY(30px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
     }
   </style>
 </head>
 <body>
-  <canvas id="bg"></canvas>
-  <div class="content">
-    <img src="logo.png" alt="ロゴ" style="width: 180px; margin-bottom: 20px;">
-    <h1>QRコードをお読みください</h1>
-    <div id="status">QRコードを送信すると表示されます</div>
-    <canvas id="qrcode"></canvas>
-  </div>
+  <img id="logo" src="logo.png" alt="ロゴ">
+  <div id="status">準備中です…</div>
+  <canvas id="qrcode"></canvas>
+  <div id="explanation">表示されたQRコードをお手持ちの端末で読み取ってください</div>
+  <div id="loading">読み取り中です…</div>
 
   <script>
-    // Firebase 初期化
     const firebaseConfig = {
       apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
       authDomain: "qr-visitor-log.firebaseapp.com",
@@ -86,70 +90,55 @@
 
     const table = new URLSearchParams(location.search).get("table");
     const docRef = db.collection("display_queue").doc(`table_${table}`);
+
     const statusEl = document.getElementById("status");
+    const qrcodeCanvas = document.getElementById("qrcode");
+    const loadingEl = document.getElementById("loading");
+    const explanationEl = document.getElementById("explanation");
+
+    let displayed = false;
 
     docRef.onSnapshot(async (doc) => {
       const data = doc.data();
       if (!data || !data.url) {
-        statusEl.textContent = "QRコードを送信すると表示されます";
+        statusEl.textContent = "QRコードを待っています…";
+        qrcodeCanvas.style.display = "none";
+        explanationEl.style.display = "none";
         return;
       }
 
       const now = new Date();
       if (new Date(data.expiresAt) < now) {
-        statusEl.textContent = "QRコードの有効期限が切れています";
+        statusEl.textContent = "有効期限切れ";
+        qrcodeCanvas.style.display = "none";
+        explanationEl.style.display = "none";
         return;
       }
 
       if (data.status === "waiting") {
-        QRCode.toCanvas(document.getElementById("qrcode"), data.url);
-        statusEl.textContent = `テーブル ${data.table} 入店QRコード`;
-      } else if (data.status === "scanned") {
-        statusEl.textContent = "読み取りを確認しました...";
+        QRCode.toCanvas(qrcodeCanvas, data.url, (err) => {
+          if (!err) {
+            qrcodeCanvas.style.display = "block";
+            explanationEl.style.display = "block";
+            statusEl.textContent = `テーブル${data.table} 入店QRコード`;
+          }
+        });
+      }
+
+      if (data.status === "scanned" && !displayed) {
+        displayed = true;
+        statusEl.style.display = "none";
+        qrcodeCanvas.style.display = "none";
+        explanationEl.style.display = "none";
+        loadingEl.style.display = "block";
+
+        await docRef.delete();
+
         setTimeout(() => {
-          window.location.href = `loading.html?table=${table}`;
-        }, 1500);
+          window.location.href = `menu.html?table=${table}`;
+        }, 3000);
       }
     });
-
-    // 背景アニメーション（水滴風）
-    const bg = document.getElementById("bg");
-    const ctx = bg.getContext("2d");
-    let drops = [];
-
-    function resizeCanvas() {
-      bg.width = window.innerWidth;
-      bg.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    for (let i = 0; i < 40; i++) {
-      drops.push({
-        x: Math.random() * bg.width,
-        y: Math.random() * bg.height,
-        r: Math.random() * 3 + 1,
-        d: Math.random() * 2 + 1
-      });
-    }
-
-    function drawRain() {
-      ctx.clearRect(0, 0, bg.width, bg.height);
-      for (let i = 0; i < drops.length; i++) {
-        const d = drops[i];
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-        ctx.fill();
-        d.y += d.d;
-        if (d.y > bg.height) {
-          d.y = -5;
-          d.x = Math.random() * bg.width;
-        }
-      }
-      requestAnimationFrame(drawRain);
-    }
-    drawRain();
   </script>
 </body>
 </html>
