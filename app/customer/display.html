@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>QRコード表示</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+      font-family: sans-serif;
+    }
+    #qrcode-container {
+      text-align: center;
+    }
+    canvas {
+      width: 300px;
+      height: 300px;
+    }
+  </style>
+</head>
+<body>
+  <div id="qrcode-container">
+    <p id="status">準備中...</p>
+    <canvas id="qrcode"></canvas>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const table = new URLSearchParams(location.search).get("table");
+    const docRef = db.collection("display_queue").doc(`table_${table}`);
+    const statusEl = document.getElementById("status");
+
+    docRef.onSnapshot(async (doc) => {
+      const data = doc.data();
+      if (!data || !data.url) {
+        statusEl.textContent = "QRコードを待っています...";
+        return;
+      }
+
+      const now = new Date();
+      if (new Date(data.expiresAt) < now) {
+        statusEl.textContent = "有効期限切れ";
+        return;
+      }
+
+      if (data.status === "waiting") {
+        QRCode.toCanvas(document.getElementById("qrcode"), data.url);
+        statusEl.textContent = `テーブル${data.table} 入店QRコード`;
+      }
+
+      if (data.status === "scanned") {
+        window.location.href = `menu.html?table=${table}`;
+      }
+    });
+  </script>
+</body>
+</html>
