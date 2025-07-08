@@ -197,6 +197,7 @@
     const db = firebase.firestore();
 
     const historyItems = [];
+    let lastGenerated = null;
 
     async function generateQR() {
       const table = document.getElementById("tableNum").value;
@@ -219,6 +220,7 @@
       });
 
       const entry = { table, url, timestamp, expiresAt };
+      lastGenerated = entry; 
       renderQRCode(entry);
       updateHistory(entry);
     }
