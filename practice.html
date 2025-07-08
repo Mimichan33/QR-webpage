@@ -16,6 +16,7 @@
       padding: 0;
       background: linear-gradient(to right, #a1c4fd, #c2e9fb);
       color: #2c3e50;
+      overflow-x: hidden;
     }
 
     header {
@@ -99,13 +100,14 @@
     }
 
     main {
-      max-width: 800px;
+      max-width: 1000px;
       margin: 0 auto;
       padding: 30px 20px;
     }
 
     h2 {
       margin-top: 40px;
+      margin-bottom: 10px;
       border-bottom: 2px solid #2c3e50;
       padding-bottom: 5px;
     }
@@ -128,11 +130,16 @@
       background-color: #2980b9;
     }
 
+    #contentWrap {
+      display: flex;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+
     #printArea {
       width: 58mm;
       text-align: center;
       font-family: sans-serif;
-      margin: 20px auto;
       padding: 5mm;
       border: 1px dashed #ccc;
       background: white;
@@ -143,19 +150,26 @@
       height: auto;
     }
 
+    #historyWrap {
+      flex: 1;
+      min-width: 300px;
+    }
+
     #historyList {
-      margin-top: 40px;
-      padding: 10px;
+      margin-top: 10px;
       background-color: #f8f9fa;
       border-radius: 8px;
+      padding: 10px;
     }
 
     .history-item {
-      padding: 8px 12px;
-      margin: 6px 0;
-      background-color: white;
-      border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 8px;
+      border-bottom: 1px solid #ccc;
+      cursor: pointer;
+    }
+
+    .history-item:hover {
+      background-color: #e0e0e0;
     }
 
     @media print {
@@ -177,68 +191,65 @@
       messagingSenderId: "304250341939",
       appId: "1:304250341939:web:b8d5b946590d1f852cf146"
     };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let lastGenerated = null;
+    const historyItems = [];
 
     async function generateQR() {
       const table = document.getElementById("tableNum").value;
       if (!table || isNaN(table)) {
-        alert("テーブル番号を選択してください");
+        alert("テーブル番号を入力してください");
         return;
       }
 
       const token = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       const timestamp = new Date();
+      const url = `https://qr-webpage.vercel.app/app/register/enter.html?table=${table}&token=${token}`;
 
       await db.collection("qr_tokens").doc(token).set({
-        table, token,
+        table: table,
+        token: token,
         expiresAt: expiresAt.toISOString(),
         used: false,
         createdAt: timestamp.toISOString()
       });
 
-      const url = `https://qr-webpage.vercel.app/app/register/enter.html?table=${table}&token=${token}`;
-      document.getElementById("tableLabel").textContent = `テーブル番号：${table}`;
-      QRCode.toCanvas(document.getElementById("qrcode"), url, error => {
-        if (error) {
-          console.error(error);
-          alert("QRコード生成に失敗しました");
-        }
-      });
-
-      lastGenerated = { table, url, timestamp: timestamp.toISOString() };
-      updateHistoryDisplay();
+      const entry = { table, url, timestamp, expiresAt };
+      renderQRCode(entry);
+      updateHistory(entry);
     }
 
-    function regenerateQR() {
-      if (!lastGenerated) return alert("まだQRコードを生成していません");
-      document.getElementById("tableLabel").textContent = `テーブル番号：${lastGenerated.table}`;
-      QRCode.toCanvas(document.getElementById("qrcode"), lastGenerated.url, error => {
+    function renderQRCode(entry) {
+      document.getElementById("tableLabel").textContent = `テーブル番号：${entry.table}`;
+      QRCode.toCanvas(document.getElementById("qrcode"), entry.url, function (error) {
         if (error) {
           console.error(error);
-          alert("再表示に失敗しました");
+          alert("QRコード表示に失敗しました");
         }
       });
     }
 
-    function updateHistoryDisplay() {
-      const container = document.getElementById("historyContainer");
-      const item = document.createElement("div");
-      const dateStr = new Date(lastGenerated.timestamp).toLocaleString();
-      item.className = "history-item";
-      item.innerHTML = `<strong>テーブル ${lastGenerated.table}</strong> - ${dateStr}`;
-      container.appendChild(item);
-    }
-
-    function downloadQR() {
-      const canvas = document.getElementById("qrcode");
-      const link = document.createElement("a");
-      link.download = "qr_code.png";
-      link.href = canvas.toDataURL();
-      link.click();
+    function updateHistory(entry) {
+      historyItems.unshift(entry);
+      if (historyItems.length > 10) {
+        historyItems.pop();
+      }
+      const container = document.getElementById("historyList");
+      container.innerHTML = "";
+      historyItems.forEach((item, idx) => {
+        const div = document.createElement("div");
+        div.className = "history-item";
+        div.innerHTML = `
+          <strong>テーブル ${item.table}</strong><br>
+          発行: ${item.timestamp.toLocaleString()}<br>
+          有効期限: ${item.expiresAt.toLocaleString()}
+        `;
+        div.onclick = () => renderQRCode(item);
+        container.appendChild(div);
+      });
     }
 
     window.onload = () => {
@@ -260,25 +271,27 @@
 </head>
 <body>
 
-<header>
-  <div class="menu-button">
-    <span></span><span></span><span></span>
-  </div>
-  <div class="header-bar">
-    <div class="header-title">　　　　　店内管理システム</div>
-    <div class="header-links">
-      <a href="index.html">ログアウト</a>
+  <header>
+    <div class="menu-button">
+      <span></span>
+      <span></span>
+      <span></span>
     </div>
-  </div>
-  <div class="drawer">
-    <a href="dashboard.html">ホーム</a>
-    <a href="table.html">テーブル管理</a>
-    <a href="histogram.html">混雑状況可視化</a>
-    <a href="admin.html">順番待ち管理</a>
-    <a href="/QR/qrcode.html">QRコード一覧</a>
-    <a href="generate.html">QRコード生成</a>
-  </div>
-</header>
+    <div class="header-bar">
+      <div class="header-title">　　　　　店内管理システム</div>
+      <div class="header-links">
+        <a href="index.html">ログアウト</a>
+      </div>
+    </div>
+    <div class="drawer">
+      <a href="dashboard.html">ホーム</a>
+      <a href="table.html">テーブル管理</a>
+      <a href="histogram.html">混雑状況可視化</a>
+      <a href="admin.html">順番待ち管理</a>
+      <a href="/QR/qrcode.html">QRコード一覧</a>
+      <a href="generate.html">QRコード生成</a>
+    </div>
+  </header>
 
 <main>
   <h2>QRコード生成（ワンタイム）</h2>
@@ -286,21 +299,20 @@
     <select id="tableNum">
       <option value="">選択してください</option>
     </select>
-  </label><br>
-
+  </label>
   <button onclick="generateQR()">生成</button>
-  <button onclick="regenerateQR()">再表示</button>
-  <button onclick="downloadQR()">画像ダウンロード</button>
-  <button onclick="window.print()">印刷</button>
+  <button onclick="window.print()">印刷する</button>
 
-  <div id="printArea">
-    <p id="tableLabel">テーブル番号：</p>
-    <canvas id="qrcode"></canvas>
-  </div>
+  <div id="contentWrap">
+    <div id="printArea">
+      <p id="tableLabel">テーブル番号：</p>
+      <canvas id="qrcode"></canvas>
+    </div>
 
-  <div id="historyList">
-    <h3>生成履歴</h3>
-    <div id="historyContainer"></div>
+    <div id="historyWrap">
+      <h3>生成履歴（最大10件）</h3>
+      <div id="historyList"></div>
+    </div>
   </div>
 </main>
 
