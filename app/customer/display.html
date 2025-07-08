@@ -10,27 +10,97 @@
   <style>
     body {
       margin: 0;
-      background: black;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(120deg, #89f7fe, #66a6ff);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    .logo {
+      width: 200px;
+      margin-bottom: 20px;
+    }
+
+    #qrcode {
+      width: 300px;
+      height: 300px;
+      background: white;
+      padding: 20px;
+      border-radius: 20px;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-size: 1.4em;
+    }
+
+    #countdown {
+      font-size: 1em;
+      margin-top: 10px;
+      color: #f0f0f0;
+    }
+
+    .loader {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #fff;
+      color: #333;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      color: white;
-      font-family: sans-serif;
+      flex-direction: column;
+      z-index: 9999;
+      display: none;
     }
-    #qrcode-container {
-      text-align: center;
+
+    .loader.show {
+      display: flex;
     }
-    canvas {
-      width: 300px;
-      height: 300px;
+
+    .loader p {
+      font-size: 24px;
+      margin-top: 20px;
+    }
+
+    .loader .dot {
+      width: 12px;
+      height: 12px;
+      margin: 3px;
+      background: #66a6ff;
+      border-radius: 50%;
+      display: inline-block;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .loader .dot:nth-child(2) { animation-delay: 0.2s; }
+    .loader .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
     }
   </style>
 </head>
 <body>
-  <div id="qrcode-container">
-    <p id="status">準備中...</p>
-    <canvas id="qrcode"></canvas>
+
+  <img src="logo.png" class="logo" alt="ロゴ">
+  <canvas id="qrcode"></canvas>
+  <div id="status">QRコードを読み取ってください</div>
+  <div id="countdown"></div>
+
+  <div class="loader" id="loader">
+    <div>
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </div>
+    <p>読み取り確認中...</p>
   </div>
 
   <script>
@@ -48,19 +118,41 @@
     const table = new URLSearchParams(location.search).get("table");
     const docRef = db.collection("display_queue").doc(`table_${table}`);
     const statusEl = document.getElementById("status");
+    const countdownEl = document.getElementById("countdown");
+    const loader = document.getElementById("loader");
 
-    docRef.onSnapshot(async (doc) => {
+    let countdownTimer;
+
+    docRef.onSnapshot((doc) => {
       const data = doc.data();
       if (!data || !data.url) {
         statusEl.textContent = "QRコードを待っています...";
+        countdownEl.textContent = "";
         return;
       }
 
       const now = new Date();
-      if (new Date(data.expiresAt) < now) {
-        statusEl.textContent = "有効期限切れ";
+      const expires = new Date(data.expiresAt);
+      const diff = expires - now;
+
+      if (diff <= 0) {
+        statusEl.textContent = "QRコードの有効期限が切れました";
+        countdownEl.textContent = "";
         return;
       }
+
+      // カウントダウン
+      clearInterval(countdownTimer);
+      countdownTimer = setInterval(() => {
+        const remain = new Date(data.expiresAt) - new Date();
+        if (remain <= 0) {
+          countdownEl.textContent = "有効期限切れ";
+          clearInterval(countdownTimer);
+        } else {
+          const sec = Math.floor(remain / 1000);
+          countdownEl.textContent = `有効期限まで: ${sec}秒`;
+        }
+      }, 1000);
 
       if (data.status === "waiting") {
         QRCode.toCanvas(document.getElementById("qrcode"), data.url);
@@ -68,7 +160,10 @@
       }
 
       if (data.status === "scanned") {
-        window.location.href = `menu.html?table=${table}`;
+        loader.classList.add("show");
+        setTimeout(() => {
+          location.href = `menu.html?table=${table}`;
+        }, 3000);
       }
     });
   </script>
