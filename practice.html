@@ -232,12 +232,22 @@
     }
 
     window.onload = () => {
-      const menuButton = document.querySelector(".menu-button");
-      const drawer = document.querySelector(".drawer");
-      menuButton.addEventListener("click", () => {
-        drawer.classList.toggle("open");
-      });
-    };
+  // メニュー動作
+  const menuButton = document.querySelector(".menu-button");
+  const drawer = document.querySelector(".drawer");
+  menuButton.addEventListener("click", () => {
+    drawer.classList.toggle("open");
+  });
+
+  // テーブル番号の選択肢を動的に追加（1～14）
+  const tableSelect = document.getElementById("tableNum");
+  for (let i = 1; i <= 14; i++) {
+    const option = document.createElement("option");
+    option.value = i;
+    option.textContent = `テーブル ${i}`;
+    tableSelect.appendChild(option);
+  }
+};
   </script>
 </head>
 <body>
