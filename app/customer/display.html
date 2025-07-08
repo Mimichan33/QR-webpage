@@ -11,7 +11,7 @@
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(120deg, #89f7fe, #66a6ff);
+      background: url('logo.png') center center / cover no-repeat fixed;
       height: 100vh;
       display: flex;
       flex-direction: column;
@@ -21,9 +21,13 @@
       overflow: hidden;
     }
 
-    .logo {
-      width: 200px;
-      margin-bottom: 20px;
+    #message {
+      font-size: 1.6em;
+      text-align: center;
+      margin-bottom: 30px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 20px;
+      border-radius: 12px;
     }
 
     #qrcode {
@@ -32,40 +36,25 @@
       background: white;
       padding: 20px;
       border-radius: 20px;
-    }
-
-    #status {
-      margin-top: 20px;
-      font-size: 1.4em;
-    }
-
-    #countdown {
-      font-size: 1em;
-      margin-top: 10px;
-      color: #f0f0f0;
+      display: none;
     }
 
     .loader {
+      display: none;
       position: fixed;
       top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: #fff;
+      width: 100vw; height: 100vh;
+      background: white;
       color: #333;
       display: flex;
       justify-content: center;
       align-items: center;
       flex-direction: column;
       z-index: 9999;
-      display: none;
     }
 
     .loader.show {
       display: flex;
-    }
-
-    .loader p {
-      font-size: 24px;
-      margin-top: 20px;
     }
 
     .loader .dot {
@@ -89,13 +78,11 @@
 </head>
 <body>
 
-  <img src="logo.png" class="logo" alt="ロゴ">
+  <div id="message">しばらくお待ちください...<br>QRコードを準備しています。</div>
   <canvas id="qrcode"></canvas>
-  <div id="status">QRコードを読み取ってください</div>
-  <div id="countdown"></div>
 
   <div class="loader" id="loader">
-    <div>
+    <div style="display:flex;gap:5px;">
       <span class="dot"></span>
       <span class="dot"></span>
       <span class="dot"></span>
@@ -117,63 +104,53 @@
 
     const table = new URLSearchParams(location.search).get("table");
     const docRef = db.collection("display_queue").doc(`table_${table}`);
-    const statusEl = document.getElementById("status");
-    const countdownEl = document.getElementById("countdown");
-    const loader = document.getElementById("loader");
 
-    let countdownTimer;
+    const qrcodeEl = document.getElementById("qrcode");
+    const messageEl = document.getElementById("message");
+    const loaderEl = document.getElementById("loader");
+
+    let hasShownQR = false;
     let hasScanned = false;
 
     docRef.onSnapshot((doc) => {
       const data = doc.data();
       if (!data || !data.url) {
-        statusEl.textContent = "QRコードを待っています...";
-        countdownEl.textContent = "";
+        // QRが送られていない
+        messageEl.innerHTML = "しばらくお待ちください...<br>QRコードを準備しています。";
+        qrcodeEl.style.display = "none";
+        loaderEl.classList.remove("show");
         return;
       }
 
       const now = new Date();
-      const expires = new Date(data.expiresAt);
-      const diff = expires - now;
-
-      if (diff <= 0) {
-        statusEl.textContent = "QRコードの有効期限が切れました";
-        countdownEl.textContent = "";
+      if (new Date(data.expiresAt) < now) {
+        messageEl.textContent = "QRコードの有効期限が切れました";
+        qrcodeEl.style.display = "none";
+        loaderEl.classList.remove("show");
         return;
       }
 
-      // カウントダウン
-      clearInterval(countdownTimer);
-      countdownTimer = setInterval(() => {
-        const remain = new Date(data.expiresAt) - new Date();
-        if (remain <= 0) {
-          countdownEl.textContent = "有効期限切れ";
-          clearInterval(countdownTimer);
-        } else {
-          const sec = Math.floor(remain / 1000);
-          countdownEl.textContent = `有効期限まで: ${sec}秒`;
-        }
-      }, 1000);
-
-      if (data.status === "waiting") {
-        QRCode.toCanvas(document.getElementById("qrcode"), data.url);
-        statusEl.textContent = `テーブル${data.table} 入店QRコード`;
-        loader.classList.remove("show");
-        hasScanned = false;
+      if (data.status === "waiting" && !hasShownQR) {
+        // QRコードを表示
+        QRCode.toCanvas(qrcodeEl, data.url, function () {
+          qrcodeEl.style.display = "block";
+          messageEl.textContent = `テーブル${data.table}のQRコードを読み取ってください`;
+          hasShownQR = true;
+        });
       }
 
       if (data.status === "scanned" && !hasScanned) {
+        // ローディング表示 → 遷移
         hasScanned = true;
-        loader.classList.add("show");
-        statusEl.textContent = "";
-        countdownEl.textContent = "";
+        qrcodeEl.style.display = "none";
+        messageEl.style.display = "none";
+        loaderEl.classList.add("show");
 
         setTimeout(() => {
           window.location.href = `menu.html?table=${table}`;
-        }, 3000); // 3秒後に遷移
+        }, 3000);
       }
     });
   </script>
 </body>
 </html>
-
