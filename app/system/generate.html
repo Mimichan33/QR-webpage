@@ -256,6 +256,23 @@
         container.appendChild(div);
       });
     }
+    async function sendToDisplay() {
+  if (!lastGenerated) {
+    alert("QRコードがまだ生成されていません");
+    return;
+  }
+
+  await db.collection("display_queue").doc(`table_${lastGenerated.table}`).set({
+    table: lastGenerated.table,
+    url: lastGenerated.url,
+    expiresAt: lastGenerated.expiresAt.toISOString(),
+    status: "waiting",
+    updatedAt: new Date().toISOString()
+  });
+
+  alert(`テーブル${lastGenerated.table}のディスプレイに送信しました`);
+}
+    
 
     window.onload = () => {
       const menuButton = document.querySelector(".menu-button");
@@ -307,6 +324,8 @@
   </label>
   <button onclick="generateQR()">生成</button>
   <button onclick="window.print()">印刷する</button>
+  <button onclick="sendToDisplay()">送信する</button>
+
 
   <div id="contentWrap">
     <div id="printArea">
