@@ -1,118 +1,106 @@
+<!-- 今回の修正・追加点を考慮したgenerate.html の再修正版です -->
+<!-- ポイント：
+1. QRコードの表示エリアを固定サイズにして高さが変わらないように
+2. 有効期限切れQRはグレーアウト
+3. 送信機能を追加（Firestore に QR 情報を書き込み）
+4. 各テーブル端末用の receiver.html を別ファイルで作成（後述）
+-->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>QRコード表示</title>
+  <title>QRコード生成と送信</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: sans-serif;
-      background: url('logo.png') no-repeat center center fixed;
-      background-size: cover;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      flex-direction: column;
-      text-align: center;
-    }
-
-    #status {
-      font-size: 1.5em;
-      margin-bottom: 20px;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 10px 20px;
-      border-radius: 10px;
-    }
-
-    #qrcode {
-      display: none;
-      margin-top: 10px;
-    }
-
-    #loading {
-      display: none;
-      font-size: 24px;
-      animation: blink 1s infinite;
-    }
-
-    @keyframes blink {
-      0% { opacity: 1; }
-      50% { opacity: 0.3; }
-      100% { opacity: 1; }
-    }
+    body { font-family: sans-serif; margin: 0; background: #c2e9fb; }
+    main { max-width: 1000px; margin: 20px auto; padding: 20px; }
+    #contentWrap { display: flex; gap: 30px; flex-wrap: wrap; align-items: flex-start; }
+    #printArea { width: 58mm; height: 80mm; border: 1px dashed #ccc; background: white; padding: 5mm; text-align: center; }
+    #printArea canvas { width: 100%; height: auto; }
+    #historyList { max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 8px; }
+    .history-item { padding: 6px; border-bottom: 1px solid #ccc; cursor: pointer; }
+    .history-item:hover { background: #e0e0e0; }
+    .expired { background-color: #ddd !important; color: #999; }
   </style>
 </head>
 <body>
-  <div id="status">準備中です…</div>
-  <canvas id="qrcode"></canvas>
-  <div id="loading">読み取り中です…</div>
-
+  <main>
+    <h2>QRコード生成と送信</h2>
+    <label>テーブル番号: <select id="tableNum"><option value="">選択してください</option></select></label>
+    <button onclick="generateAndSendQR()">生成して送信</button>
+    <div id="contentWrap">
+      <div id="printArea">
+        <p id="tableLabel">テーブル番号：</p>
+        <canvas id="qrcode"></canvas>
+      </div>
+      <div>
+        <h3>生成履歴（最新10件）</h3>
+        <div id="historyList"></div>
+      </div>
+    </div>
+  </main>
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
-      authDomain: "qr-visitor-log.firebaseapp.com",
-      projectId: "qr-visitor-log",
-      storageBucket: "qr-visitor-log.appspot.com",
-      messagingSenderId: "304250341939",
-      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
-    };
+    const firebaseConfig = { /* ...省略。前の設定と同様... */ };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const historyItems = [];
 
-    const table = new URLSearchParams(location.search).get("table");
-    const docRef = db.collection("display_queue").doc(`table_${table}`);
-
-    const statusEl = document.getElementById("status");
-    const qrcodeCanvas = document.getElementById("qrcode");
-    const loadingEl = document.getElementById("loading");
-
-    let displayed = false;
-
-    docRef.onSnapshot(async (doc) => {
-      const data = doc.data();
-      if (!data || !data.url) {
-        statusEl.textContent = "QRコードを待っています…";
-        qrcodeCanvas.style.display = "none";
-        return;
-      }
-
+    async function generateAndSendQR() {
+      const table = document.getElementById("tableNum").value;
+      if (!table || isNaN(table)) return alert("テーブル番号を選択してください");
+      const token = crypto.randomUUID();
       const now = new Date();
-      if (new Date(data.expiresAt) < now) {
-        statusEl.textContent = "有効期限切れ";
-        qrcodeCanvas.style.display = "none";
-        return;
+      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const url = `https://qr-webpage.vercel.app/app/register/enter.html?table=${table}&token=${token}`;
+
+      await db.collection("qr_tokens").doc(token).set({
+        table, token, expiresAt: expiresAt.toISOString(), used: false, createdAt: now.toISOString()
+      });
+
+      // QRコードをFirestoreに送信（テーブルごとに最新状態を保存）
+      await db.collection("table_displays").doc(`table_${table}`).set({
+        url, table, token, expiresAt: expiresAt.toISOString(), sentAt: now.toISOString()
+      });
+
+      const entry = { table, url, timestamp: now, expiresAt };
+      renderQRCode(entry);
+      updateHistory(entry);
+    }
+
+    function renderQRCode(entry) {
+      document.getElementById("tableLabel").textContent = `テーブル番号：${entry.table}`;
+      QRCode.toCanvas(document.getElementById("qrcode"), entry.url);
+    }
+
+    function updateHistory(entry) {
+      historyItems.unshift(entry);
+      if (historyItems.length > 10) historyItems.pop();
+      const list = document.getElementById("historyList");
+      list.innerHTML = "";
+      historyItems.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "history-item";
+        const expired = new Date(item.expiresAt) < new Date();
+        if (expired) div.classList.add("expired");
+        div.innerHTML = `<strong>テーブル ${item.table}</strong><br>発行: ${item.timestamp.toLocaleString()}<br>有効期限: ${new Date(item.expiresAt).toLocaleString()}`;
+        div.onclick = () => renderQRCode(item);
+        list.appendChild(div);
+      });
+    }
+
+    window.onload = () => {
+      const sel = document.getElementById("tableNum");
+      for (let i = 1; i <= 14; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `テーブル ${i}`;
+        sel.appendChild(opt);
       }
-
-      if (data.status === "waiting") {
-        QRCode.toCanvas(qrcodeCanvas, data.url, (err) => {
-          if (!err) {
-            qrcodeCanvas.style.display = "block";
-            statusEl.textContent = `テーブル${data.table} 入店QRコード`;
-          }
-        });
-      }
-
-      if (data.status === "scanned" && !displayed) {
-        displayed = true;
-        statusEl.style.display = "none";
-        qrcodeCanvas.style.display = "none";
-        loadingEl.style.display = "block";
-
-        // 削除して再利用防止
-        await docRef.delete();
-
-        setTimeout(() => {
-          window.location.href = `menu.html?table=${table}`;
-        }, 3000);
-      }
-    });
+    };
   </script>
 </body>
 </html>
