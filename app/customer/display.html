@@ -122,6 +122,7 @@
     const loader = document.getElementById("loader");
 
     let countdownTimer;
+    let hasScanned = false;
 
     docRef.onSnapshot((doc) => {
       const data = doc.data();
@@ -157,15 +158,22 @@
       if (data.status === "waiting") {
         QRCode.toCanvas(document.getElementById("qrcode"), data.url);
         statusEl.textContent = `テーブル${data.table} 入店QRコード`;
+        loader.classList.remove("show");
+        hasScanned = false;
       }
 
-      if (data.status === "scanned") {
+      if (data.status === "scanned" && !hasScanned) {
+        hasScanned = true;
         loader.classList.add("show");
+        statusEl.textContent = "";
+        countdownEl.textContent = "";
+
         setTimeout(() => {
-          location.href = `menu.html?table=${table}`;
-        }, 3000);
+          window.location.href = `menu.html?table=${table}`;
+        }, 3000); // 3秒後に遷移
       }
     });
   </script>
 </body>
 </html>
+
