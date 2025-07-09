@@ -6,51 +6,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getFirestore, collection, addDoc, query, where, getDocs, setDoc, doc, getDoc, deleteDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, query, where, getDocs, setDoc, doc, getDoc, deleteDoc, updateDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
-      authDomain: "qr-visitor-log.firebaseapp.com",
-      projectId: "qr-visitor-log",
-      storageBucket: "qr-visitor-log.appspot.com",
-      messagingSenderId: "304250341939",
-      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+    authDomain: "qr-visitor-log.firebaseapp.com",
+    projectId: "qr-visitor-log",
+    storageBucket: "qr-visitor-log.appspot.com",
+    messagingSenderId: "304250341939",
+    appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    window.addEventListener("DOMContentLoaded", async () => {
-      const params = new URLSearchParams(window.location.search);
-      const table = params.get("table") || "unknown";
-      const timestamp = new Date().toISOString();
-      const device = navigator.userAgent;
-      const token = params.get("token");
+  window.addEventListener("DOMContentLoaded", async () => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
 
-      
-      // ローカルに deviceId を保存（存在しない場合のみ生成）
-      if (!localStorage.getItem("deviceId")) {
-        localStorage.setItem("deviceId", `dev-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`);
-      }
-      const deviceId = localStorage.getItem("deviceId");
+    if (!token) {
+      window.location.href = "already-exit.html";
+      return;
+    }
 
-      if (!token) {
-        window.location.href = "already-exit.html";
-        return;
-      }
-      const tokenRef = doc(db, "exit_queue", token);
-      const tokenSnap = await getDoc(tokenRef);
+    const tokenRef = doc(db, "exit_queue", token);
+    const tokenSnap = await getDoc(tokenRef);
 
-      if (!tokenSnap.exists()) {
-        window.location.href = "already-exit.html";
-        return;
-      }
+    if (!tokenSnap.exists()) {
+      window.location.href = "already-exit.html";
+      return;
+    }
 
-          const tokenData = tokenSnap.data();
+    const tokenData = tokenSnap.data();
     if (tokenData.status !== "waiting") {
       window.location.href = "already-exit.html";
       return;
@@ -60,56 +51,60 @@
     const timestamp = new Date().toISOString();
     const device = navigator.userAgent;
 
+    // ローカルに deviceId を保存（存在しない場合のみ生成）
+    if (!localStorage.getItem("deviceId")) {
+      localStorage.setItem("deviceId", `dev-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`);
+    }
+    const deviceId = localStorage.getItem("deviceId");
 
-      try {
-        const logsRef = collection(db, "logs");
-        const q = query(logsRef, where("table", "==", table));
-        const snapshot = await getDocs(q);
+    try {
+      const logsRef = collection(db, "logs");
+      const q = query(logsRef, where("table", "==", table));
+      const snapshot = await getDocs(q);
 
-        let enterCount = 0, exitCount = 0;
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          if (data.type === "enter") enterCount++;
-          if (data.type === "exit") exitCount++;
-        });
+      let enterCount = 0, exitCount = 0;
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.type === "enter") enterCount++;
+        if (data.type === "exit") exitCount++;
+      });
 
-        if (exitCount >= enterCount) {
-          console.warn("このテーブルはすでに退店済みです");
-          window.location.href = "already-exit.html";
-          return;
-        }
-
-        // ログ記録
-        await addDoc(logsRef, {
-          type: "exit",
-          table,
-          timestamp,
-          device
-        });
-
-        // クーポン登録
-        await setDoc(doc(db, "coupons", deviceId), {
-          used: false,
-          issuedAt: timestamp
-        });
-        // ✅ display_queueのデータを削除 → display.htmlの状態をリセット
-        await deleteDoc(doc(db, "display_queue", `table_${table}`));
-
-        // ✅ exit_queueのトークンステータスを "used" に変更
-        await setDoc(tokenRef, { ...tokenData, status: "used" });
-
-        // フラグ設定
-        localStorage.setItem("exited", "true");
-
-        // 画面に必要な変数保存
-        window.table = table;
-        window.device = device;
-
-      } catch (error) {
-        console.error("❌ エラー:", error);
+      if (exitCount >= enterCount) {
+        window.location.href = "already-exit.html";
+        return;
       }
-    });
-  </script>
+
+      // ✅ ログ記録（exit）
+      await addDoc(logsRef, {
+        type: "exit",
+        table,
+        timestamp,
+        device
+      });
+
+      // ✅ クーポン登録
+      await setDoc(doc(db, "coupons", deviceId), {
+        used: false,
+        issuedAt: timestamp
+      });
+
+      // ✅ トークンのstatusを "used" に更新（使い回し防止）
+      await updateDoc(tokenRef, { status: "used" });
+
+      // ✅ display_queue の初期化（display.htmlリセット）
+      await deleteDoc(doc(db, "display_queue", `table_${table}`));
+
+      // ✅ 状態保存
+      localStorage.setItem("exited", "true");
+      window.table = table;
+      window.device = device;
+
+    } catch (error) {
+      console.error("❌ エラー:", error);
+    }
+  });
+</script>
+
 
   <style>
     body {
