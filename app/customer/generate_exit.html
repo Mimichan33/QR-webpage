@@ -89,6 +89,16 @@
         expiresAt
       });
     })();
+      const table = new URLSearchParams(location.search).get("table");
+  const docRef = db.collection("display_queue").doc(`table_${table}`);
+
+  docRef.onSnapshot((doc) => {
+    const data = doc.data();
+    if (data && data.status === "scanned") {
+      // ✅ 遷移して display.html に戻る
+      window.location.href = `display.html?table=${table}`;
+    }
+  });
   </script>
 </body>
 </html>
