@@ -3,18 +3,89 @@
 <head>
   <meta charset="UTF-8" />
   <title>メニュー</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      background: white;
-      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      font-family: 'Helvetica Neue', sans-serif;
+      background: linear-gradient(to right, #4facfe, #00f2fe);
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
       text-align: center;
-      padding: 50px;
+    }
+
+    #logo {
+      width: 150px;
+      margin-bottom: 20px;
+      animation: fade-slide 1s ease-in-out;
+    }
+
+    h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+      animation: fade-slide 1.2s ease-in-out;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      width: 90%;
+      animation: fade-slide 1.4s ease-in-out;
+    }
+
+    .card p {
+      font-size: 1.2em;
+      margin: 10px 0;
+    }
+
+    .button {
+      background-color: #ff6b6b;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1em;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background-color 0.3s;
+    }
+
+    .button:hover {
+      background-color: #e55050;
+    }
+
+    @keyframes fade-slide {
+      0% { opacity: 0; transform: translateY(40px); }
+      100% { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
-  <h1>いらっしゃいませ！</h1>
-  <p>メニューをお選びください。</p>
-  <!-- ここにメニュー画像や注文ボタンなど -->
+  <img src="logo.png" alt="ロゴ" id="logo" />
+  <h1 id="table-title">いらっしゃいませ！</h1>
+  <div class="card">
+    <p>本日はご来店ありがとうございます。</p>
+    <p>この画面はメニューやサービスの案内などに使えます。</p>
+    <p id="table-number"></p>
+    <button class="button" id="exitBtn">退店する</button>
+  </div>
+
+  <script>
+    const table = new URLSearchParams(location.search).get("table");
+    document.getElementById("table-number").textContent = `テーブル番号: ${table}`;
+    document.getElementById("exitBtn").onclick = () => {
+      window.location.href = `exit.html?table=${table}`;
+    };
+  </script>
 </body>
 </html>
+
