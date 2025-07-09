@@ -197,6 +197,10 @@
             timestamp: new Date().toISOString()
           });
           localStorage.setItem("entered", "true");
+          
+
+          const displayRef = db.collection("display_queue").doc(`table_${table}`);
+          displayRef.update({ status: "scanned" });
 
 
           // ローディング表示開始
@@ -226,9 +230,6 @@
         location.href = "error.html";
       }
 
-
-const displayRef = db.collection("display_queue").doc(`table_${table}`);
-displayRef.update({ status: "scanned" });
     }
 
     window.onload = processEntry;
