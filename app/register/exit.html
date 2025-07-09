@@ -9,7 +9,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
-      getFirestore, collection, addDoc, query, where, getDocs, setDoc, doc
+      getFirestore, collection, addDoc, query, where, getDocs, setDoc, doc, getDoc, deleteDoc
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -29,12 +29,37 @@
       const table = params.get("table") || "unknown";
       const timestamp = new Date().toISOString();
       const device = navigator.userAgent;
+      const token = params.get("token");
+
       
       // ローカルに deviceId を保存（存在しない場合のみ生成）
       if (!localStorage.getItem("deviceId")) {
         localStorage.setItem("deviceId", `dev-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`);
       }
       const deviceId = localStorage.getItem("deviceId");
+
+      if (!token) {
+        window.location.href = "already-exit.html";
+        return;
+      }
+      const tokenRef = doc(db, "exit_queue", token);
+      const tokenSnap = await getDoc(tokenRef);
+
+      if (!tokenSnap.exists()) {
+        window.location.href = "already-exit.html";
+        return;
+      }
+
+          const tokenData = tokenSnap.data();
+    if (tokenData.status !== "waiting") {
+      window.location.href = "already-exit.html";
+      return;
+    }
+
+    const table = tokenData.table || "unknown";
+    const timestamp = new Date().toISOString();
+    const device = navigator.userAgent;
+
 
       try {
         const logsRef = collection(db, "logs");
@@ -67,6 +92,11 @@
           used: false,
           issuedAt: timestamp
         });
+        // ✅ display_queueのデータを削除 → display.htmlの状態をリセット
+        await deleteDoc(doc(db, "display_queue", `table_${table}`));
+
+        // ✅ exit_queueのトークンステータスを "used" に変更
+        await setDoc(tokenRef, { ...tokenData, status: "used" });
 
         // フラグ設定
         localStorage.setItem("exited", "true");
