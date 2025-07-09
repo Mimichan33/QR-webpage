@@ -65,8 +65,8 @@
 
     (async () => {
       const token = await generateToken();
-      const url = `https://qr-webpage.vercel.app/exit.html?token=${token}`;
-      const expiresAt = new Date(Date.now() + 3 * 60 * 1000).toISOString(); // 3分有効
+      const url = `https://qr-webpage.vercel.app/register/exit.html?token=${token}`;
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30分有効
 
       // Firestore に保存
       await db.collection("exit_queue").doc(token).set({
