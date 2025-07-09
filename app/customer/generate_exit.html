@@ -88,7 +88,6 @@
         status: "exit_waiting",
         expiresAt
       });
-    })();
       const table = new URLSearchParams(location.search).get("table");
   const docRef = db.collection("display_queue").doc(`table_${table}`);
 
@@ -99,6 +98,8 @@
       window.location.href = `display.html?table=${table}`;
     }
   });
+          })();
+
   </script>
 </body>
 </html>
