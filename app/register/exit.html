@@ -90,6 +90,9 @@
 
       // ✅ トークンのstatusを "used" に更新（使い回し防止）
       await updateDoc(tokenRef, { status: "used" });
+      await updateDoc(doc(db, "display_queue", `table_${table}`), {
+        status: "scanned"
+      });
 
       // ✅ display_queue の初期化（display.htmlリセット）
       await deleteDoc(doc(db, "display_queue", `table_${table}`));
