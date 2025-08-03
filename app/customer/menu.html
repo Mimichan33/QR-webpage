@@ -83,7 +83,7 @@
     const table = new URLSearchParams(location.search).get("table");
     document.getElementById("table-number").textContent = `テーブル番号: ${table}`;
     document.getElementById("exitBtn").onclick = () => {
-      window.location.href = `generate_exit.html?table=${table}`;
+      window.location.href = `exit_display.html?table=${table}`;
     };
   </script>
 </body>
