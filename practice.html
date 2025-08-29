@@ -2,395 +2,183 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>QRコード生成と印刷</title>
+  <title>順番待ち確認</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
   <style>
-    body {
-      font-family: 'Helvetica Neue', sans-serif;
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(to right, #a1c4fd, #c2e9fb);
-      color: #2c3e50;
-      overflow-x: hidden;
-    }
-    header {
-      background-color: #2c3e50;
-      color: white;
-    }
-    .header-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 20px;
-    }
-    .header-title {
-      font-size: 1.5em;
-      font-weight: bold;
-    }
-    .header-links {
-      display: flex;
-      gap: 20px;
-    }
-    .header-links a {
-      color: white;
-      text-decoration: none;
-      font-weight: 500;
-    }
-    .menu-button {
-      position: absolute;
-      left: 20px;
-      top: 12px;
-      width: 30px;
-      height: 24px;
-      cursor: pointer;
-      z-index: 1001;
-    }
-    .menu-button span {
-      display: block;
-      height: 4px;
-      background: white;
-      margin: 5px 0;
-      transition: 0.4s;
-    }
-    .drawer {
-      position: fixed;
-      top: 0;
-      left: -250px;
-      width: 250px;
-      height: 100%;
-      background-color: #34495e;
-      color: white;
-      transition: 0.3s;
-      z-index: 1000;
-      padding-top: 60px;
-    }
-    .drawer.open {
-      left: 0;
-    }
-    .drawer a {
-      display: block;
-      padding: 15px 20px;
-      text-decoration: none;
-      color: white;
-      font-weight: bold;
-      border-bottom: 1px solid #2c3e50;
-    }
-    main {
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 30px 20px;
-    }
-    h2 {
-      margin-top: 40px;
-      margin-bottom: 10px;
-      border-bottom: 2px solid #2c3e50;
-      padding-bottom: 5px;
-    }
-    label, select, button {
-      font-size: 1.1em;
-      margin: 10px;
-    }
-    button {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 6px;
-      background-color: #3498db;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #2980b9;
-    }
-    #contentWrap {
-      display: flex;
-      gap: 30px;
-      flex-wrap: wrap;
-    }
-    #printArea {
-      width: 58mm;
-      height: 90mm;
-      text-align: center;
-      font-family: sans-serif;
-      padding: 5mm;
-      border: 1px dashed #ccc;
-      background: white;
-      box-sizing: border-box;
-    }
-    #printArea canvas {
-      width: 100%;
-      height: auto;
-    }
-    #historyWrap {
-      flex: 1;
-      min-width: 300px;
-    }
-    #historyList, #exitHistoryList {
-      margin-top: 10px;
-      background-color: #f8f9fa;
-      border-radius: 8px;
-      padding: 10px;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    .history-item {
-      padding: 8px;
-      border-bottom: 1px solid #ccc;
-      cursor: pointer;
-    }
-    .history-item.expired {
-      background-color: #e0e0e0;
-      color: #888;
-    }
-    .history-item:hover {
-      background-color: #d0e7ff;
-    }
-    @media print {
-      body * {
-        visibility: hidden;
-      }
-      #printArea, #printArea * {
-        visibility: visible;
-      }
-    }
+    body { margin: 0; font-family: 'Helvetica Neue', sans-serif;
+           background: linear-gradient(to right, #a1c4fd, #c2e9fb);
+           color: #2c3e50; text-align: center; }
+    .loader { position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+              background: white; display: flex; flex-direction: column;
+              justify-content: center; align-items: center; z-index: 9999; }
+    .loading-bar { width: 220px; height: 20px; border: 2px solid #999;
+                   border-radius: 10px; overflow: hidden; margin-top: 10px; }
+    .loading-fill { height: 100%; width: 0%; background-color: #7baaf7;
+                    animation: loading-animation 3s forwards; }
+    .loading-text { font-size: 16px; margin-top: 10px; }
+    @keyframes loading-animation { 0% { width: 0%; } 100% { width: 100%; } }
+    .wait-section { display: none; padding: 60px 20px; }
+    .wait-section h1 { font-size: 24px; margin-bottom: 20px; }
+    .status-box { background: white; padding: 20px; margin: 20px auto;
+                  border-radius: 15px; max-width: 320px;
+                  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+    .highlight { font-size: 28px; font-weight: bold; color: #e74c3c; }
+    .ticket-number { font-size: 22px; font-weight: bold; margin-top: 10px; color: #34495e; }
+    .email-section { margin-top: 20px; }
+    .email-section input { padding: 8px; font-size: 16px; width: 240px;
+                           border-radius: 6px; border: 1px solid #999; }
+    .email-section button { margin-left: 8px; padding: 8px 16px; font-size: 16px;
+                            background-color: #3498db; color: white;
+                            border: none; border-radius: 6px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <header>
-    <div class="menu-button">
-      <span></span><span></span><span></span>
-    </div>
-    <div class="header-bar">
-      <div class="header-title">　　　　　店内管理システム</div>
-      <div class="header-links">
-        <a href="index.html">ログアウト</a>
-      </div>
-    </div>
-    <div class="drawer">
-      <a href="dashboard.html">ホーム</a>
-      <a href="table.html">テーブル管理</a>
-      <a href="histogram.html">混雑状況可視化</a>
-      <a href="admin.html">順番待ち管理</a>
-      <a href="generate.html">QRコード生成</a>
-    </div>
-  </header>
 
-<main>
-  <h2>QRコード生成（ワンタイム）</h2>
-  <label>テーブル番号:
-    <select id="tableNum">
-      <option value="">選択してください</option>
-    </select>
-  </label>
-  <button onclick="generateQR()">生成</button>
-  <button onclick="window.print()">印刷する</button>
-  <button onclick="sendToDisplay()">送信する</button>
+  <div class="loader" id="loader">
+    <div class="loading-text" id="loadingLabel">Now Loading...</div>
+    <div class="loading-bar"><div class="loading-fill"></div></div>
+  </div>
 
-  <div id="contentWrap">
-    <div id="printArea">
-      <p id="tableLabel">テーブル番号：</p>
-      <canvas id="qrcode"></canvas>
+  <div class="wait-section" id="waitSection">
+    <h1>少々お待ちください<br><span style="font-size:16px;">Please wait a moment</span></h1>
+    <p class="ticket-number" id="ticketNumber">番号札: --<br><span style="font-size:14px;">Ticket No.</span></p>
+
+    <div class="status-box">
+      <p>あなたの前に待っている人数：</p>
+      <p class="highlight" id="peopleAhead">--</p>
+      <p>予想待ち時間：</p>
+      <p class="highlight" id="estimatedTime">--</p>
     </div>
-    <div id="historyWrap">
-      <h3>生成履歴（最大10件）</h3>
-      <div id="historyList"></div>
+
+    <div class="email-section">
+      <label for="emailInput">メールで通知を希望する：</label><br>
+      <input type="email" id="emailInput" placeholder="your@example.com" />
+      <button onclick="submitEmail()">登録</button>
+      <p id="emailStatus" style="margin-top:10px; font-size:14px; color:green;"></p>
     </div>
   </div>
 
-  <!-- ▼ 退店QRコード生成エリア -->
-  <h2>QRコード生成（退店）</h2>
-  <label>テーブル番号:
-    <select id="exitTableNum">
-      <option value="">選択してください</option>
-    </select>
-  </label>
-  <button onclick="generateExitQR()">生成</button>
-  <button onclick="window.print()">印刷する</button>
-  <button onclick="sendExitToDisplay()">送信する</button>
-
-  <div id="contentWrap">
-    <div id="printArea">
-      <p id="exitTableLabel">テーブル番号：</p>
-      <canvas id="exitqrcode"></canvas>
-    </div>
-    <div id="historyWrap">
-      <h3>退店QRコード履歴（最大10件）</h3>
-      <div id="exitHistoryList"></div>
-    </div>
+  <div style="margin-top: 60px; padding: 20px 0; border-top: 2px solid #2c3e50; font-size: 18px;">
+    <a href="/app/system/map.html" style="text-decoration: underline; color: #2c3e50;">
+      店内マップ / Store Map
+    </a>
   </div>
-</main>
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
-    authDomain: "qr-visitor-log.firebaseapp.com",
-    projectId: "qr-visitor-log",
-    storageBucket: "qr-visitor-log.appspot.com",
-    messagingSenderId: "304250341939",
-    appId: "1:304250341939:web:b8d5b946590d1f852cf146"
-  };
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-  const historyItems = [];
-  let lastGenerated = null;
+    let myDocId = null;
+    let myIndex = -1;
+    let ticketMap = {};
+    let averageStayTime = 10; // 初期値（分）
 
-  async function generateQR() {
-    const table = document.getElementById("tableNum").value;
-    if (!table || isNaN(table)) {
-      alert("テーブル番号を入力してください");
-      return;
+    setTimeout(() => { $('#loadingLabel').text("Completion!"); }, 3000);
+    setTimeout(() => { $('#loader').fadeOut(600); $('#waitSection').fadeIn(800); }, 4000);
+
+    // 平均滞在時間を計算
+    async function calculateAverageStayTime() {
+      const snapshot = await db.collection("logs").orderBy("timestamp").get();
+      const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      let stayTimes = [];
+      let enterMap = {};
+
+      logs.forEach(log => {
+        if (log.status === "enter") {
+          enterMap[log.deviceId] = new Date(log.timestamp);
+        } else if (log.status === "exit" && enterMap[log.deviceId]) {
+          const enterTime = enterMap[log.deviceId];
+          const exitTime = new Date(log.timestamp);
+          const stayMinutes = (exitTime - enterTime) / 1000 / 60;
+          if (stayMinutes > 0 && stayMinutes < 300) {
+            stayTimes.push(stayMinutes);
+          }
+          delete enterMap[log.deviceId];
+        }
+      });
+
+      if (stayTimes.length === 0) return 10;
+      const avg = stayTimes.reduce((a, b) => a + b, 0) / stayTimes.length;
+      return Math.round(avg);
     }
-    const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const timestamp = new Date();
-    const url = `https://qr-webpage.vercel.app/app/register/enter.html?table=${table}&token=${token}`;
-    await db.collection("qr_tokens").doc(token).set({
-      table, token,
-      expiresAt: expiresAt.toISOString(),
-      used: false,
-      createdAt: timestamp.toISOString()
-    });
-    const entry = { table, url, timestamp, expiresAt };
-    lastGenerated = entry;
-    renderQRCode(entry);
-    updateHistory(entry);
-  }
 
-  function renderQRCode(entry) {
-    document.getElementById("tableLabel").textContent = `テーブル番号：${entry.table}`;
-    QRCode.toCanvas(document.getElementById("qrcode"), entry.url, function (error) {
-      if (error) {
-        console.error(error);
-        alert("QRコード表示に失敗しました");
+    async function registerQueue() {
+      const docRef = await db.collection("queue").add({
+        timestamp: new Date().toISOString(),
+        status: "waiting",
+        email: ""
+      });
+      myDocId = docRef.id;
+    }
+
+    function submitEmail() {
+      const email = document.getElementById("emailInput").value.trim();
+      const statusEl = document.getElementById("emailStatus");
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        statusEl.style.color = "red"; statusEl.textContent = "正しいメールアドレスを入力してください。"; return;
       }
-    });
-  }
-
-  function updateHistory(entry) {
-    historyItems.unshift(entry);
-    if (historyItems.length > 10) historyItems.pop();
-    const container = document.getElementById("historyList");
-    container.innerHTML = "";
-    const now = new Date();
-    historyItems.forEach((item) => {
-      const isExpired = new Date(item.expiresAt) < now;
-      const div = document.createElement("div");
-      div.className = "history-item" + (isExpired ? " expired" : "");
-      div.innerHTML = `<strong>テーブル ${item.table}</strong><br>
-        発行: ${item.timestamp.toLocaleString()}<br>
-        有効期限: ${new Date(item.expiresAt).toLocaleString()}`;
-      div.onclick = () => renderQRCode(item);
-      container.appendChild(div);
-    });
-  }
-
-  async function sendToDisplay() {
-    if (!lastGenerated) {
-      alert("QRコードがまだ生成されていません");
-      return;
+      db.collection("queue").doc(myDocId).update({ email })
+        .then(() => { statusEl.style.color = "green"; statusEl.textContent = "メールアドレスを登録しました。"; })
+        .catch(() => { statusEl.style.color = "red"; statusEl.textContent = "登録に失敗しました。"; });
     }
-    await db.collection("display_queue").doc(`table_${lastGenerated.table}`).set({
-      table: lastGenerated.table,
-      url: lastGenerated.url,
-      expiresAt: lastGenerated.expiresAt.toISOString(),
-      status: "waiting",
-      updatedAt: new Date().toISOString()
-    });
-    alert(`テーブル${lastGenerated.table}のディスプレイに送信しました`);
-  }
 
-  // ▼ 退店QRコード処理
-  const exitHistoryItems = [];
-  let lastExitGenerated = null;
+    function watchQueue() {
+      db.collection("queue").orderBy("timestamp").onSnapshot(snapshot => {
+        const allDocs = snapshot.docs;
+        const waitingList = allDocs.filter(doc => doc.data().status === "waiting");
+        const selfDoc = snapshot.docs.find(doc => doc.id === myDocId);
+        if (!selfDoc) return;
+        const selfData = selfDoc.data();
 
-  async function generateExitQR() {
-    const table = document.getElementById("exitTableNum").value;
-    if (!table || isNaN(table)) {
-      alert("テーブル番号を入力してください");
-      return;
+        if (selfData.status === "expired") {
+          location.href = "expired.html"; return;
+        } else if (selfData.status === "entered") {
+          sessionStorage.setItem("myDocId", myDocId);
+          location.href = "admit.html"; return;
+        }
+
+        allDocs.forEach((doc, index) => {
+          if (!(doc.id in ticketMap)) {
+            ticketMap[doc.id] = index + 1;
+          }
+        });
+
+        myIndex = ticketMap[myDocId];
+        const peopleAhead = waitingList.filter(doc => ticketMap[doc.id] < myIndex).length;
+
+        const estimated = (peopleAhead * averageStayTime);
+
+        document.getElementById("ticketNumber").textContent = `番号札:  No. ${myIndex}`;
+        const peopleAheadElement = document.getElementById("peopleAhead");
+        if (peopleAhead === 0) {
+          peopleAheadElement.innerHTML = `次はあなたの番です<br><span style="font-size:14px;">It's your turn next</span>`;
+        } else {
+          peopleAheadElement.textContent = `${peopleAhead}人`;
+        }
+        document.getElementById("estimatedTime").innerHTML = `約${estimated}分`;
+      });
     }
-    const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-    const timestamp = new Date();
-    const url = `https://qr-webpage.vercel.app/app/register/exit.html?table=${table}&token=${token}`;
-    await db.collection("exit_queue").doc(token).set({
-      table, token, status: "waiting",
-      expiresAt: expiresAt.toISOString(),
-      createdAt: timestamp.toISOString()
-    });
-    lastExitGenerated = { table, url, timestamp, expiresAt };
-    renderExitQRCode(lastExitGenerated);
-    updateExitHistory(lastExitGenerated);
-  }
 
-  function renderExitQRCode(entry) {
-    document.getElementById("exitTableLabel").textContent = `テーブル番号：${entry.table}`;
-    QRCode.toCanvas(document.getElementById("exitqrcode"), entry.url, function (error) {
-      if (error) {
-        console.error(error);
-        alert("QRコード表示に失敗しました");
-      }
-    });
-  }
-
-  function updateExitHistory(entry) {
-    exitHistoryItems.unshift(entry);
-    if (exitHistoryItems.length > 10) exitHistoryItems.pop();
-    const container = document.getElementById("exitHistoryList");
-    container.innerHTML = "";
-    const now = new Date();
-    exitHistoryItems.forEach((item) => {
-      const isExpired = new Date(item.expiresAt) < now;
-      const div = document.createElement("div");
-      div.className = "history-item" + (isExpired ? " expired" : "");
-      div.innerHTML = `<strong>テーブル ${item.table}</strong><br>
-        発行: ${item.timestamp.toLocaleString()}<br>
-        有効期限: ${new Date(item.expiresAt).toLocaleString()}`;
-      div.onclick = () => renderExitQRCode(item);
-      container.appendChild(div);
-    });
-  }
-
-  async function sendExitToDisplay() {
-    if (!lastExitGenerated) {
-      alert("QRコードがまだ生成されていません");
-      return;
-    }
-    await db.collection("display_queue").doc(`table_${lastExitGenerated.table}`).set({
-      table: lastExitGenerated.table,
-      url: lastExitGenerated.url,
-      expiresAt: lastExitGenerated.expiresAt.toISOString(),
-      status: "exit_waiting",
-      updatedAt: new Date().toISOString()
-    });
-    alert(`テーブル${lastExitGenerated.table}のディスプレイに退店用QRを送信しました`);
-  }
-
-  // 初期化
-  window.onload = () => {
-    const menuButton = document.querySelector(".menu-button");
-    const drawer = document.querySelector(".drawer");
-    menuButton.addEventListener("click", () => drawer.classList.toggle("open"));
-
-    const tableSelect = document.getElementById("tableNum");
-    const exitTableSelect = document.getElementById("exitTableNum");
-    for (let i = 1; i <= 14; i++) {
-      const option1 = document.createElement("option");
-      option1.value = i;
-      option1.textContent = `テーブル ${i}`;
-      tableSelect.appendChild(option1);
-
-      const option2 = document.createElement("option");
-      option2.value = i;
-      option2.textContent = `テーブル ${i}`;
-      exitTableSelect.appendChild(option2);
-    }
-  };
-</script>
+    window.onload = async () => {
+      averageStayTime = await calculateAverageStayTime(); // 実データから更新
+      await registerQueue();
+      watchQueue();
+    };
+  </script>
 </body>
 </html>
+
