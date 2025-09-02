@@ -14,24 +14,30 @@
   })();
 
   // グローバル関数として定義（どこからでも呼べるように）
-  function sendEmail(to_email) {
-    emailjs.send("service_0bg0xsl", "template_lr90jx9", {
+  function sendEmail1(to_email) {
+    emailjs.send("service_0bg0xsl", "template_wkjus5o", {
       to_email: to_email,
-      subject: "順番が来ました！",
-      message: "お客様の順番になりました。店内へご案内できます。"
+      subject: "順番が近づいてきました！",
+      message: "お客様の順番が近づいてきました。店前にお並びください。"
     }).then(() => {
       alert("メールを送信しました！");
     }).catch((error) => {
       alert("メール送信失敗: " + error.text);
     });
   }
+  function sendEmail2(to_email) {
+  emailjs.send("service_0bg0xsl", "template_lr90jx9", {
+    to_email: to_email,
+    subject: "順番が来ました！",
+    message: "お客様の順番になりました。店内へご案内できます。"
+  }).then(() => {
+    alert("入店通知メールを送信しました！");
+  }).catch((error) => {
+    alert("メール送信失敗: " + error.text);
+  });
+}
 </script>
 
-  <script>
-    (function(){
-      emailjs.init("WvittRqWHcl7CD4At");
-    })();
-  </script>
   <style>
     body {
       font-family: sans-serif;
@@ -284,7 +290,7 @@
       const allDocs = snapshot.docs;
       const visibleDocs = allDocs.filter(doc => {
         const status = doc.data().status;
-        return status === "waiting" || status === "entered";
+        return status === "waiting" || status === "entered" || status === "waiting2";
       });
       const list = document.getElementById("queueList");
       list.innerHTML = "";
@@ -306,25 +312,36 @@
 
         const btnGroup = item.querySelector(".btn-group");
 
+        // waiting のとき → 入店案内（店前に並んでください）
 if (data.status === "waiting") {
   const btnEnter = document.createElement("button");
   btnEnter.className = "btn-enter";
-  btnEnter.textContent = "入店通知";
-btnEnter.onclick = () => {
-  db.collection("queue").doc(doc.id).update({
-    status: "entered",
-    enteredAt: new Date().toISOString()
-  });
-
-  const email = data.email;
-  if (email) {
-    sendEmail(email); // ← この関数が now defined globally
-  }
-};
-
-
+  btnEnter.textContent = "入店案内";
+  btnEnter.onclick = () => {
+    db.collection("queue").doc(doc.id).update({
+      status: "waiting2",
+      notifiedAt: new Date().toISOString()
+    });
+    if (data.email) sendEmail1(data.email); // ← 店前に並んでください
+  };
   btnGroup.appendChild(btnEnter);
 }
+
+// waiting2 のとき → 入店通知（店内に来てください）
+if (data.status === "waiting2") {
+  const btnEnter2 = document.createElement("button");
+  btnEnter2.className = "btn-enter";
+  btnEnter2.textContent = "入店通知";
+  btnEnter2.onclick = () => {
+    db.collection("queue").doc(doc.id).update({
+      status: "entered",
+      enteredAt: new Date().toISOString()
+    });
+    if (data.email) sendEmail2(data.email); // ← 店内に来てください
+  };
+  btnGroup.appendChild(btnEnter2);
+}
+
 
 
         if (data.status === "entered") {
