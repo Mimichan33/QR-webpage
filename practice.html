@@ -311,6 +311,10 @@
           btnEnter.className = "btn-enter";
           btnEnter.textContent = "入店のお知らせ";
           btnEnter.onclick = () => {
+              db.collection("queue").doc(doc.id).update({
+                status: "waiting",
+                enteredAt: new Date().toISOString()
+              });
 
         const email = data.email;
         if (email) {
