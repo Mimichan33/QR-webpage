@@ -326,10 +326,10 @@
         
 
 if (data.status === "waiting2") {
-  const btnEnter = document.createElement("button");
-  btnEnter.className = "btn-enter";
-  btnEnter.textContent = "入店通知";
-btnEnter.onclick = () => {
+  const btnEnter2 = document.createElement("button");
+  btnEnter2.className = "btn-enter";
+  btnEnter2.textContent = "入店通知";
+btnEnter2.onclick = () => {
   db.collection("queue").doc(doc.id).update({
     status: "entered",
     enteredAt: new Date().toISOString()
@@ -342,7 +342,7 @@ btnEnter.onclick = () => {
 };
 
 
-  btnGroup.appendChild(btnEnter);
+  btnGroup.appendChild(btnEnter2);
 }
 
 
