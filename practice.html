@@ -284,7 +284,7 @@
       const allDocs = snapshot.docs;
       const visibleDocs = allDocs.filter(doc => {
         const status = doc.data().status;
-        return status === "waiting" || status === "entered";
+        return status === "waiting" || status === "entered" || status === "waiting2";
       });
       const list = document.getElementById("queueList");
       list.innerHTML = "";
@@ -325,7 +325,7 @@
     }
         
 
-if (data.status === "waiting") {
+if (data.status === "waiting"|| status === "waiting2") {
   const btnEnter = document.createElement("button");
   btnEnter.className = "btn-enter";
   btnEnter.textContent = "入店通知";
@@ -345,25 +345,6 @@ btnEnter.onclick = () => {
   btnGroup.appendChild(btnEnter);
 }
 
-        if (data.status === "waiting2") {
-  const btnEnter = document.createElement("button");
-  btnEnter.className = "btn-enter";
-  btnEnter.textContent = "入店通知";
-btnEnter.onclick = () => {
-  db.collection("queue").doc(doc.id).update({
-    status: "entered",
-    enteredAt: new Date().toISOString()
-  });
-
-  const email = data.email;
-  if (email) {
-    sendEmail(email); // ← この関数が now defined globally
-  }
-};
-
-
-  btnGroup.appendChild(btnEnter);
-}
 
 
         if (data.status === "entered") {
