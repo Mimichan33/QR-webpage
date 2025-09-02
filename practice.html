@@ -14,7 +14,7 @@
   })();
 
   // グローバル関数として定義（どこからでも呼べるように）
-  function sendEmail(to_email) {
+  function sendEmail1(to_email) {
     emailjs.send("service_0bg0xsl", "template_wkjus5o", {
       to_email: to_email,
       subject: "順番が近づいてきました！",
@@ -327,7 +327,7 @@ if (data.status === "waiting") {
       status: "waiting2",
       notifiedAt: new Date().toISOString()
     });
-    if (data.email) sendEmail(data.email); // ← 店前に並んでください
+    if (data.email) sendEmail1(data.email); // ← 店前に並んでください
   };
   btnGroup.appendChild(btnEnter);
 }
