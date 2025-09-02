@@ -17,6 +17,18 @@
   function sendEmail(to_email) {
     emailjs.send("service_0bg0xsl", "template_lr90jx9", {
       to_email: to_email,
+      subject: "順番が近づいてきました！",
+      message: "お客様の順番が近づいてきました。店前にお並びください。"
+    }).then(() => {
+      alert("メールを送信しました！");
+    }).catch((error) => {
+      alert("メール送信失敗: " + error.text);
+    });
+  }
+
+    function sendEmail2(to_email2) {
+    emailjs.send("service_0bg0xsl", "template_lr90jx9", {
+      to_email: to_email,
       subject: "順番が来ました！",
       message: "お客様の順番になりました。店内へご案内できます。"
     }).then(() => {
@@ -309,7 +321,7 @@
         if (data.status === "waiting") {
           const btnEnter = document.createElement("button");
           btnEnter.className = "btn-enter";
-          btnEnter.textContent = "入店のお知らせ";
+          btnEnter.textContent = "入店通知";
           btnEnter.onclick = () => {
               db.collection("queue").doc(doc.id).update({
                 status: "waiting2",
@@ -328,16 +340,16 @@
 if (data.status === "waiting2") {
   const btnEnter2 = document.createElement("button");
   btnEnter2.className = "btn-enter";
-  btnEnter2.textContent = "入店通知";
+  btnEnter2.textContent = "入店案内";
 btnEnter2.onclick = () => {
   db.collection("queue").doc(doc.id).update({
     status: "entered",
     enteredAt: new Date().toISOString()
   });
 
-  const email = data.email;
-  if (email) {
-    sendEmail(email); // ← この関数が now defined globally
+  const email2 = data.email2;
+  if (email2) {
+    sendEmail2(email2); // ← この関数が now defined globally
   }
 };
 
