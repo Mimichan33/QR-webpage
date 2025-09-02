@@ -312,7 +312,7 @@
           btnEnter.textContent = "入店のお知らせ";
           btnEnter.onclick = () => {
               db.collection("queue").doc(doc.id).update({
-                status: "entered",
+                status: "waiting2",
                 enteredAt: new Date().toISOString()
               });
 
