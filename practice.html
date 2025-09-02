@@ -345,6 +345,26 @@ btnEnter.onclick = () => {
   btnGroup.appendChild(btnEnter);
 }
 
+        if (data.status === "waiting2") {
+  const btnEnter = document.createElement("button");
+  btnEnter.className = "btn-enter";
+  btnEnter.textContent = "入店通知";
+btnEnter.onclick = () => {
+  db.collection("queue").doc(doc.id).update({
+    status: "entered",
+    enteredAt: new Date().toISOString()
+  });
+
+  const email = data.email;
+  if (email) {
+    sendEmail(email); // ← この関数が now defined globally
+  }
+};
+
+
+  btnGroup.appendChild(btnEnter);
+}
+
 
         if (data.status === "entered") {
           const btnConfirm = document.createElement("button");
