@@ -663,32 +663,35 @@ if (tableId) {
 }
 
 function forceExit(tableId) {
-  if (confirm("このテーブルを強制退出させますか？")) {
-    const tableRef = db.collection("tables").doc(tableId);
+  if (!confirm("このテーブルを強制退出させますか？")) return;
 
-    // 利用ログに「強制退出」＝退店ログを追加
-    db.collection("logs").add({
-      table: tableId,
-      type: "exit",
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    })
-    .then(() => {
-      // テーブル状態を vacant に更新
-      return tableRef.update({
-        status: "vacant",
-        endTime: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    })
-    .then(() => {
-      alert("強制退出しました");
-    })
-    .catch((error) => {
-      console.error("強制退出エラー: ", error);
-      alert("強制退出に失敗しました");
+  const tableRef = doc(db, "tables", tableId);  // tables ドキュメント参照
+  const logsRef = collection(db, "logs");       // logs コレクション参照
+
+  // 利用ログに「強制退出」＝退店ログを追加
+  addDoc(logsRef, {
+    table: tableId,
+    type: "exit",
+    timestamp: serverTimestamp()
+  })
+  .then(() => {
+    // テーブル状態を vacant に更新
+    return updateDoc(tableRef, {
+      status: "vacant",
+      endTime: serverTimestamp()
     });
-  }
+  })
+  .then(() => {
+    alert("強制退出しました");
+  })
+  .catch((error) => {
+    console.error("強制退出エラー: ", error);
+    alert("強制退出に失敗しました");
+  });
 }
-  window.forceExit = forceExit;
+
+// グローバル公開
+window.forceExit = forceExit;
 
 
 </script>
