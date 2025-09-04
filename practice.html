@@ -462,14 +462,15 @@ drawCharts();
         : "-";
 
       tr.innerHTML = `
-        <td>${tableId}</td>
-        <td>${info.status === "occupied" ? "使用中" : "空席"}</td>
-        <td>${info.startTime ? info.startTime.toLocaleString() : "-"}</td>
-        <td class="usage-time">${duration}</td>
-        <td>
+  <td>${tableId}</td>
+  <td>${info.status === "occupied" ? "使用中" : "空席"}</td>
+  <td>${info.startTime ? info.startTime.toLocaleString() : "-"}</td>
+  <td class="usage-time">${duration}</td>
+  <td>
     ${info.status === "occupied" ? `<button onclick="forceExit('${tableId}')">強制退出</button>` : ""}
   </td>
-      `;
+`;
+
       tbody.appendChild(tr);
     }
   });
@@ -889,6 +890,7 @@ if (tableId) {
   <div class="table-list">
     <h2>テーブル一覧</h2>
     <table id="tableStatusTable">
+        <tbody id="table-body"></tbody>
       <thead>
         <tr>
           <th>テーブルID</th>
@@ -898,8 +900,6 @@ if (tableId) {
           <th>操作</th>
         </tr>
       </thead>
-      <tbody>
-  </tbody>
     </table>
   </div>
 
@@ -1328,33 +1328,30 @@ if (tableId) {
     });
 }
 
-function forceExit(tableId) {
-  if (confirm("このテーブルを強制退出させますか？")) {
-    const tableRef = db.collection("tables").doc(tableId);
+  function forceExit(tableId) {
+    if (confirm("このテーブルを強制退出させますか？")) {
+      const tableRef = db.collection("tables").doc(tableId);
 
-    // 利用ログに「強制退出」＝通常退店と同じ扱いで保存
-    db.collection("logs").add({
-      tableId: tableId,
-      status: "exit",
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    })
-    .then(() => {
-      // テーブル状態を空席に更新
-      return tableRef.update({
-        status: "vacant",
-        endTime: firebase.firestore.FieldValue.serverTimestamp()
+      db.collection("logs").add({
+        table: tableId,
+        type: "exit",
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      })
+      .then(() => {
+        return tableRef.update({
+          status: "vacant",
+          endTime: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      })
+      .then(() => {
+        alert("強制退出しました");
+      })
+      .catch((error) => {
+        console.error("強制退出エラー: ", error);
+        alert("強制退出に失敗しました");
       });
-    })
-    .then(() => {
-      alert("強制退出しました");
-    })
-    .catch((error) => {
-      console.error("強制退出エラー: ", error);
-    });
-  } else {
-    console.log("キャンセルされました");
+    }
   }
-}
 
 
 </script>
