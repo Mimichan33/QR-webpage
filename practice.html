@@ -466,8 +466,9 @@ drawCharts();
         <td>${info.startTime ? info.startTime.toLocaleString() : "-"}</td>
         <td class="usage-time">${duration}</td>
         <td>
-    ${info.status === "occupied" ? `<button onclick="forceExit('${tableId}')">強制退出</button>` : ""}
-  </td>
+          ${info.status === "occupied" ? `<button onclick="forceExit('${tableId}')">強制退出</button>` : ""}
+
+        </td>
       `;
       tbody.appendChild(tr);
     }
@@ -667,30 +668,25 @@ if (tableId) {
 function forceExit(tableId) {
   if (!confirm("このテーブルを強制退出させますか？")) return;
 
-  const tableRef = doc(db, "tables", tableId);  // tables ドキュメント参照
-  const logsRef = collection(db, "logs");       // logs コレクション参照
+  const tableRef = doc(db, "tables", tableId);
+  const logsRef = collection(db, "logs");
 
-  // 利用ログに「強制退出」＝退店ログを追加
   addDoc(logsRef, {
     table: tableId,
     type: "exit",
     timestamp: serverTimestamp()
   })
-  .then(() => {
-    // テーブル状態を vacant に更新
-    return updateDoc(tableRef, {
-      status: "vacant",
-      endTime: serverTimestamp()
-    });
-  })
-  .then(() => {
-    alert("強制退出しました");
-  })
-  .catch((error) => {
-    console.error("強制退出エラー: ", error);
+  .then(() => updateDoc(tableRef, { status: "vacant", endTime: serverTimestamp() }))
+  .then(() => alert("強制退出しました"))
+  .catch(err => {
+    console.error("強制退出エラー:", err);
     alert("強制退出に失敗しました");
   });
 }
+
+// グローバルに公開（HTMLのonclickから呼ぶため）
+window.forceExit = forceExit;
+
 
 // グローバル公開
 window.forceExit = forceExit;
