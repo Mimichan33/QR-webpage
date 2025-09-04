@@ -299,6 +299,25 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 let tableStatus = {};  
 
+function forceExit(tableId) {
+  if (!confirm("このテーブルを強制退出させますか？")) return;
+
+  const tableRef = doc(db, "tables", tableId);
+  const logsRef = collection(db, "logs");
+
+  addDoc(logsRef, {
+    table: tableId,
+    type: "exit",
+    timestamp: serverTimestamp()
+  })
+  .then(() => updateDoc(tableRef, { status: "vacant", endTime: serverTimestamp() }))
+  .then(() => alert("強制退出しました"))
+  .catch(err => {
+    console.error("強制退出エラー:", err);
+    alert("強制退出に失敗しました");
+  });
+}
+
 async function drawCharts() {
   const logsSnapshot = await getDocs(collection(db, "logs"));
   const logs = logsSnapshot.docs.map(doc => doc.data());
@@ -684,10 +703,6 @@ function forceExit(tableId) {
 }
 
 // グローバルに公開（HTMLのonclickから呼ぶため）
-window.forceExit = forceExit;
-
-
-// グローバル公開
 window.forceExit = forceExit;
 
 
