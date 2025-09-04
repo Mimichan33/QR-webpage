@@ -663,28 +663,34 @@ if (tableId) {
     });
 }
 
-  function forceExit(tableId) {
+function forceExit(tableId) {
   if (confirm("このテーブルを強制退出させますか？")) {
     const tableRef = db.collection("tables").doc(tableId);
 
-    // ログに残す
+    // 利用ログに「強制退出」＝通常退店と同じ扱いで保存
     db.collection("logs").add({
       tableId: tableId,
       status: "exit",
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-      // 状態更新
+    })
+    .then(() => {
+      // テーブル状態を空席に更新
       return tableRef.update({
         status: "vacant",
         endTime: firebase.firestore.FieldValue.serverTimestamp()
       });
-    }).then(() => {
+    })
+    .then(() => {
       alert("強制退出しました");
-    }).catch((error) => {
+    })
+    .catch((error) => {
       console.error("強制退出エラー: ", error);
     });
+  } else {
+    console.log("キャンセルされました");
   }
 }
+
 
 </script>
 </body>
