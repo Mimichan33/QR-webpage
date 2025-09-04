@@ -662,6 +662,8 @@ if (tableId) {
     });
 }
 
+  import { collection, doc, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
 function forceExit(tableId) {
   if (!confirm("このテーブルを強制退出させますか？")) return;
 
