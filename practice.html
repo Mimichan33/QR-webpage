@@ -234,19 +234,6 @@
         </tr>
       </thead>
       <tbody>
-    {% for table in tables %}
-    <tr>
-      <td>{{ table.id }}</td>
-      <td>{{ table.status }}</td>
-      <td>{{ table.start_time }}</td>
-      <td>{{ table.usage_time }}</td>
-      <td>
-        {% if table.status == "使用中" %}
-        <button onclick="forceExit('{{ table.id }}')">強制退出</button>
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
   </tbody>
     </table>
   </div>
@@ -479,6 +466,9 @@ drawCharts();
         <td>${info.status === "occupied" ? "使用中" : "空席"}</td>
         <td>${info.startTime ? info.startTime.toLocaleString() : "-"}</td>
         <td class="usage-time">${duration}</td>
+        <td>
+    ${info.status === "occupied" ? `<button onclick="forceExit('${tableId}')">強制退出</button>` : ""}
+  </td>
       `;
       tbody.appendChild(tr);
     }
