@@ -643,12 +643,17 @@ window.forceExit = async function(tableId, deviceId) {
   if (!confirm(`テーブル ${tableId} を強制退出させますか？`)) return;
 
   try {
-    // ログにexitを追加
+    // 1. logs に exit を追加
     await addDoc(collection(db, "logs"), {
       table: tableId,
       device: deviceId,
       type: "exit",
-      timestamp: serverTimestamp()
+      timestamp: new Date().toISOString()
+    });
+
+    // 2. tables の状態を vacant に更新
+    await updateDoc(doc(db, "tables", tableId), {
+      status: "vacant"
     });
 
     alert("強制退出しました");
@@ -657,6 +662,7 @@ window.forceExit = async function(tableId, deviceId) {
     alert("強制退出に失敗しました");
   }
 };
+
 
 
 onSnapshot(query(collection(db, "logs"), orderBy("timestamp")), snapshot => {
