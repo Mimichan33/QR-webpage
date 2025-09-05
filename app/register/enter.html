@@ -175,19 +175,6 @@
       const token = params.get("token");
       if (!token || !table) return location.href = "error.html";
 
-      db.collection("logs")
-  .where("table", "==", table)
-  .orderBy("timestamp")
-  .onSnapshot(snapshot => {
-    snapshot.docChanges().forEach(change => {
-      if (change.type === "added") {
-        const data = change.doc.data();
-        if (data.type === "exit") {
-          location.href = "exit.html";
-        }
-      }
-    });
-  });
 
 
       try {
@@ -253,6 +240,7 @@
 
 </body>
 </html>
+
 
 
 
