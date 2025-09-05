@@ -231,9 +231,18 @@
       }
 
     }
+    onSnapshot(query(collection(db, "logs"), where("table", "==", myTableId), orderBy("timestamp", "desc"), limit(1)), snapshot => {
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (data.type === "exit") {
+      location.href = "exit.html";
+    }
+  });
+});
 
     window.onload = processEntry;
   </script>
 
 </body>
 </html>
+
