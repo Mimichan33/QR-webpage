@@ -175,18 +175,20 @@
       const token = params.get("token");
       if (!token || !table) return location.href = "error.html";
 
-       db.collection("logs")
-    .where("table", "==", table)   
-    .orderBy("timestamp", "desc")
-    .limit(1)
-    .onSnapshot(snapshot => {
-      snapshot.forEach(doc => {
-        const data = doc.data();
+      db.collection("logs")
+  .where("table", "==", table)
+  .orderBy("timestamp")
+  .onSnapshot(snapshot => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type === "added") {
+        const data = change.doc.data();
         if (data.type === "exit") {
           location.href = "exit.html";
         }
-      });
+      }
     });
+  });
+
 
       try {
         const docRef = db.collection("qr_tokens").doc(token);
@@ -251,6 +253,7 @@
 
 </body>
 </html>
+
 
 
 
