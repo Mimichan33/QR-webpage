@@ -224,16 +224,15 @@
   <div class="table-list">
     <h2>テーブル一覧</h2>
     <table id="tableStatusTable">
-        <tbody id="table-body"></tbody>
       <thead>
         <tr>
           <th>テーブルID</th>
           <th>状態</th>
           <th>使用開始時刻</th>
           <th>利用時間（分）</th>
-          <th>操作</th>
         </tr>
       </thead>
+      <tbody></tbody>
     </table>
   </div>
 
@@ -298,25 +297,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 let tableStatus = {};  
-
-function forceExit(tableId) {
-  if (!confirm("このテーブルを強制退出させますか？")) return;
-
-  const tableRef = doc(db, "tables", tableId);
-  const logsRef = collection(db, "logs");
-
-  addDoc(logsRef, {
-    table: tableId,
-    type: "exit",
-    timestamp: serverTimestamp()
-  })
-  .then(() => updateDoc(tableRef, { status: "vacant", endTime: serverTimestamp() }))
-  .then(() => alert("強制退出しました"))
-  .catch(err => {
-    console.error("強制退出エラー:", err);
-    alert("強制退出に失敗しました");
-  });
-}
 
 async function drawCharts() {
   const logsSnapshot = await getDocs(collection(db, "logs"));
@@ -485,9 +465,11 @@ drawCharts();
         <td>${info.startTime ? info.startTime.toLocaleString() : "-"}</td>
         <td class="usage-time">${duration}</td>
         <td>
-          ${info.status === "occupied" ? `<button onclick="forceExit('${tableId}')">強制退出</button>` : ""}
-
-        </td>
+      ${info.status === "occupied" 
+        ? `<button onclick="forceExit('${tableId}', '${info.deviceId}')">強制退出</button>`
+        : "-"
+      }
+    </td>
       `;
       tbody.appendChild(tr);
     }
@@ -653,6 +635,31 @@ clearFilters.addEventListener("click", () => {
   input.addEventListener("input", filterAndDisplayLogs);
 });
 
+
+
+  import { doc, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+// 強制退出処理
+window.forceExit = async function(tableId, deviceId) {
+  if (!confirm(`テーブル ${tableId} を強制退出させますか？`)) return;
+
+  try {
+    // ログにexitを追加
+    await addDoc(collection(db, "logs"), {
+      table: tableId,
+      device: deviceId,
+      type: "exit",
+      timestamp: serverTimestamp()
+    });
+
+    alert("強制退出しました");
+  } catch (err) {
+    console.error("強制退出エラー:", err);
+    alert("強制退出に失敗しました");
+  }
+};
+
+
 onSnapshot(query(collection(db, "logs"), orderBy("timestamp")), snapshot => {
   allLogs = [];
   snapshot.forEach(doc => {
@@ -669,19 +676,6 @@ window.onload = () => {
     drawer.classList.toggle("open");
   });
 };
-
-
-  const tableId = sessionStorage.getItem("tableId"); // QR読み取り時に保存してある想定
-if (tableId) {
-  db.collection("tables").doc(tableId)
-    .onSnapshot((doc) => {
-      const data = doc.data();
-      if (data && data.status === "vacant") {
-        window.location.href = "exit.html";
-      }
-    });
-}
-
 
 </script>
 </body>
