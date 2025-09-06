@@ -233,15 +233,7 @@ if (docSnap.exists) {
               });
             }, 6000);
           });
-                    firebase.firestore().collection("tables").doc(table)
-            .onSnapshot(snap=>{
-              if (snap.exists) {
-                const status = snap.data().status;
-                if (status === "vacant") {
-                  location.href = `exit.html?table=${table}&device=${encodeURIComponent(navigator.userAgent)}`;
-                }
-              }
-            });
+
         
 
         }
@@ -259,6 +251,7 @@ if (docSnap.exists) {
 
 </body>
 </html>
+
 
 
 
