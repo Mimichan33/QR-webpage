@@ -242,17 +242,16 @@ if (docSnap.exists) {
     }
 
 
-    function watchQueue(tableId) {
-      db.collection("tables").doc(tableId).onSnapshot(doc => {
-        if (!doc.exists) return;
-        const data = doc.data();
-        if (!data) return;
 
-        if (data.status === "exit") {
-          location.href = "exit.html?table=" + tableId;
-        }
-      });
+    onSnapshot(doc(db, "tables", tableId), (docSnap) => {
+  if (docSnap.exists()) {
+    const status = docSnap.data().status;
+    if (status === "vacant") {
+      // 強制退出された or 退出した
+      window.location.href = `exit.html?table=${tableId}&device=${deviceId}`;
     }
+  }
+});
 
 
     window.onload = processEntry;
@@ -260,6 +259,7 @@ if (docSnap.exists) {
 
 </body>
 </html>
+
 
 
 
