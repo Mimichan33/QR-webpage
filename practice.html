@@ -55,20 +55,18 @@
     }
 
     .full-width-section {
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
+      width: 100vw;
+      position: relative;
+      left: 50%;
+      right: 50%;
+      margin-left: -50vw;
+      margin-right: -50vw;
+      background: #e0f7da;
+      padding: 60px 0;
+      text-align: center;
+      margin-top: 0 !important; 
+    }
 
-  background: #e0f7da;
-  padding: 60px 0;
-  text-align: center;
-  margin-top: 0 !important; 
-}
-
-    /* ハンバーガーメニュー */
     .menu-button {
       position: absolute;
       left: 20px;
@@ -118,7 +116,7 @@
     }
 
     main {
-      max-width: 800px;
+      max-width: 1000px;
       margin: 0 auto;
       padding: 30px 20px;
     }
@@ -137,6 +135,22 @@
 
     #tables p {
       font-size: 17px;
+    }
+
+    .chart-section {
+      margin-top: 40px;
+    }
+
+    .number-box {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #e67e22;
+    }
+
+    canvas {
+      background-color: white;
+      border-radius: 8px;
+      padding: 10px;
     }
   </style>
 
@@ -232,7 +246,23 @@
     tableAvgTimeBarChart = new Chart(ctxAvg, { type:'bar', data:{ labels:Array.from({length:14},(_,i)=>`テーブル${i+1}`), datasets:[{ label:'平均滞在時間（分）', data:Array(14).fill(0), backgroundColor:'#f1c40f' }] }, options:{ responsive:true, scales:{y:{beginAtZero:true}} } });
 
     const ctxActivity = document.getElementById('activityLineChart').getContext('2d');
-    activityLineChart = new Chart(ctxActivity, { type:'line', data:{ labels:[], datasets:[{ label:'過去30日入店数', data:[], borderColor:'#e74c3c', fill:false, tension:0.2 }] }, options:{ responsive:true, scales:{y:{beginAtZero:true}} } });
+    activityLineChart = new Chart(ctxActivity, {
+      type:'line',
+      data:{
+        labels:[],
+        datasets:[
+          { label:'過去1日', data:[], borderColor:'orange', fill:false, tension:0.2 },
+          { label:'過去7日', data:[], borderColor:'green', fill:false, tension:0.2 },
+          { label:'過去30日', data:[], borderColor:'blue', fill:false, tension:0.2 }
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{ legend:{ display:true, position:'top' } },
+        scales:{ y:{ beginAtZero:true } }
+      }
+    });
   }
 
   function updateCharts() {
@@ -263,7 +293,9 @@
   async function loadPast30Days() {
     const snapshot = await db.collection("logs").get();
     const today = new Date(); today.setHours(0,0,0,0);
-    const counts = Array(30).fill(0);
+    const counts30 = Array(30).fill(0);
+    const counts7 = Array(30).fill(0);
+    const counts1 = Array(30).fill(0);
     const labels = [];
 
     for(let i=29;i>=0;i--){
@@ -278,14 +310,24 @@
       if(ts?.toDate) ts = ts.toDate();
       ts.setHours(0,0,0,0);
       const diff = Math.floor((today-ts)/(1000*60*60*24));
-      if(diff>=0 && diff<30) counts[29-diff]++;
+      if(diff>=0 && diff<30) counts30[29-diff]++;
     });
 
+    for(let i=0;i<30;i++){
+      const start = Math.max(0, i-6);
+      const sum = counts30.slice(start,i+1).reduce((a,b)=>a+b,0);
+      counts7[i] = sum / (i-start+1);
+    }
+
+    counts1[29] = counts30[29];
+
     activityLineChart.data.labels = labels;
-    activityLineChart.data.datasets[0].data = counts;
+    activityLineChart.data.datasets[0].data = counts1;
+    activityLineChart.data.datasets[1].data = counts7;
+    activityLineChart.data.datasets[2].data = counts30;
     activityLineChart.update();
 
-    document.getElementById("todayCount").textContent = counts[29];
+    document.getElementById("todayCount").textContent = counts1[29];
   }
 
   window.onload = () => {
@@ -307,111 +349,66 @@
     menuButton.addEventListener("click", ()=>drawer.classList.toggle("open"));
   };
 </script>
-
 </head>
+
 <body>
-
-  <header>
-    <div class="menu-button">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
-    <div class="header-bar">
-      <div class="header-title">　　　　　店内管理システム</div>
-      <div class="header-links">
-        <a href="index.html">ログアウト</a>
-      </div>
-    </div>
-    <div class="drawer">
-      <a href="/app/system/dashboard.html">ホーム</a>
-      <a href="table.html">テーブル管理</a>
-      <a href="histogram.html">混雑状況可視化</a>
-      <a href="admin.html">順番待ち管理</a>
-      <a href="generate.html">QRコード生成</a>
-    </div>
-  </header>
-
-  <main>
-<section id="hero" class="full-width-section">
-  <div style="max-width: 1000px;margin: 0 auto;">
-    <h1 style="font-size: 2.5em; font-weight: bold; color: #2c3e50; margin-bottom: 20px;">
-      店内の混雑状況を<br>リアルタイムで見える化
-    </h1>
-    <p style="font-size: 1.2em; color: #34495e; margin-bottom: 40px;">
-      お客様の安心と業務効率化を両立する<br>スマートな混雑管理ソリューション
-    </p>
-  </div>
-  <img src="https://corp.vacan.com/wp-content/themes/vacan/assets/images/other/lp/hotel/bg_city.svg" 
-       alt="背景都市イラスト" 
-       style="width: 100%; height: auto; object-fit: cover; display: block;">
-</section>
-    
-    <section>
-      <h2>グラフで見る混雑状況</h2>
-          <div style="display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; margin-top:40px;">
-    <div class="chart-box"><canvas id="weekdayUsageChart"></canvas></div>
-    <div class="chart-box"><canvas id="hourlyPeakChart"></canvas></div>
-
-  <div style="display: flex; flex-wrap: wrap; gap: 30px; justify-content: center;">
-    <!-- 入店人数推移 -->
-    <div style="flex: 1 1 400px; max-width: 500px;">
-      <canvas id="occupancyLineChart" width="400" height="300"></canvas>
-    </div>
-    <!-- 空席 vs 利用中 -->
-    <div style="flex: 1 1 400px; max-width: 500px;">
-      <canvas id="seatPieChart" width="400" height="300"></canvas>
-    </div>
-    <!-- テーブル別使用率 -->
-    <div style="flex: 1 1 400px; max-width: 500px;">
-      <canvas id="tableUsageBarChart" width="400" height="300"></canvas>
-    </div>
-    <!-- テーブル別平均滞在時間 -->
-    <div style="flex: 1 1 400px; max-width: 500px;">
-      <canvas id="tableAvgTimeBarChart" width="400" height="300"></canvas>
+<header>
+  <div class="header-bar">
+    <div class="menu-button"><span></span><span></span><span></span></div>
+    <div class="header-title">管理者ダッシュボード</div>
+    <div class="header-links">
+      <a href="index.html">トップ</a>
+      <a href="table_management.html">テーブル管理</a>
+      <a href="histogram.html">統計</a>
     </div>
   </div>
+</header>
 
-<section class="chart-section">
-  <h2>過去30日間の入店人数推移</h2>
-  <div style="max-width: 1000px; margin: 0 auto;">
-    <canvas id="activityLineChart" style="width:100%; height:400px;"></canvas>
+<div class="drawer">
+  <a href="index.html">トップ</a>
+  <a href="table_management.html">テーブル管理</a>
+  <a href="histogram.html">統計</a>
+</div>
+
+<main>
+  <div class="full-width-section">
+    <h2>現在の入店人数: <span id="count" class="number-box">0</span></h2>
+    <p>今日の入店者数: <span id="todayCount" class="number-box">0</span></p>
+    <p>入店合計: <span id="entries">0</span> ｜ 退店合計: <span id="exits">0</span> ｜ 待機: <span id="waitingCount">0</span></p>
   </div>
-  <div style="text-align:center; margin-top:10px;">
-    今日の入店者数: <span id="todayCount" class="number-box">0</span>
-  </div>
-</section>
 
-      <h2>全体状況</h2>
-      <p>現在の入店者数: <span id="count">読み込み中...</span></p>
-      <p>累計入店数: <span id="entries">-</span></p>
-      <p>累計退店数: <span id="exits">-</span></p>
-    </section>
+  <section id="tables">
+    <h2>テーブル状況</h2>
+    <div id="tableList">
+      <p id="table1-status">ー</p>
+      <p id="table2-status">ー</p>
+      <p id="table3-status">ー</p>
+      <p id="table4-status">ー</p>
+      <p id="table5-status">ー</p>
+      <p id="table6-status">ー</p>
+      <p id="table7-status">ー</p>
+      <p id="table8-status">ー</p>
+      <p id="table9-status">ー</p>
+      <p id="table10-status">ー</p>
+      <p id="table11-status">ー</p>
+      <p id="table12-status">ー</p>
+      <p id="table13-status">ー</p>
+      <p id="table14-status">ー</p>
+    </div>
+  </section>
 
-    <section id="tables">
-      <h2>テーブル別 使用状況（時刻）</h2>
-      <p>テーブル1：<span id="table1-status">読み込み中...</span></p>
-      <p>テーブル2：<span id="table2-status">読み込み中...</span></p>
-      <p>テーブル3：<span id="table3-status">読み込み中...</span></p>
-      <p>テーブル4：<span id="table4-status">読み込み中...</span></p>
-      <p>テーブル5：<span id="table5-status">読み込み中...</span></p>
-      <p>テーブル6：<span id="table6-status">読み込み中...</span></p>
-      <p>テーブル7：<span id="table7-status">読み込み中...</span></p>
-      <p>テーブル8：<span id="table8-status">読み込み中...</span></p>
-      <p>テーブル9：<span id="table9-status">読み込み中...</span></p>
-      <p>テーブル10：<span id="table10-status">読み込み中...</span></p>
-      <p>テーブル11：<span id="table11-status">読み込み中...</span></p>
-      <p>テーブル12：<span id="table12-status">読み込み中...</span></p>
-      <p>テーブル13：<span id="table13-status">読み込み中...</span></p>
-      <p>テーブル14：<span id="table14-status">読み込み中...</span></p>
+  <section class="chart-section">
+    <h2>リアルタイムチャート</h2>
+    <canvas id="occupancyLineChart" height="200"></canvas>
+    <canvas id="seatPieChart" height="200"></canvas>
+    <canvas id="tableUsageBarChart" height="200"></canvas>
+    <canvas id="tableAvgTimeBarChart" height="200"></canvas>
+  </section>
 
-    </section>
-
-
-    <h2>店内マップ</h2>
-    <iframe src="map.html" width="850" height="650" style="border: 2px solid #444; border-radius: 8px;"></iframe>
-
-  </main>
-
+  <section class="chart-section">
+    <h2>過去の入店傾向（折れ線グラフ）</h2>
+    <canvas id="activityLineChart" height="250"></canvas>
+  </section>
+</main>
 </body>
 </html>
