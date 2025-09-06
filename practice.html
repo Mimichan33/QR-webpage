@@ -24,7 +24,7 @@
       color: white;
       position: relative;
       margin-bottom: 0;
-      padding-bottom: 0; 
+      padding-bottom: 0;
     }
 
     .header-bar {
@@ -39,19 +39,11 @@
       font-weight: bold;
     }
 
-    .header-links {
-      display: flex;
-      gap: 20px;
-    }
-
     .header-links a {
       color: white;
       text-decoration: none;
       font-weight: 500;
-    }
-
-    .header-links a:hover {
-      text-decoration: underline;
+      margin-left: 20px;
     }
 
     .full-width-section {
@@ -64,61 +56,12 @@
       background: #e0f7da;
       padding: 60px 0;
       text-align: center;
-      margin-top: 0 !important; 
-    }
-
-    .menu-button {
-      position: absolute;
-      left: 20px;
-      top: 12px;
-      width: 30px;
-      height: 24px;
-      cursor: pointer;
-      z-index: 1001;
-    }
-
-    .menu-button span {
-      display: block;
-      height: 4px;
-      background: white;
-      margin: 5px 0;
-      transition: 0.4s;
-    }
-
-    .drawer {
-      position: fixed;
-      top: 0;
-      left: -250px;
-      width: 250px;
-      height: 100%;
-      background-color: #34495e;
-      color: white;
-      transition: 0.3s;
-      z-index: 1000;
-      padding-top: 60px;
-    }
-
-    .drawer.open {
-      left: 0;
-    }
-
-    .drawer a {
-      display: block;
-      padding: 15px 20px;
-      text-decoration: none;
-      color: white;
-      font-weight: bold;
-      border-bottom: 1px solid #2c3e50;
-    }
-
-    .drawer a:hover {
-      background-color: #2c3e50;
     }
 
     main {
       max-width: 1000px;
       margin: 0 auto;
-      padding: 30px 20px;
+      padding: 20px;
     }
 
     h2 {
@@ -128,29 +71,18 @@
       padding-bottom: 5px;
     }
 
-    p {
-      font-size: 16px;
-      margin: 8px 0;
-    }
-
-    #tables p {
-      font-size: 17px;
-    }
-
-    .chart-section {
-      margin-top: 40px;
-    }
-
-    .number-box {
-      font-size: 1.5em;
-      font-weight: bold;
-      color: #e67e22;
-    }
-
     canvas {
       background-color: white;
       border-radius: 8px;
       padding: 10px;
+      max-width: 100%;
+      height: 250px; /* 高さ固定で縦の伸び防止 */
+    }
+
+    .number-box {
+      font-size: 2em;
+      font-weight: bold;
+      color: #e74c3c;
     }
   </style>
 
@@ -223,8 +155,6 @@
     document.getElementById("count").textContent = entries - exits;
     document.getElementById("entries").textContent = entries;
     document.getElementById("exits").textContent = exits;
-    document.getElementById("waitingCount").textContent = waiting;
-
     updateTableDisplays();
   }
 
@@ -233,17 +163,17 @@
     occupancyLineChart = new Chart(ctxOccupancy, {
       type: 'line',
       data: { labels: [], datasets: [{ label:'入店人数', data:[], borderColor:'#3498db', backgroundColor:'rgba(52,152,219,0.2)', fill:true, tension:0.3 }] },
-      options: { responsive:true }
+      options: { responsive:true, maintainAspectRatio:false }
     });
 
     const ctxSeat = document.getElementById('seatPieChart').getContext('2d');
-    seatPieChart = new Chart(ctxSeat, { type:'pie', data:{ labels:['空席','利用中'], datasets:[{ data:[0,0], backgroundColor:['#2ecc71','#e74c3c'] }] }, options:{ responsive:true } });
+    seatPieChart = new Chart(ctxSeat, { type:'pie', data:{ labels:['空席','利用中'], datasets:[{ data:[0,0], backgroundColor:['#2ecc71','#e74c3c'] }] }, options:{ responsive:true, maintainAspectRatio:false } });
 
     const ctxUsage = document.getElementById('tableUsageBarChart').getContext('2d');
-    tableUsageBarChart = new Chart(ctxUsage, { type:'bar', data:{ labels:Array.from({length:14},(_,i)=>`テーブル${i+1}`), datasets:[{ label:'使用回数', data:Array(14).fill(0), backgroundColor:'#3498db' }] }, options:{ responsive:true, scales:{y:{beginAtZero:true}} } });
+    tableUsageBarChart = new Chart(ctxUsage, { type:'bar', data:{ labels:Array.from({length:14},(_,i)=>`テーブル${i+1}`), datasets:[{ label:'使用回数', data:Array(14).fill(0), backgroundColor:'#3498db' }] }, options:{ responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}} } });
 
     const ctxAvg = document.getElementById('tableAvgTimeBarChart').getContext('2d');
-    tableAvgTimeBarChart = new Chart(ctxAvg, { type:'bar', data:{ labels:Array.from({length:14},(_,i)=>`テーブル${i+1}`), datasets:[{ label:'平均滞在時間（分）', data:Array(14).fill(0), backgroundColor:'#f1c40f' }] }, options:{ responsive:true, scales:{y:{beginAtZero:true}} } });
+    tableAvgTimeBarChart = new Chart(ctxAvg, { type:'bar', data:{ labels:Array.from({length:14},(_,i)=>`テーブル${i+1}`), datasets:[{ label:'平均滞在時間（分）', data:Array(14).fill(0), backgroundColor:'#f1c40f' }] }, options:{ responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}} } });
 
     const ctxActivity = document.getElementById('activityLineChart').getContext('2d');
     activityLineChart = new Chart(ctxActivity, {
@@ -293,9 +223,9 @@
   async function loadPast30Days() {
     const snapshot = await db.collection("logs").get();
     const today = new Date(); today.setHours(0,0,0,0);
-    const counts30 = Array(30).fill(0);
-    const counts7 = Array(30).fill(0);
     const counts1 = Array(30).fill(0);
+    const counts7 = Array(30).fill(0);
+    const counts30 = Array(30).fill(0);
     const labels = [];
 
     for(let i=29;i>=0;i--){
@@ -310,16 +240,12 @@
       if(ts?.toDate) ts = ts.toDate();
       ts.setHours(0,0,0,0);
       const diff = Math.floor((today-ts)/(1000*60*60*24));
-      if(diff>=0 && diff<30) counts30[29-diff]++;
+      if(diff>=0 && diff<30){
+        counts30[29-diff]++;
+        if(diff<7) counts7[29-diff]++;
+        if(diff<1) counts1[29-diff]++;
+      }
     });
-
-    for(let i=0;i<30;i++){
-      const start = Math.max(0, i-6);
-      const sum = counts30.slice(start,i+1).reduce((a,b)=>a+b,0);
-      counts7[i] = sum / (i-start+1);
-    }
-
-    counts1[29] = counts30[29];
 
     activityLineChart.data.labels = labels;
     activityLineChart.data.datasets[0].data = counts1;
@@ -342,73 +268,66 @@
 
     loadPast30Days();
 
-    setInterval(()=>{ updateTableDisplays(); updateCharts(); }, 600);
+    setInterval(()=>{ updateTableDisplays(); updateCharts(); }, 60000); // 1分毎
 
-    const menuButton = document.querySelector(".menu-button");
-    const drawer = document.querySelector(".drawer");
-    menuButton.addEventListener("click", ()=>drawer.classList.toggle("open"));
   };
 </script>
+
 </head>
-
 <body>
-<header>
-  <div class="header-bar">
-    <div class="menu-button"><span></span><span></span><span></span></div>
-    <div class="header-title">管理者ダッシュボード</div>
-    <div class="header-links">
-      <a href="index.html">トップ</a>
-      <a href="table_management.html">テーブル管理</a>
-      <a href="histogram.html">統計</a>
+
+  <header>
+    <div class="header-bar">
+      <div class="header-title">店内管理システム</div>
+      <div class="header-links">
+        <a href="index.html">ログアウト</a>
+      </div>
     </div>
-  </div>
-</header>
+  </header>
 
-<div class="drawer">
-  <a href="index.html">トップ</a>
-  <a href="table_management.html">テーブル管理</a>
-  <a href="histogram.html">統計</a>
-</div>
+  <main>
+    <section id="hero" class="full-width-section">
+      <h1 style="font-size: 2em; font-weight: bold; color: #2c3e50;">
+        店内の混雑状況をリアルタイムで見える化
+      </h1>
+      <p style="font-size: 1em; color: #34495e;">
+        お客様の安心と業務効率化を両立するスマートな混雑管理ソリューション
+      </p>
+    </section>
 
-<main>
-  <div class="full-width-section">
-    <h2>現在の入店人数: <span id="count" class="number-box">0</span></h2>
-    <p>今日の入店者数: <span id="todayCount" class="number-box">0</span></p>
-    <p>入店合計: <span id="entries">0</span> ｜ 退店合計: <span id="exits">0</span> ｜ 待機: <span id="waitingCount">0</span></p>
-  </div>
+    <section>
+      <h2>グラフで見る混雑状況</h2>
+      <div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center;">
+        <canvas id="occupancyLineChart"></canvas>
+        <canvas id="seatPieChart"></canvas>
+        <canvas id="tableUsageBarChart"></canvas>
+        <canvas id="tableAvgTimeBarChart"></canvas>
+      </div>
+    </section>
 
-  <section id="tables">
-    <h2>テーブル状況</h2>
-    <div id="tableList">
-      <p id="table1-status">ー</p>
-      <p id="table2-status">ー</p>
-      <p id="table3-status">ー</p>
-      <p id="table4-status">ー</p>
-      <p id="table5-status">ー</p>
-      <p id="table6-status">ー</p>
-      <p id="table7-status">ー</p>
-      <p id="table8-status">ー</p>
-      <p id="table9-status">ー</p>
-      <p id="table10-status">ー</p>
-      <p id="table11-status">ー</p>
-      <p id="table12-status">ー</p>
-      <p id="table13-status">ー</p>
-      <p id="table14-status">ー</p>
-    </div>
-  </section>
+    <section>
+      <h2>過去30日間の入店人数推移</h2>
+      <canvas id="activityLineChart"></canvas>
+      <div style="text-align:center; margin-top:10px;">
+        今日の入店者数：<span class="number-box" id="todayCount">0</span>
+      </div>
+    </section>
 
-  <section class="chart-section">
-    <h2>リアルタイムチャート</h2>
-    <canvas id="occupancyLineChart" height="200"></canvas>
-    <canvas id="seatPieChart" height="200"></canvas>
-    <canvas id="tableUsageBarChart" height="200"></canvas>
-    <canvas id="tableAvgTimeBarChart" height="200"></canvas>
-  </section>
+    <section>
+      <h2>テーブル状況</h2>
+      <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        ${Array.from({length:14},(_,i)=>`<div>テーブル${i+1}: <span id="table${i+1}-status">ー</span></div>`).join('')}
+      </div>
+    </section>
 
-  <section class="chart-section">
-    <h2>過去の入店傾向（折れ線グラフ）</h2>
-    <canvas id="activityLineChart" height="250"></canvas>
-  </section>
-</main>
+    <section>
+      <h2>人数カウント</h2>
+      <div>現在人数：<span class="number-box" id="count">0</span></div>
+      <div>入店総数：<span id="entries">0</span></div>
+      <div>退店総数：<span id="exits">0</span></div>
+    </section>
+
+  </main>
+
 </body>
 </html>
