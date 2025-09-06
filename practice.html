@@ -638,7 +638,6 @@ clearFilters.addEventListener("click", () => {
 
 
 
-// 強制退出処理
 window.forceExit = async function(tableId, deviceId) {
   if (!confirm(`テーブル ${tableId} を強制退出させますか？`)) return;
 
@@ -657,6 +656,9 @@ window.forceExit = async function(tableId, deviceId) {
     });
 
     alert("強制退出しました");
+
+    // 3. 画面遷移
+    window.location.href = "exit_display.html"; // 遷移先のページ
   } catch (err) {
     console.error("強制退出エラー:", err);
     alert("強制退出に失敗しました");
