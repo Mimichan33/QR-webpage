@@ -233,6 +233,17 @@ if (docSnap.exists) {
               });
             }, 6000);
           });
+                    firebase.firestore().collection("tables").doc(table)
+            .onSnapshot(snap=>{
+              if (snap.exists) {
+                const status = snap.data().status;
+                if (status === "vacant") {
+                  location.href = `exit.html?table=${table}&device=${encodeURIComponent(navigator.userAgent)}`;
+                }
+              }
+            });
+        
+
         }
       } catch (e) {
         console.error("Error processing QR:", e);
@@ -243,22 +254,12 @@ if (docSnap.exists) {
 
 
 
-    onSnapshot(doc(db, "tables", tableId), (docSnap) => {
-  if (docSnap.exists()) {
-    const status = docSnap.data().status;
-    if (status === "vacant") {
-      // 強制退出された or 退出した
-      window.location.href = `exit.html?table=${tableId}&device=${deviceId}`;
-    }
-  }
-});
-
-
     window.onload = processEntry;
   </script>
 
 </body>
 </html>
+
 
 
 
