@@ -155,65 +155,54 @@
   const tableCounts = {};
   const occupancyHistory = [];
 
-  let occupancyLineChart, seatPieChart, tableUsageBarChart, tableAvgTimeBarChart;
+  let occupancyLineChart, seatPieChart, tableUsageBarChart, tableAvgTimeBarChart, activityLineChart;
 
   function formatTimestamp(isoString) {
     if (!isoString || typeof isoString !== "string") return "ー";
     const date = new Date(isoString);
-    const options = { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" };
-    return new Intl.DateTimeFormat("ja-JP", options).format(date).replace(/\//g, "-").replace(",", "");
+    return date.toLocaleString('ja-JP', { timeZone:'Asia/Tokyo', hour12:false });
   }
 
   function calculateElapsedTime(isoString) {
     if (!isoString) return "";
-    const start = new Date(isoString);
-    const now = new Date();
-    const diffMs = now - start;
+    const diffMs = new Date() - new Date(isoString);
     if (diffMs < 0) return "";
-    const minutes = Math.floor(diffMs / 60000);
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return hours > 0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
+    const mins = Math.floor(diffMs / 60000);
+    const hours = Math.floor(mins / 60);
+    const minutes = mins % 60;
+    return hours > 0 ? `${hours}時間${minutes}分経過` : `${minutes}分経過`;
   }
 
   function updateTableDisplays() {
     Object.keys(tableCounts).forEach(tableNum => {
       const t = tableCounts[tableNum];
       const currentCount = t.enter - t.exit;
-      const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
       const status = currentCount > 0 ? "利用中" : "空席";
-      const timeText = formatTimestamp(timeToShow);
-      const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
-      const element = document.getElementById(`table${tableNum}-status`);
-      if (element) element.textContent = `${status}（${timeText}${elapsed}）`;
+      const timeText = currentCount > 0 ? formatTimestamp(t.lastEnterTime) : "";
+      const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(t.lastEnterTime)}` : "";
+      const el = document.getElementById(`table${tableNum}-status`);
+      if (el) el.textContent = `${status}（${timeText}${elapsed}）`;
     });
   }
 
   function countVisitors(snapshot) {
     let entries = 0, exits = 0, waiting = 0;
-
-    for (let i = 1; i <= 14; i++) {
-      tableCounts[i.toString()] = { enter: 0, exit: 0, lastEnterTime: null };
-    }
+    for (let i = 1; i <= 14; i++) tableCounts[i] = { enter:0, exit:0, lastEnterTime:null };
 
     snapshot.forEach(doc => {
       const data = doc.data();
-      const table = data.table;
-      const timestamp = data.timestamp;
-      if (!table || !timestamp) return;
-
+      const t = data.table, ts = data.timestamp;
+      if (!t || !ts) return;
       if (data.type === "enter") entries++;
       if (data.type === "exit") exits++;
       if (data.type === "wait") waiting++;
 
-      if (tableCounts[table]) {
+      if (tableCounts[t]) {
         if (data.type === "enter") {
-          tableCounts[table].enter++;
-          if (!tableCounts[table].lastEnterTime || new Date(tableCounts[table].lastEnterTime) < new Date(timestamp)) {
-            tableCounts[table].lastEnterTime = timestamp;
-          }
+          tableCounts[t].enter++;
+          if (!tableCounts[t].lastEnterTime || new Date(tableCounts[t].lastEnterTime) < new Date(ts)) tableCounts[t].lastEnterTime = ts;
         }
-        if (data.type === "exit") tableCounts[table].exit++;
+        if (data.type === "exit") tableCounts[t].exit++;
       }
     });
 
@@ -229,18 +218,21 @@
     const ctxOccupancy = document.getElementById('occupancyLineChart').getContext('2d');
     occupancyLineChart = new Chart(ctxOccupancy, {
       type: 'line',
-      data: { labels: [], datasets: [{ label: '入店人数', data: [], borderColor: 'rgba(75, 192, 192, 1)', backgroundColor: 'rgba(75, 192, 192, 0.2)', fill: true, tension: 0.3 }] },
-      options: { responsive: true, plugins: { legend: { display: true } } }
+      data: { labels: [], datasets: [{ label:'入店人数', data:[], borderColor:'#3498db', backgroundColor:'rgba(52,152,219,0.2)', fill:true, tension:0.3 }] },
+      options: { responsive:true }
     });
 
     const ctxSeat = document.getElementById('seatPieChart').getContext('2d');
-    seatPieChart = new Chart(ctxSeat, { type: 'pie', data: { labels: ['空席', '利用中'], datasets: [{ data: [0,0], backgroundColor: ['#2ecc71', '#e74c3c'] }] }, options: { responsive: true } });
+    seatPieChart = new Chart(ctxSeat, { type:'pie', data:{ labels:['空席','利用中'], datasets:[{ data:[0,0], backgroundColor:['#2ecc71','#e74c3c'] }] }, options:{ responsive:true } });
 
-    const ctxTableUsage = document.getElementById('tableUsageBarChart').getContext('2d');
-    tableUsageBarChart = new Chart(ctxTableUsage, { type: 'bar', data: { labels: Array.from({length:14}, (_,i)=>`テーブル${i+1}`), datasets: [{ label:'使用回数', data: Array(14).fill(0), backgroundColor:'#3498db' }] }, options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} } });
+    const ctxUsage = document.getElementById('tableUsageBarChart').getContext('2d');
+    tableUsageBarChart = new Chart(ctxUsage, { type:'bar', data:{ labels:Array.from({length:14},(_,i)=>`テーブル${i+1}`), datasets:[{ label:'使用回数', data:Array(14).fill(0), backgroundColor:'#3498db' }] }, options:{ responsive:true, scales:{y:{beginAtZero:true}} } });
 
-    const ctxTableAvg = document.getElementById('tableAvgTimeBarChart').getContext('2d');
-    tableAvgTimeBarChart = new Chart(ctxTableAvg, { type: 'bar', data: { labels: Array.from({length:14}, (_,i)=>`テーブル${i+1}`), datasets:[{ label:'平均滞在時間（分）', data:Array(14).fill(0), backgroundColor:'#f1c40f' }] }, options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} } });
+    const ctxAvg = document.getElementById('tableAvgTimeBarChart').getContext('2d');
+    tableAvgTimeBarChart = new Chart(ctxAvg, { type:'bar', data:{ labels:Array.from({length:14},(_,i)=>`テーブル${i+1}`), datasets:[{ label:'平均滞在時間（分）', data:Array(14).fill(0), backgroundColor:'#f1c40f' }] }, options:{ responsive:true, scales:{y:{beginAtZero:true}} } });
+
+    const ctxActivity = document.getElementById('activityLineChart').getContext('2d');
+    activityLineChart = new Chart(ctxActivity, { type:'line', data:{ labels:[], datasets:[{ label:'過去30日入店数', data:[], borderColor:'#e74c3c', fill:false, tension:0.2 }] }, options:{ responsive:true, scales:{y:{beginAtZero:true}} } });
   }
 
   function updateCharts() {
@@ -248,25 +240,52 @@
     const timeLabel = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
     const currentCount = parseInt(document.getElementById("count").textContent) || 0;
 
-    occupancyHistory.push({time: timeLabel, count: currentCount});
-    if (occupancyHistory.length > 20) occupancyHistory.shift();
+    occupancyHistory.push({time:timeLabel,count:currentCount});
+    if(occupancyHistory.length>20) occupancyHistory.shift();
     occupancyLineChart.data.labels = occupancyHistory.map(d=>d.time);
     occupancyLineChart.data.datasets[0].data = occupancyHistory.map(d=>d.count);
     occupancyLineChart.update();
 
-    const occupied = Object.values(tableCounts).filter(t => (t.enter - t.exit) > 0).length;
-    const empty = 14 - occupied;
-    seatPieChart.data.datasets[0].data = [empty, occupied];
+    const occupied = Object.values(tableCounts).filter(t=>t.enter-t.exit>0).length;
+    seatPieChart.data.datasets[0].data = [14-occupied, occupied];
     seatPieChart.update();
 
-    tableUsageBarChart.data.datasets[0].data = Object.values(tableCounts).map(t => t.enter);
+    tableUsageBarChart.data.datasets[0].data = Object.values(tableCounts).map(t=>t.enter);
     tableUsageBarChart.update();
 
-    tableAvgTimeBarChart.data.datasets[0].data = Object.values(tableCounts).map(t => {
-      const totalMs = (t.enter - t.exit > 0 && t.lastEnterTime) ? (new Date() - new Date(t.lastEnterTime)) : 0;
-      return totalMs / 60000;
+    tableAvgTimeBarChart.data.datasets[0].data = Object.values(tableCounts).map(t=>{
+      const ms = (t.enter - t.exit > 0 && t.lastEnterTime) ? new Date() - new Date(t.lastEnterTime) : 0;
+      return ms/60000;
     });
     tableAvgTimeBarChart.update();
+  }
+
+  async function loadPast30Days() {
+    const snapshot = await db.collection("logs").get();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const counts = Array(30).fill(0);
+    const labels = [];
+
+    for(let i=29;i>=0;i--){
+      const d = new Date(today); d.setDate(today.getDate()-i);
+      labels.push(`${d.getMonth()+1}/${d.getDate()}`);
+    }
+
+    snapshot.forEach(doc=>{
+      const data = doc.data();
+      if(data.type!=="enter") return;
+      let ts = data.timestamp;
+      if(ts?.toDate) ts = ts.toDate();
+      ts.setHours(0,0,0,0);
+      const diff = Math.floor((today-ts)/(1000*60*60*24));
+      if(diff>=0 && diff<30) counts[29-diff]++;
+    });
+
+    activityLineChart.data.labels = labels;
+    activityLineChart.data.datasets[0].data = counts;
+    activityLineChart.update();
+
+    document.getElementById("todayCount").textContent = counts[29];
   }
 
   window.onload = () => {
@@ -275,16 +294,17 @@
     const today = new Date();
     today.setHours(0,0,0,0);
 
-    // Firestore snapshot取得
     db.collection("logs")
       .where("timestamp", ">=", today.toISOString())
       .onSnapshot(snapshot => { countVisitors(snapshot); updateCharts(); });
 
-    setInterval(() => { updateTableDisplays(); updateCharts(); }, 600);
+    loadPast30Days();
+
+    setInterval(()=>{ updateTableDisplays(); updateCharts(); }, 600);
 
     const menuButton = document.querySelector(".menu-button");
     const drawer = document.querySelector(".drawer");
-    menuButton.addEventListener("click", () => drawer.classList.toggle("open"));
+    menuButton.addEventListener("click", ()=>drawer.classList.toggle("open"));
   };
 </script>
 
