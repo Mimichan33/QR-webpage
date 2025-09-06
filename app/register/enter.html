@@ -168,8 +168,6 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const tableId = params.get("table");
-
 
     async function processEntry() {
       const params = new URLSearchParams(location.search);
@@ -255,6 +253,7 @@ function watchQueue(tableId) {
 
 </body>
 </html>
+
 
 
 
