@@ -202,7 +202,14 @@ if (!token || !table) {
           
 
           const displayRef = db.collection("display_queue").doc(`table_${table}`);
-          displayRef.update({ status: "scanned" });
+const docSnap = await displayRef.get();
+
+if (docSnap.exists) {
+  await displayRef.update({ status: "scanned" });
+} else {
+  await displayRef.set({ status: "scanned" }); // 新規作成
+}
+
 
 
           // ローディング表示開始
@@ -253,6 +260,7 @@ if (!token || !table) {
 
 </body>
 </html>
+
 
 
 
