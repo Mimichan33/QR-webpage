@@ -355,33 +355,73 @@
       return minutes;
     });
     tableAvgTimeBarChart.update();
-
-        const weekdayUsageChart = new Chart(document.getElementById('weekdayUsageChart'), {
-      type: 'bar',
-      data: {
-        labels: ['日','月','火','水','木','金','土'],
-        datasets: [{
-          label: '曜日別入店数',
-          data: [10, 20, 15, 25, 30, 22, 18],
-          backgroundColor: '#16a085'
-        }]
-      },
-      options: { responsive: true, scales: { y: { beginAtZero: true } } }
-    });
-
-    const hourlyPeakChart = new Chart(document.getElementById('hourlyPeakChart'), {
-      type: 'bar',
-      data: {
-        labels: Array.from({length:24}, (_,i)=>`${i}時`),
-        datasets: [{
-          label: '時間帯別入店数',
-          data: [2,1,0,0,0,3,5,8,10,12,14,16,15,13,10,8,6,5,7,9,6,4,3,2],
-          backgroundColor: '#d35400'
-        }]
-      },
-      options: { responsive: true, scales: { y: { beginAtZero: true } } }
-    });
   }
+        async function loadActivityData() {
+      const logsRef = collection(db, "logs");
+      const q = query(logsRef, where("status", "==", "enter"), orderBy("timestamp"));
+      const snapshot = await getDocs(q);
+
+      // 過去30日分のカウントを初期化
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const days = [];
+      const counts = Array(30).fill(0);
+
+      for (let i=29; i>=0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        days.push(`${d.getMonth()+1}/${d.getDate()}`);
+      }
+
+      // データを日ごとにカウント
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.timestamp?.toDate) {
+          const ts = data.timestamp.toDate();
+          ts.setHours(0,0,0,0);
+          const diff = Math.floor((today - ts) / (1000*60*60*24));
+          if (diff >= 0 && diff < 30) {
+            counts[29-diff]++;
+          }
+        }
+      });
+
+      // 折れ線グラフ描画
+      const ctx = document.getElementById("activityLineChart").getContext("2d");
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: days,
+          datasets: [
+            {
+              label: "1日",
+              data: counts.map((c,i)=> i===29? c: null),
+              borderColor: "#e74c3c",
+              tension: 0.2
+            },
+            {
+              label: "7日間",
+              data: counts.map((c,i)=> i>=23? c: null),
+              borderColor: "#3498db",
+              tension: 0.2
+            },
+            {
+              label: "30日間",
+              data: counts,
+              borderColor: "#2ecc71",
+              tension: 0.2
+            }
+          ]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+
+      // 今日の入店者数を表示
+      document.getElementById("todayCount").innerText = counts[29];
+    }
+
+    loadActivityData();
+
 
   // 初期化
   window.onload = () => {
@@ -469,6 +509,13 @@
     <div style="flex: 1 1 400px; max-width: 500px;">
       <canvas id="tableAvgTimeBarChart" width="400" height="300"></canvas>
     </div>
+  </div>
+
+  <div class="chart-container">
+    <!-- 新しい折れ線グラフ -->
+    <div class="chart-box"><canvas id="activityLineChart"></canvas></div>
+    <!-- 今日の入店者数（数字） -->
+    <div class="chart-box"><div id="todayCount" class="number-box">0</div></div>
   </div>
 
       <h2>全体状況</h2>
