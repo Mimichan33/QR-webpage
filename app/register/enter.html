@@ -199,17 +199,6 @@ if (!token || !table) {
             timestamp: new Date().toISOString()
           });
           localStorage.setItem("entered", "true");
-          
-
-          const displayRef = db.collection("display_queue").doc(`table_${table}`);
-const docSnap = await displayRef.get();
-
-if (docSnap.exists) {
-  await displayRef.update({ status: "scanned" });
-} else {
-  await displayRef.set({ status: "scanned" }); // 新規作成
-}
-
 
 
           // ローディング表示開始
@@ -251,6 +240,7 @@ if (docSnap.exists) {
 
 </body>
 </html>
+
 
 
 
