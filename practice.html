@@ -7,6 +7,8 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     body {
       font-family: 'Helvetica Neue', sans-serif;
@@ -353,6 +355,32 @@
       return minutes;
     });
     tableAvgTimeBarChart.update();
+
+        const weekdayUsageChart = new Chart(document.getElementById('weekdayUsageChart'), {
+      type: 'bar',
+      data: {
+        labels: ['日','月','火','水','木','金','土'],
+        datasets: [{
+          label: '曜日別入店数',
+          data: [10, 20, 15, 25, 30, 22, 18],
+          backgroundColor: '#16a085'
+        }]
+      },
+      options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+
+    const hourlyPeakChart = new Chart(document.getElementById('hourlyPeakChart'), {
+      type: 'bar',
+      data: {
+        labels: Array.from({length:24}, (_,i)=>`${i}時`),
+        datasets: [{
+          label: '時間帯別入店数',
+          data: [2,1,0,0,0,3,5,8,10,12,14,16,15,13,10,8,6,5,7,9,6,4,3,2],
+          backgroundColor: '#d35400'
+        }]
+      },
+      options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
   }
 
   // 初期化
@@ -420,6 +448,10 @@
     
     <section>
       <h2>グラフで見る混雑状況</h2>
+          <div style="display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; margin-top:40px;">
+    <div class="chart-box"><canvas id="weekdayUsageChart"></canvas></div>
+    <div class="chart-box"><canvas id="hourlyPeakChart"></canvas></div>
+
   <div style="display: flex; flex-wrap: wrap; gap: 30px; justify-content: center;">
     <!-- 入店人数推移 -->
     <div style="flex: 1 1 400px; max-width: 500px;">
@@ -438,7 +470,6 @@
       <canvas id="tableAvgTimeBarChart" width="400" height="300"></canvas>
     </div>
   </div>
-      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
       <h2>全体状況</h2>
       <p>現在の入店者数: <span id="count">読み込み中...</span></p>
