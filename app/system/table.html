@@ -230,6 +230,8 @@
           <th>状態</th>
           <th>使用開始時刻</th>
           <th>利用時間（分）</th>
+          <th>クリア</th>
+
         </tr>
       </thead>
       <tbody></tbody>
@@ -283,7 +285,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getFirestore, collection, query, orderBy, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, doc, addDoc,setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
@@ -464,6 +466,12 @@ drawCharts();
         <td>${info.status === "occupied" ? "使用中" : "空席"}</td>
         <td>${info.startTime ? info.startTime.toLocaleString() : "-"}</td>
         <td class="usage-time">${duration}</td>
+        <td>
+      ${info.status === "occupied" 
+        ? `<button onclick="forceExit('${tableId}', '${info.deviceId}')">強制退出</button>`
+        : "-"
+      }
+    </td>
       `;
       tbody.appendChild(tr);
     }
@@ -628,6 +636,36 @@ clearFilters.addEventListener("click", () => {
 [searchTableId, searchDevice, searchOSBrowser, searchStartDate, searchEndDate].forEach(input => {
   input.addEventListener("input", filterAndDisplayLogs);
 });
+
+
+
+
+window.forceExit = async function(tableId, deviceId) {
+  if (!confirm(`テーブル ${tableId} を強制退出させますか？`)) return;
+
+  try {
+    // 1. logs に exit を追加
+    await addDoc(collection(db, "logs"), {
+      table: tableId,
+      device: deviceId,
+      type: "exit",
+      timestamp: new Date().toISOString()
+    });
+
+    // 2. tables の状態を vacant に更新
+    await setDoc(doc(db, "tables", tableId), {
+      status: "vacant"
+    });
+
+    alert("強制退出しました");
+
+  } catch (err) {
+    console.error("強制退出エラー:", err);
+    alert("強制退出に失敗しました");
+  }
+};
+
+
 
 onSnapshot(query(collection(db, "logs"), orderBy("timestamp")), snapshot => {
   allLogs = [];
