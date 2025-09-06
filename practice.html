@@ -283,7 +283,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, doc, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, doc, addDoc,setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
@@ -651,14 +651,14 @@ window.forceExit = async function(tableId, deviceId) {
     });
 
     // 2. tables の状態を vacant に更新
-    await updateDoc(doc(db, "tables", tableId), {
+    await setDoc(doc(db, "tables", tableId), {
       status: "vacant"
     });
 
     alert("強制退出しました");
 
     // 3. 画面遷移
-    window.location.href = "exit_display.html"; // 遷移先のページ
+    window.location.href = "exit.html"; // 遷移先のページ
   } catch (err) {
     console.error("強制退出エラー:", err);
     alert("強制退出に失敗しました");
