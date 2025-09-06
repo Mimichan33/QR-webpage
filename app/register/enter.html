@@ -171,8 +171,9 @@
     　 const params = new URLSearchParams(location.search);
       const table = params.get("table");
       const token = params.get("token");
-      if (!token || !table) return location.href = "error.html";
-
+if (!token || !table) {
+  location.href = "error.html";
+}
     async function processEntry() {
 
 
@@ -252,6 +253,7 @@
 
 </body>
 </html>
+
 
 
 
