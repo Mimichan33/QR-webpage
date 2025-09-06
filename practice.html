@@ -370,38 +370,6 @@
   <a href="histogram.html">統計</a>
 </div>
 
-<main>
-<h2>現在の混雑状況</h2>
-<p>現在の入店人数: <span class="number-box" id="count">0</span></p>
-<p>入店数: <span id="entries">0</span> | 退店数: <span id="exits">0</span></p>
-<p>本日の入店人数: <span id="todayCount">0</span></p>
-
-<h2>テーブル状況</h2>
-<div id="tables">
-  <p id="table1-status"></p>
-  <p id="table2-status"></p>
-  <p id="table3-status"></p>
-  <p id="table4-status"></p>
-  <p id="table5-status"></p>
-  <p id="table6-status"></p>
-  <p id="table7-status"></p>
-  <p id="table8-status"></p>
-  <p id="table9-status"></p>
-  <p id="table10-status"></p>
-  <p id="table11-status"></p>
-  <p id="table12-status"></p>
-  <p id="table13-status"></p>
-  <p id="table14-status"></p>
-</div>
-
-<h2>グラフ</h2>
-<div class="chart-container">
-  <div class="chart-box"><canvas id="occupancyLineChart"></canvas></div>
-  <div class="chart-box"><canvas id="seatPieChart"></canvas></div>
-  <div class="chart-box"><canvas id="tableUsageBarChart"></canvas></div>
-  <div class="chart-box"><canvas id="tableAvgTimeBarChart"></canvas></div>
-  <div class="chart-box" style="width:90%"><canvas id="activityLineChart"></canvas></div>
-</div>
-</main>
+<main> <section id="hero" class="full-width-section"> <div style="max-width: 1000px;margin: 0 auto;"> <h1 style="font-size: 2.5em; font-weight: bold; color: #2c3e50; margin-bottom: 20px;"> 店内の混雑状況を<br>リアルタイムで見える化 </h1> <p style="font-size: 1.2em; color: #34495e; margin-bottom: 40px;"> お客様の安心と業務効率化を両立する<br>スマートな混雑管理ソリューション </p> </div> <img src="https://corp.vacan.com/wp-content/themes/vacan/assets/images/other/lp/hotel/bg_city.svg" alt="背景都市イラスト" style="width: 100%; height: auto; object-fit: cover; display: block;"> </section> <section> <h2>グラフで見る混雑状況</h2> <div style="display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; margin-top:40px;"> <div class="chart-box"><canvas id="weekdayUsageChart"></canvas></div> <div class="chart-box"><canvas id="hourlyPeakChart"></canvas></div> <div style="display: flex; flex-wrap: wrap; gap: 30px; justify-content: center;"> <!-- 入店人数推移 --> <div style="flex: 1 1 400px; max-width: 500px;"> <canvas id="occupancyLineChart" width="400" height="300"></canvas> </div> <!-- 空席 vs 利用中 --> <div style="flex: 1 1 400px; max-width: 500px;"> <canvas id="seatPieChart" width="400" height="300"></canvas> </div> <!-- テーブル別使用率 --> <div style="flex: 1 1 400px; max-width: 500px;"> <canvas id="tableUsageBarChart" width="400" height="300"></canvas> </div> <!-- テーブル別平均滞在時間 --> <div style="flex: 1 1 400px; max-width: 500px;"> <canvas id="tableAvgTimeBarChart" width="400" height="300"></canvas> </div> </div> <section class="chart-section"> <h2>過去30日間の入店人数推移</h2> <div style="max-width: 1000px; margin: 0 auto;"> <canvas id="activityLineChart" style="width:100%; height:400px;"></canvas> </div> <div style="text-align:center; margin-top:10px;"> 今日の入店者数: <span id="todayCount" class="number-box">0</span> </div> </section> <h2>全体状況</h2> <p>現在の入店者数: <span id="count">読み込み中...</span></p> <p>累計入店数: <span id="entries">-</span></p> <p>累計退店数: <span id="exits">-</span></p> </section> <section id="tables"> <h2>テーブル別 使用状況（時刻）</h2> <p>テーブル1：<span id="table1-status">読み込み中...</span></p> <p>テーブル2：<span id="table2-status">読み込み中...</span></p> <p>テーブル3：<span id="table3-status">読み込み中...</span></p> <p>テーブル4：<span id="table4-status">読み込み中...</span></p> <p>テーブル5：<span id="table5-status">読み込み中...</span></p> <p>テーブル6：<span id="table6-status">読み込み中...</span></p> <p>テーブル7：<span id="table7-status">読み込み中...</span></p> <p>テーブル8：<span id="table8-status">読み込み中...</span></p> <p>テーブル9：<span id="table9-status">読み込み中...</span></p> <p>テーブル10：<span id="table10-status">読み込み中...</span></p> <p>テーブル11：<span id="table11-status">読み込み中...</span></p> <p>テーブル12：<span id="table12-status">読み込み中...</span></p> <p>テーブル13：<span id="table13-status">読み込み中...</span></p> <p>テーブル14：<span id="table14-status">読み込み中...</span></p> </section> <h2>店内マップ</h2> <iframe src="map.html" width="850" height="650" style="border: 2px solid #444; border-radius: 8px;"></iframe> </main>
 </body>
 </html>
