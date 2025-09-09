@@ -58,6 +58,118 @@
       border:none;
       border-radius:16px;
     }
+
+    header {
+      background-color: #2c3e50;
+      color: white;
+      position: relative;
+      margin-bottom: 0;
+      padding-bottom: 0; 
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+    }
+
+    .header-title {
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+
+    .header-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .header-links a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .header-links a:hover {
+      text-decoration: underline;
+    }
+
+    .full-width-section {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+
+  background: #e0f7da;
+  padding: 60px 0;
+  text-align: center;
+  margin-top: 0 !important; 
+}
+
+    /* ハンバーガーメニュー */
+    .menu-button {
+      position: absolute;
+      left: 20px;
+      top: 12px;
+      width: 30px;
+      height: 24px;
+      cursor: pointer;
+      z-index: 1001;
+    }
+
+    .menu-button span {
+      display: block;
+      height: 4px;
+      background: white;
+      margin: 5px 0;
+      transition: 0.4s;
+    }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      left: -250px;
+      width: 250px;
+      height: 100%;
+      background-color: #34495e;
+      color: white;
+      transition: 0.3s;
+      z-index: 1000;
+      padding-top: 60px;
+    }
+
+    .drawer.open {
+      left: 0;
+    }
+
+    .drawer a {
+      display: block;
+      padding: 15px 20px;
+      text-decoration: none;
+      color: white;
+      font-weight: bold;
+      border-bottom: 1px solid #2c3e50;
+    }
+
+    .drawer a:hover {
+      background-color: #2c3e50;
+    }
+
+    main {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+
+    h2 {
+      margin-top: 40px;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #2c3e50;
+      padding-bottom: 5px;
+    }
+
   </style>
 </head>
 <body>
