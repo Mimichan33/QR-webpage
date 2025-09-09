@@ -86,7 +86,7 @@
     </div>
 
     <div class="card">
-      <h2>使用率（本日）</h2>
+      <h2>テーブル使用率（本日）</h2>
       <canvas id="todayPieChart"></canvas>
     </div>
 
@@ -101,8 +101,8 @@
     </div>
 
     <div class="card">
-      <h2>過去30日：7日移動平均</h2>
-      <canvas id="movingAvgLineChart"></canvas>
+      <h2>過去7日間 入店者数推移</h2>
+      <canvas id="past7DaysChart"></canvas>
     </div>
 
     <div class="card">
@@ -125,7 +125,7 @@
       </div>
     </div>
 
-    <!-- 9番目に店内マップを追加 -->
+    <!-- 店内マップ -->
     <div class="card">
       <h2>店内マップ</h2>
       <iframe src="map.html"></iframe>
@@ -145,7 +145,7 @@
     const db = firebase.firestore();
 
     const tableCounts = {};
-    let todayLineChart, activityLineChart, todayPieChart, weekdayBarChart, hourlyBarChart, movingAvgLineChart;
+    let todayLineChart, activityLineChart, todayPieChart, weekdayBarChart, hourlyBarChart, past7DaysChart;
 
     function toDateFromTimestamp(maybeTs) {
       if (!maybeTs) return null;
@@ -157,15 +157,8 @@
     function formatTimestamp(isoString) {
       if (!isoString) return "ー";
       const date = new Date(isoString);
-      const options = {
-        timeZone: "Asia/Tokyo",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit"
-      };
-      return new Intl.DateTimeFormat("ja-JP", options).format(date).replace(/\//g, "-").replace(",", "");
+      const options = {timeZone:"Asia/Tokyo", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"};
+      return new Intl.DateTimeFormat("ja-JP", options).format(date).replace(/\//g,"-").replace(",", "");
     }
 
     function calculateElapsedTime(isoString) {
@@ -174,10 +167,10 @@
       const now = new Date();
       const diffMs = now - start;
       if (diffMs < 0) return "";
-      const minutes = Math.floor(diffMs / 60000);
-      const hours = Math.floor(minutes / 60);
-      const remainingMinutes = minutes % 60;
-      return hours > 0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
+      const minutes = Math.floor(diffMs/60000);
+      const hours = Math.floor(minutes/60);
+      const remainingMinutes = minutes%60;
+      return hours>0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
     }
 
     function updateTableDisplays() {
@@ -189,9 +182,7 @@
         const timeText = timeToShow ? formatTimestamp(timeToShow) : "ー";
         const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
         const element = document.getElementById(`table${tableNum}-status`);
-        if (element) {
-          element.textContent = `テーブル${tableNum}: ${status}（${timeText}${elapsed}）`;
-        }
+        if (element) element.textContent = `テーブル${tableNum}: ${status}（${timeText}${elapsed}）`;
       });
     }
 
@@ -200,231 +191,208 @@
       let exits = 0;
       let waiting = 0;
 
-      for (let i = 1; i <= 14; i++) {
-        if (!tableCounts[i.toString()]) {
-          tableCounts[i.toString()] = { enter: 0, exit: 0, lastEnterTime: null };
-        } else {
-          tableCounts[i.toString()].enter = 0;
-          tableCounts[i.toString()].exit = 0;
-          tableCounts[i.toString()].lastEnterTime = tableCounts[i.toString()].lastEnterTime || null;
-        }
+      for (let i=1;i<=14;i++){
+        if(!tableCounts[i]) tableCounts[i]={enter:0, exit:0, lastEnterTime:null};
+        else { tableCounts[i].enter=0; tableCounts[i].exit=0; tableCounts[i].lastEnterTime=tableCounts[i].lastEnterTime||null;}
       }
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (!data || !data.type) return;
-        const type = data.type;
-        const table = data.table;
-        const tsRaw = data.timestamp;
-        const tsDate = toDateFromTimestamp(tsRaw);
+      snapshot.forEach(doc=>{
+        const data=doc.data();
+        if(!data || !data.type) return;
+        const type=data.type;
+        const table=data.table;
+        const tsRaw=data.timestamp;
+        const tsDate=toDateFromTimestamp(tsRaw);
 
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        if (tsDate < today) return; // 本日だけ
+        const today=new Date(); today.setHours(0,0,0,0);
+        if(tsDate<today) return;
 
-        if (type === "enter") entries++;
-        if (type === "exit") exits++;
-        if (type === "wait") waiting++;
+        if(type==="enter") entries++;
+        if(type==="exit") exits++;
+        if(type==="wait") waiting++;
 
-        if (table !== undefined && table !== null) {
-          const key = String(table);
-          if (!tableCounts[key]) {
-            tableCounts[key] = { enter: 0, exit: 0, lastEnterTime: null };
+        if(table!==undefined && table!==null){
+          const key=String(table);
+          if(!tableCounts[key]) tableCounts[key]={enter:0, exit:0, lastEnterTime:null};
+          if(type==="enter"){
+            tableCounts[key].enter=(tableCounts[key].enter||0)+1;
+            const prev = tableCounts[key].lastEnterTime?toDateFromTimestamp(tableCounts[key].lastEnterTime):null;
+            if(!prev || (tsDate && tsDate>prev)) tableCounts[key].lastEnterTime=tsDate?tsDate.toISOString():tableCounts[key].lastEnterTime;
           }
-          if (type === "enter") {
-            tableCounts[key].enter = (tableCounts[key].enter || 0) + 1;
-            const prev = tableCounts[key].lastEnterTime ? toDateFromTimestamp(tableCounts[key].lastEnterTime) : null;
-            if (!prev || (tsDate && tsDate > prev)) {
-              tableCounts[key].lastEnterTime = tsDate ? tsDate.toISOString() : tableCounts[key].lastEnterTime;
-            }
-          }
-          if (type === "exit") {
-            tableCounts[key].exit = (tableCounts[key].exit || 0) + 1;
-          }
+          if(type==="exit") tableCounts[key].exit=(tableCounts[key].exit||0)+1;
         }
       });
 
-      const currentInside = Object.values(tableCounts).reduce((acc, t) => acc + Math.max((t.enter || 0) - (t.exit || 0),0),0);
-      const totalTables = Object.keys(tableCounts).length;
-      const emptyTables = totalTables - currentInside;
+      document.getElementById("count").textContent=Math.max(0, entries-exits);
+      document.getElementById("entries").textContent=entries;
+      document.getElementById("exits").textContent=exits;
+      document.getElementById("waitingCount").textContent=waiting;
 
-      document.getElementById("count").textContent = currentInside;
-      document.getElementById("entries").textContent = entries;
-      document.getElementById("exits").textContent = exits;
-      document.getElementById("waitingCount").textContent = waiting;
-
-      if (todayPieChart && todayPieChart.data && todayPieChart.data.datasets && todayPieChart.data.datasets[0]) {
-        todayPieChart.data.datasets[0].data = [currentInside, emptyTables];
-        todayPieChart.data.labels = ["使用中", "空席"];
+      // 使用率に変更
+      if(todayPieChart && todayPieChart.data && todayPieChart.data.datasets && todayPieChart.data.datasets[0]){
+        const occupied = Object.values(tableCounts).filter(t=>(t.enter||0)-(t.exit||0)>0).length;
+        const vacant = 14 - occupied;
+        todayPieChart.data.datasets[0].data = [occupied, vacant];
+        todayPieChart.data.labels = ["使用中","空席"];
         todayPieChart.update();
       }
 
       updateTableDisplays();
     }
 
-    function updateTodayLine(snapshot) {
-      const hours = Array(24).fill(0);
-      // 各時間ごとの滞在人数
-      for (let h = 0; h < 24; h++) {
-        let count = 0;
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          if (!data || !data.timestamp || !data.type) return;
-          const ts = toDateFromTimestamp(data.timestamp);
-          if (!ts) return;
-          const today = new Date();
-          today.setHours(0,0,0,0);
-          if (ts < today) return;
-
-          if (data.type === "enter") {
-            const table = data.table;
-            const enterTime = ts;
-            // 退店時間を探す
-            const exitDoc = snapshot.docs.find(d => {
-              const dData = d.data();
-              return dData.table === table && dData.type === "exit" && toDateFromTimestamp(dData.timestamp) > enterTime;
-            });
-            const exitTime = exitDoc ? toDateFromTimestamp(exitDoc.data().timestamp) : new Date(); // 未退店なら現在時刻
-            if (h >= enterTime.getHours() && h <= exitTime.getHours()) count++;
-          }
-        });
-        hours[h] = count;
-      }
-
-      if (todayLineChart && todayLineChart.data && todayLineChart.data.datasets) {
-        todayLineChart.data.datasets[0].data = hours;
+    function updateTodayLine(snapshot){
+      const hours=Array(24).fill(0);
+      snapshot.forEach(doc=>{
+        const data=doc.data();
+        if(!data || !data.type) return;
+        if(data.type!=="enter") return;
+        const ts=toDateFromTimestamp(data.timestamp)||new Date();
+        const today=new Date(); today.setHours(0,0,0,0);
+        if(ts<today) return;
+        const h=ts.getHours();
+        hours[h] = (hours[h]||0)+1;
+      });
+      if(todayLineChart && todayLineChart.data && todayLineChart.data.datasets){
+        todayLineChart.data.datasets[0].data=hours;
         todayLineChart.update();
       }
     }
 
-    async function loadPast30DaysAndMovingAvg() {
-      const snapshot = await db.collection("logs").get();
-      const today = new Date();
-      today.setHours(0,0,0,0);
-
-      const counts30 = Array(30).fill(0);
-      const labels = [];
-      for (let i = 29; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
+    async function loadPast30Days(){
+      const snapshot=await db.collection("logs").get();
+      const today=new Date(); today.setHours(0,0,0,0);
+      const counts30=Array(30).fill(0);
+      const labels=[];
+      for(let i=29;i>=0;i--){
+        const d=new Date(today); d.setDate(today.getDate()-i);
         labels.push(`${d.getMonth()+1}/${d.getDate()}`);
       }
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (!data || data.type !== "enter") return;
-        const ts = toDateFromTimestamp(data.timestamp);
-        if (!ts) return;
-        const dayStart = new Date(ts);
-        dayStart.setHours(0,0,0,0);
-        const diff = Math.floor((today - dayStart) / (1000*60*60*24));
-        if (diff >= 0 && diff < 30) {
-          counts30[29 - diff] = (counts30[29 - diff] || 0) + 1;
-        }
+      snapshot.forEach(doc=>{
+        const data=doc.data();
+        if(!data || data.type!=="enter") return;
+        const ts=toDateFromTimestamp(data.timestamp);
+        if(!ts) return;
+        const dayStart=new Date(ts); dayStart.setHours(0,0,0,0);
+        const diff=Math.floor((today-dayStart)/(1000*60*60*24));
+        if(diff>=0 && diff<30) counts30[29-diff]=(counts30[29-diff]||0)+1;
       });
 
-      if (activityLineChart) {
-        activityLineChart.data.labels = labels;
-        activityLineChart.data.datasets[0].data = counts30;
+      if(activityLineChart){
+        activityLineChart.data.labels=labels;
+        activityLineChart.data.datasets[0].data=counts30;
         activityLineChart.update();
       }
+    }
 
-      const windowSize = 7;
-      const moving = counts30.map((_, idx, arr) => {
-        const start = Math.max(0, idx - (windowSize - 1));
-        const slice = arr.slice(start, idx + 1);
-        const sum = slice.reduce((a,b)=>a+b, 0);
-        return +(sum / slice.length).toFixed(2);
+    async function loadWeekdayStats(){
+      const snapshot=await db.collection("logs").get();
+      const weekdayCounts=Array(7).fill(0);
+      snapshot.forEach(doc=>{
+        const data=doc.data();
+        if(!data || data.type!=="enter") return;
+        const ts=toDateFromTimestamp(data.timestamp);
+        if(!ts) return;
+        const day=ts.getDay();
+        weekdayCounts[day]=(weekdayCounts[day]||0)+1;
+      });
+      if(weekdayBarChart) { weekdayBarChart.data.datasets[0].data=weekdayCounts; weekdayBarChart.update();}
+    }
+
+    async function loadHourlyStats(){
+      const snapshot=await db.collection("logs").get();
+      const hourlyCounts=Array(24).fill(0);
+      snapshot.forEach(doc=>{
+        const data=doc.data();
+        if(!data || data.type!=="enter") return;
+        const ts=toDateFromTimestamp(data.timestamp);
+        if(!ts) return;
+        const h=ts.getHours();
+        hourlyCounts[h]=(hourlyCounts[h]||0)+1;
+      });
+      if(hourlyBarChart){hourlyBarChart.data.datasets[0].data=hourlyCounts; hourlyBarChart.update();}
+    }
+
+    async function loadPast7Days(){
+      const snapshot=await db.collection("logs").get();
+      const today=new Date(); today.setHours(0,0,0,0);
+      const labels=[], counts7=[];
+      for(let i=6;i>=0;i--){
+        const d=new Date(today); d.setDate(today.getDate()-i);
+        labels.push(`${d.getMonth()+1}/${d.getDate()}`);
+        counts7.push(0);
+      }
+
+      snapshot.forEach(doc=>{
+        const data=doc.data();
+        if(!data || data.type!=="enter") return;
+        const ts=toDateFromTimestamp(data.timestamp);
+        if(!ts) return;
+        const dayStart=new Date(ts); dayStart.setHours(0,0,0,0);
+        const diff=Math.floor((today-dayStart)/(1000*60*60*24));
+        if(diff>=0 && diff<7) counts7[6-diff]=(counts7[6-diff]||0)+1;
       });
 
-      if (movingAvgLineChart) {
-        movingAvgLineChart.data.labels = labels;
-        movingAvgLineChart.data.datasets[0].data = moving;
-        movingAvgLineChart.update();
+      if(past7DaysChart){
+        past7DaysChart.data.labels=labels;
+        past7DaysChart.data.datasets[0].data=counts7;
+        past7DaysChart.update();
       }
     }
 
-    async function loadWeekdayStats() {
-      const snapshot = await db.collection("logs").get();
-      const weekdayCounts = Array(7).fill(0);
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (!data || data.type !== "enter") return;
-        const ts = toDateFromTimestamp(data.timestamp);
-        if (!ts) return;
-        const day = ts.getDay();
-        weekdayCounts[day] = (weekdayCounts[day] || 0) + 1;
-      });
-      if (weekdayBarChart) {
-        weekdayBarChart.data.datasets[0].data = weekdayCounts;
-        weekdayBarChart.update();
-      }
-    }
-
-    async function loadHourlyStats() {
-      const snapshot = await db.collection("logs").get();
-      const hourlyCounts = Array(24).fill(0);
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (!data || data.type !== "enter") return;
-        const ts = toDateFromTimestamp(data.timestamp);
-        if (!ts) return;
-        const h = ts.getHours();
-        hourlyCounts[h] = (hourlyCounts[h] || 0) + 1;
-      });
-      if (hourlyBarChart) {
-        hourlyBarChart.data.datasets[0].data = hourlyCounts;
-        hourlyBarChart.update();
-      }
-    }
-
-    function initCharts() {
-      const ctxToday = document.getElementById("todayLineChart").getContext("2d");
-      todayLineChart = new Chart(ctxToday, {
-        type: 'line',
-        data: {
-          labels: Array.from({length:24}, (_,i)=>i+":00"),
-          datasets:[{label:"滞在人数", data:Array(24).fill(0), borderColor:"blue", backgroundColor:"rgba(0,0,255,0.2)", tension:0.2}]
-        }
+    function initCharts(){
+      const ctxToday=document.getElementById("todayLineChart").getContext("2d");
+      todayLineChart=new Chart(ctxToday,{
+        type:"line",
+        data:{labels:Array.from({length:24},(_,i)=>i+":00"), datasets:[{label:"滞在人数", data:Array(24).fill(0), borderColor:"blue", backgroundColor:"rgba(0,0,255,0.2)", tension:0.2}]}
       });
 
-      const ctxActivity = document.getElementById("activityLineChart").getContext("2d");
-      activityLineChart = new Chart(ctxActivity,{
+      const ctxActivity=document.getElementById("activityLineChart").getContext("2d");
+      activityLineChart=new Chart(ctxActivity,{
         type:"line",
         data:{labels:[], datasets:[{label:"過去30日入店数", data:[], borderColor:"green", backgroundColor:"rgba(0,255,0,0.2)", tension:0.2}]}
       });
 
-      const ctxTodayPie = document.getElementById("todayPieChart").getContext("2d");
-      todayPieChart = new Chart(ctxTodayPie,{
+      const ctxTodayPie=document.getElementById("todayPieChart").getContext("2d");
+      todayPieChart=new Chart(ctxTodayPie,{
         type:"pie",
-        data:{
-          labels:["使用中","空席"],
-          datasets:[{data:[0,0], backgroundColor:["red","blue"]}]
-        }
+        data:{labels:["使用中","空席"], datasets:[{data:[0,14], backgroundColor:["blue","red"]}]}
       });
 
-      const ctxWeekday = document.getElementById("weekdayBarChart").getContext("2d");
-      weekdayBarChart = new Chart(ctxWeekday,{type:"bar", data:{labels:["日","月","火","水","木","金","土"], datasets:[{label:"平均入店数", data:Array(7).fill(0), backgroundColor:"orange"}]} });
+      const ctxWeekday=document.getElementById("weekdayBarChart").getContext("2d");
+      weekdayBarChart=new Chart(ctxWeekday,{
+        type:"bar",
+        data:{labels:["日","月","火","水","木","金","土"], datasets:[{label:"平均入店数", data:Array(7).fill(0), backgroundColor:"orange"}]}
+      });
 
-      const ctxHourly = document.getElementById("hourlyBarChart").getContext("2d");
-      hourlyBarChart = new Chart(ctxHourly,{type:"bar", data:{labels:Array.from({length:24}, (_,i)=>i+":00"), datasets:[{label:"平均入店数", data:Array(24).fill(0), backgroundColor:"purple"}]} });
+      const ctxHourly=document.getElementById("hourlyBarChart").getContext("2d");
+      hourlyBarChart=new Chart(ctxHourly,{
+        type:"bar",
+        data:{labels:Array.from({length:24},(_,i)=>i+":00"), datasets:[{label:"平均入店数", data:Array(24).fill(0), backgroundColor:"purple"}]}
+      });
 
-      const ctxMoving = document.getElementById("movingAvgLineChart").getContext("2d");
-      movingAvgLineChart = new Chart(ctxMoving,{type:"line", data:{labels:[], datasets:[{label:"7日移動平均", data:[], borderColor:"red", backgroundColor:"rgba(255,0,0,0.2)", tension:0.2}]} });
-    }
-
-    function subscribeRealtime() {
-      db.collection("logs").orderBy("timestamp","asc").onSnapshot(snapshot => {
-        countVisitorsAndTables(snapshot);
-        updateTodayLine(snapshot);
+      const ctxPast7=document.getElementById("past7DaysChart").getContext("2d");
+      past7DaysChart=new Chart(ctxPast7,{
+        type:"line",
+        data:{labels:[], datasets:[{label:"過去7日入店数", data:[], borderColor:"teal", backgroundColor:"rgba(0,128,128,0.2)", tension:0.2}]}
       });
     }
 
-    initCharts();
-    subscribeRealtime();
-    loadPast30DaysAndMovingAvg();
-    loadWeekdayStats();
-    loadHourlyStats();
+    async function refreshData(){
+      const snapshot=await db.collection("logs").orderBy("timestamp").get();
+      countVisitorsAndTables(snapshot);
+      updateTodayLine(snapshot);
+      loadPast30Days();
+      loadWeekdayStats();
+      loadHourlyStats();
+      loadPast7Days();
+    }
+
+    window.onload=()=>{
+      initCharts();
+      refreshData();
+      setInterval(refreshData, 60000);
+    };
   </script>
 </body>
 </html>
