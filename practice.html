@@ -76,37 +76,12 @@
     </div>
 
     <div class="card">
-      <h2>本日の滞在人数（時間別・折れ線）</h2>
-      <canvas id="todayLineChart"></canvas>
-    </div>
-
-    <div class="card">
-      <h2>過去30日間 入店者数推移</h2>
-      <canvas id="activityLineChart"></canvas>
-    </div>
-
-    <div class="card">
-      <h2>テーブル使用率（本日）</h2>
+      <h2>テーブル使用率</h2>
       <canvas id="todayPieChart"></canvas>
     </div>
 
     <div class="card">
-      <h2>曜日ごとの平均入店数</h2>
-      <canvas id="weekdayBarChart"></canvas>
-    </div>
-
-    <div class="card">
-      <h2>時間帯別 平均入店数（過去30日）</h2>
-      <canvas id="hourlyBarChart"></canvas>
-    </div>
-
-    <div class="card">
-      <h2>過去7日間 入店者数推移</h2>
-      <canvas id="past7DaysChart"></canvas>
-    </div>
-
-    <div class="card">
-      <h2>テーブル状況（例）</h2>
+      <h2>テーブル状況</h2>
       <div id="tablesContainer" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:8px;">
         <div id="table1-status" class="badge">テーブル1: 読み込み中</div>
         <div id="table2-status" class="badge">テーブル2: 読み込み中</div>
@@ -131,6 +106,32 @@
       <iframe src="map.html"></iframe>
     </div>
   </div>
+
+    <div class="card">
+      <h2>曜日ごとの平均入店数</h2>
+      <canvas id="weekdayBarChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>時間帯別 平均入店数（過去30日）</h2>
+      <canvas id="hourlyBarChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>本日　入店者数推移</h2>
+      <canvas id="todayLineChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>過去7日間 入店者数推移</h2>
+      <canvas id="past7DaysChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>過去30日間 入店者数推移</h2>
+      <canvas id="activityLineChart"></canvas>
+    </div>
+
 
   <script>
     const firebaseConfig = {
