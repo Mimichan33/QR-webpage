@@ -4,75 +4,14 @@
   <meta charset="UTF-8">
   <title>ダッシュボード</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f0f2f5;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-      gap: 20px;
-    }
-    .card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
-    .stat {
-      font-size: 18px;
-      margin: 5px 0;
-    }
-    canvas {
-      max-width: 100%;
-      height: 320px !important;
-    }
-  </style>
-</head>
-<body>
-  <h1>入店者ダッシュボード</h1>
+  <script type="module">
+    // =========================
+    // Firebase 初期化
+    // =========================
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-  <div class="grid">
-    <div class="card">
-      <h2>本日の入退店数</h2>
-      <p class="stat">現在館内人数: <span id="count">0</span></p>
-      <p class="stat">入店数: <span id="entries">0</span></p>
-      <p class="stat">退店数: <span id="exits">0</span></p>
-    </div>
-
-    <div class="card">
-      <h2>本日の入店数（推移）</h2>
-      <canvas id="todayLineChart"></canvas>
-    </div>
-
-    <div class="card">
-      <h2>過去30日間 入店者数推移</h2>
-      <canvas id="activityLineChart"></canvas>
-    </div>
-
-    <div class="card">
-      <h2>入店 vs 退店 (本日)</h2>
-      <canvas id="todayPieChart"></canvas>
-    </div>
-
-    <div class="card">
-      <h2>曜日ごとの平均入店数</h2>
-      <canvas id="weekdayBarChart"></canvas>
-    </div>
-  </div>
-
-  <script>
-    // Firebase 設定
     const firebaseConfig = {
       apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
       authDomain: "qr-visitor-log.firebaseapp.com",
@@ -81,146 +20,154 @@
       messagingSenderId: "304250341939",
       appId: "1:304250341939:web:b8d5b946590d1f852cf146"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
 
-    // グラフ用変数
-    let todayLineChart, activityLineChart, todayPieChart, weekdayBarChart;
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    // 本日の入退店数をカウント
-    function countVisitors(snapshot) {
-      let entries = 0, exits = 0;
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.type === "enter") entries++;
-        if (data.type === "exit") exits++;
-      });
-      document.getElementById("count").textContent = entries - exits;
-      document.getElementById("entries").textContent = entries;
-      document.getElementById("exits").textContent = exits;
+    // =========================
+    // DOM 要素
+    // =========================
+    const todayEnterCountEl = document.getElementById("todayEnterCount");
+    const todayExitCountEl = document.getElementById("todayExitCount");
 
-      // 円グラフ更新
-      todayPieChart.data.datasets[0].data = [entries, exits];
-      todayPieChart.update();
-    }
-
-    // 本日入店数の折れ線
-    function updateTodayLine(snapshot) {
-      const hours = Array(24).fill(0);
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.type !== "enter") return;
-        let ts = data.timestamp instanceof firebase.firestore.Timestamp ? data.timestamp.toDate() : new Date(data.timestamp);
-        hours[ts.getHours()]++;
-      });
-      todayLineChart.data.datasets[0].data = hours;
-      todayLineChart.update();
-    }
-
-    // 過去30日間推移
-    async function loadPast30Days() {
-      const snapshot = await db.collection("logs").get();
+    // =========================
+    // 今日のデータのみを取得
+    // =========================
+    function getTodayRange() {
       const today = new Date();
-      today.setHours(0,0,0,0);
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      return { start: today, end: tomorrow };
+    }
 
-      const counts30 = Array(30).fill(0);
-      const labels = [];
+    const { start, end } = getTodayRange();
 
-      for(let i=29;i>=0;i--){
-        const d = new Date(today);
-        d.setDate(today.getDate()-i);
-        labels.push(`${d.getMonth()+1}/${d.getDate()}`);
+    const q = query(
+      collection(db, "logs"),
+      where("timestamp", ">=", start),
+      where("timestamp", "<", end)
+    );
+
+    // =========================
+    // グラフの初期化
+    // =========================
+    const enterExitCtx = document.getElementById("enterExitChart").getContext("2d");
+    const enterExitChart = new Chart(enterExitCtx, {
+      type: "bar",
+      data: {
+        labels: ["入店", "退店"],
+        datasets: [{
+          label: "人数",
+          data: [0, 0],
+          backgroundColor: ["#4CAF50", "#F44336"]
+        }]
+      },
+      options: { responsive: true }
+    });
+
+    const lineCtx = document.getElementById("lineChart").getContext("2d");
+    const lineChart = new Chart(lineCtx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [{
+          label: "本日の入店者推移",
+          data: [],
+          borderColor: "#2196F3",
+          fill: false,
+          tension: 0.1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: { title: { display: true, text: "時間帯" } },
+          y: { title: { display: true, text: "入店数" }, beginAtZero: true }
+        }
       }
+    });
 
-      snapshot.forEach(doc=>{
+    const pieCtx = document.getElementById("pieChart").getContext("2d");
+    const pieChart = new Chart(pieCtx, {
+      type: "pie",
+      data: {
+        labels: ["店内人数", "空き"],
+        datasets: [{
+          data: [0, 1],
+          backgroundColor: ["#FF9800", "#E0E0E0"]
+        }]
+      },
+      options: { responsive: true }
+    });
+
+    // =========================
+    // Firestore リアルタイム反映
+    // =========================
+    onSnapshot(q, (snapshot) => {
+      let enterCount = 0;
+      let exitCount = 0;
+      let hourlyData = {};
+
+      snapshot.forEach((doc) => {
         const data = doc.data();
-        if(data.type!=="enter") return;
-        let ts = data.timestamp instanceof firebase.firestore.Timestamp ? data.timestamp.toDate() : new Date(data.timestamp);
-        ts.setHours(0,0,0,0);
-        const diff = Math.floor((today - ts)/(1000*60*60*24));
-        if(diff>=0 && diff<30) counts30[29-diff]++;
-      });
-
-      activityLineChart.data.labels = labels;
-      activityLineChart.data.datasets[0].data = counts30;
-      activityLineChart.update();
-    }
-
-    // 曜日ごとの平均入店数
-    async function loadWeekdayStats() {
-      const snapshot = await db.collection("logs").get();
-      const weekdayCounts = Array(7).fill(0);
-      const weekdayTotals = Array(7).fill(0);
-
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if(data.type!=="enter") return;
-        let ts = data.timestamp instanceof firebase.firestore.Timestamp ? data.timestamp.toDate() : new Date(data.timestamp);
-        const w = ts.getDay();
-        weekdayCounts[w]++;
-        weekdayTotals[w]++;
-      });
-
-      const averages = weekdayTotals.map((v,i)=> v===0?0:weekdayCounts[i]);
-      weekdayBarChart.data.datasets[0].data = averages;
-      weekdayBarChart.update();
-    }
-
-    // 初期化
-    function initializeCharts() {
-      const ctx1 = document.getElementById("todayLineChart").getContext("2d");
-      todayLineChart = new Chart(ctx1, {
-        type: "line",
-        data: {
-          labels: Array.from({length:24}, (_,i)=>`${i}時`),
-          datasets: [{ label:"入店数", data:Array(24).fill(0), borderColor:"#007bff", fill:false }]
+        const ts = data.timestamp.toDate();
+        const hour = ts.getHours();
+        if (data.status === "enter") {
+          enterCount++;
+          hourlyData[hour] = (hourlyData[hour] || 0) + 1;
+        } else if (data.status === "exit") {
+          exitCount++;
         }
       });
 
-      const ctx2 = document.getElementById("activityLineChart").getContext("2d");
-      activityLineChart = new Chart(ctx2, {
-        type: "line",
-        data: {
-          labels: [],
-          datasets: [{ label:"入店数", data:[], borderColor:"#28a745", fill:false }]
-        }
-      });
+      // UI 更新
+      todayEnterCountEl.textContent = enterCount;
+      todayExitCountEl.textContent = exitCount;
 
-      const ctx3 = document.getElementById("todayPieChart").getContext("2d");
-      todayPieChart = new Chart(ctx3, {
-        type: "pie",
-        data: {
-          labels: ["入店","退店"],
-          datasets: [{ data:[0,0], backgroundColor:["#007bff","#dc3545"] }]
-        }
-      });
+      // バーチャート更新
+      enterExitChart.data.datasets[0].data = [enterCount, exitCount];
+      enterExitChart.update();
 
-      const ctx4 = document.getElementById("weekdayBarChart").getContext("2d");
-      weekdayBarChart = new Chart(ctx4, {
-        type: "bar",
-        data: {
-          labels:["日","月","火","水","木","金","土"],
-          datasets:[{ label:"平均入店数", data:Array(7).fill(0), backgroundColor:"#17a2b8" }]
-        }
-      });
-    }
+      // 折れ線グラフ更新
+      const sortedHours = Object.keys(hourlyData).sort((a, b) => a - b);
+      lineChart.data.labels = sortedHours.map(h => `${h}:00`);
+      lineChart.data.datasets[0].data = sortedHours.map(h => hourlyData[h]);
+      lineChart.update();
 
-    // メイン処理
-    window.onload = () => {
-      initializeCharts();
-      const today = new Date();
-      today.setHours(0,0,0,0);
-
-      db.collection("logs")
-        .where("timestamp", ">=", firebase.firestore.Timestamp.fromDate(today))
-        .onSnapshot(snapshot => { 
-          countVisitors(snapshot); 
-          updateTodayLine(snapshot);
-        });
-
-      loadPast30Days();
-      loadWeekdayStats();
-    };
+      // 円グラフ更新（現在の店内人数）
+      const current = enterCount - exitCount;
+      pieChart.data.datasets[0].data = [current, Math.max(0, 50 - current)]; // 店舗定員50仮定
+      pieChart.update();
+    });
   </script>
+
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #fafafa; }
+    h2 { margin-top: 30px; }
+    .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    canvas { max-width: 100%; height: 300px !important; }
+    .stat { font-size: 1.2em; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h1>ダッシュボード</h1>
+
+  <div class="card">
+    <h2>本日の入退店数</h2>
+    <div class="stat">入店数: <span id="todayEnterCount">0</span></div>
+    <div class="stat">退店数: <span id="todayExitCount">0</span></div>
+    <canvas id="enterExitChart"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>本日の入店者推移</h2>
+    <canvas id="lineChart"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>現在の混雑状況</h2>
+    <canvas id="pieChart"></canvas>
+  </div>
 </body>
 </html>
