@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <title>ダッシュボード</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Firebase compat -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -20,22 +22,35 @@
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
       gap: 20px;
     }
     .card {
       background: #fff;
       border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
     }
     .stat {
-      font-size: 18px;
-      margin: 5px 0;
+      font-size: 16px;
+      margin: 6px 0;
     }
     canvas {
       max-width: 100%;
       height: 320px !important;
+    }
+    .small-row {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .badge {
+      background:#eef;
+      padding:6px 10px;
+      border-radius:999px;
+      font-weight:600;
+      font-size:14px;
     }
   </style>
 </head>
@@ -45,13 +60,17 @@
   <div class="grid">
     <div class="card">
       <h2>本日の入退店数</h2>
-      <p class="stat">現在館内人数: <span id="count">0</span></p>
-      <p class="stat">入店数: <span id="entries">0</span></p>
-      <p class="stat">退店数: <span id="exits">0</span></p>
+      <div class="small-row">
+        <p class="stat">現在館内人数: <span id="count">0</span></p>
+        <p class="stat">入店数: <span id="entries">0</span></p>
+        <p class="stat">退店数: <span id="exits">0</span></p>
+        <p class="stat">待機数: <span id="waitingCount">0</span></p>
+      </div>
+      <p class="stat">※テーブルごとのステータスは下の「テーブル状況」を参照</p>
     </div>
 
     <div class="card">
-      <h2>本日の入店数（推移）</h2>
+      <h2>本日の入店数（時間別・折れ線）</h2>
       <canvas id="todayLineChart"></canvas>
     </div>
 
@@ -69,10 +88,42 @@
       <h2>曜日ごとの平均入店数</h2>
       <canvas id="weekdayBarChart"></canvas>
     </div>
+
+    <div class="card">
+      <h2>時間帯別 平均入店数（過去30日）</h2>
+      <canvas id="hourlyBarChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>過去30日：7日移動平均</h2>
+      <canvas id="movingAvgLineChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>テーブル状況（例）</h2>
+      <!-- 実際のテーブル数に応じて増やしてください。IDは table{番号}-status -->
+      <div id="tablesContainer" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:8px;">
+        <!-- サンプルとして14テーブルを表示 -->
+        <div id="table1-status" class="badge">テーブル1: 読み込み中</div>
+        <div id="table2-status" class="badge">テーブル2: 読み込み中</div>
+        <div id="table3-status" class="badge">テーブル3: 読み込み中</div>
+        <div id="table4-status" class="badge">テーブル4: 読み込み中</div>
+        <div id="table5-status" class="badge">テーブル5: 読み込み中</div>
+        <div id="table6-status" class="badge">テーブル6: 読み込み中</div>
+        <div id="table7-status" class="badge">テーブル7: 読み込み中</div>
+        <div id="table8-status" class="badge">テーブル8: 読み込み中</div>
+        <div id="table9-status" class="badge">テーブル9: 読み込み中</div>
+        <div id="table10-status" class="badge">テーブル10: 読み込み中</div>
+        <div id="table11-status" class="badge">テーブル11: 読み込み中</div>
+        <div id="table12-status" class="badge">テーブル12: 読み込み中</div>
+        <div id="table13-status" class="badge">テーブル13: 読み込み中</div>
+        <div id="table14-status" class="badge">テーブル14: 読み込み中</div>
+      </div>
+    </div>
   </div>
 
   <script>
-    // Firebase 設定
+    // Firebase 設定（提供済みのものを使用）
     const firebaseConfig = {
       apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
       authDomain: "qr-visitor-log.firebaseapp.com",
@@ -83,136 +134,27 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+
+    // テーブル状態保存オブジェクト（テーブル番号は string キー）
     const tableCounts = {};
 
-    
-
-
     // グラフ用変数
-    let todayLineChart, activityLineChart, todayPieChart, weekdayBarChart;
+    let todayLineChart, activityLineChart, todayPieChart, weekdayBarChart, hourlyBarChart, movingAvgLineChart;
 
-    // 本日の入退店数をカウント
-    function countVisitors(snapshot) {
-      let entries = 0, exits = 0;
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.type === "enter") entries++;
-        if (data.type === "exit") exits++;
-      });
-      document.getElementById("count").textContent = entries - exits;
-      document.getElementById("entries").textContent = entries;
-      document.getElementById("exits").textContent = exits;
-
-      // 円グラフ更新
-      todayPieChart.data.datasets[0].data = [entries, exits];
-      todayPieChart.update();
+    // --- ヘルパー: タイムスタンプを Date に変換 ---
+    function toDateFromTimestamp(maybeTs) {
+      if (!maybeTs) return null;
+      // compat の場合 firestore.Timestamp 型かもしれない
+      if (typeof maybeTs.toDate === "function") return maybeTs.toDate();
+      // すでに Date の場合
+      if (maybeTs instanceof Date) return maybeTs;
+      // ISO 文字列の場合
+      return new Date(maybeTs);
     }
 
-    // 本日入店数の折れ線
-    function updateTodayLine(snapshot) {
-      const hours = Array(24).fill(0);
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.type !== "enter") return;
-        let ts = data.timestamp instanceof firebase.firestore.Timestamp ? data.timestamp.toDate() : new Date(data.timestamp);
-        hours[ts.getHours()]++;
-      });
-      todayLineChart.data.datasets[0].data = hours;
-      todayLineChart.update();
-    }
-
-    // 過去30日間推移
-    async function loadPast30Days() {
-      const snapshot = await db.collection("logs").get();
-      const today = new Date();
-      today.setHours(0,0,0,0);
-
-      const counts30 = Array(30).fill(0);
-      const labels = [];
-
-      for(let i=29;i>=0;i--){
-        const d = new Date(today);
-        d.setDate(today.getDate()-i);
-        labels.push(`${d.getMonth()+1}/${d.getDate()}`);
-      }
-
-      snapshot.forEach(doc=>{
-        const data = doc.data();
-        if(data.type!=="enter") return;
-        let ts = data.timestamp instanceof firebase.firestore.Timestamp ? data.timestamp.toDate() : new Date(data.timestamp);
-        ts.setHours(0,0,0,0);
-        const diff = Math.floor((today - ts)/(1000*60*60*24));
-        if(diff>=0 && diff<30) counts30[29-diff]++;
-      });
-
-      activityLineChart.data.labels = labels;
-      activityLineChart.data.datasets[0].data = counts30;
-      activityLineChart.update();
-    }
-
-    // 曜日ごとの平均入店数
-    async function loadWeekdayStats() {
-      const snapshot = await db.collection("logs").get();
-      const weekdayCounts = Array(7).fill(0);
-      const weekdayTotals = Array(7).fill(0);
-
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if(data.type!=="enter") return;
-        let ts = data.timestamp instanceof firebase.firestore.Timestamp ? data.timestamp.toDate() : new Date(data.timestamp);
-        const w = ts.getDay();
-        weekdayCounts[w]++;
-        weekdayTotals[w]++;
-      });
-
-      const averages = weekdayTotals.map((v,i)=> v===0?0:weekdayCounts[i]);
-      weekdayBarChart.data.datasets[0].data = averages;
-      weekdayBarChart.update();
-    }
-
-    // 初期化
-    function initializeCharts() {
-      const ctx1 = document.getElementById("todayLineChart").getContext("2d");
-      todayLineChart = new Chart(ctx1, {
-        type: "line",
-        data: {
-          labels: Array.from({length:24}, (_,i)=>`${i}時`),
-          datasets: [{ label:"入店数", data:Array(24).fill(0), borderColor:"#007bff", fill:false }]
-        }
-      });
-
-      const ctx2 = document.getElementById("activityLineChart").getContext("2d");
-      activityLineChart = new Chart(ctx2, {
-        type: "line",
-        data: {
-          labels: [],
-          datasets: [{ label:"入店数", data:[], borderColor:"#28a745", fill:false }]
-        }
-      });
-
-      const ctx3 = document.getElementById("todayPieChart").getContext("2d");
-      todayPieChart = new Chart(ctx3, {
-        type: "pie",
-        data: {
-          labels: ["入店","退店"],
-          datasets: [{ data:[0,0], backgroundColor:["#007bff","#dc3545"] }]
-        }
-      });
-
-      const ctx4 = document.getElementById("weekdayBarChart").getContext("2d");
-      weekdayBarChart = new Chart(ctx4, {
-        type: "bar",
-        data: {
-          labels:["日","月","火","水","木","金","土"],
-          datasets:[{ label:"平均入店数", data:Array(7).fill(0), backgroundColor:"#17a2b8" }]
-        }
-      });
-    }
-
-
-
-        function formatTimestamp(isoString) {
-      if (!isoString || typeof isoString !== "string") return "ー";
+    // --- 表示用フォーマット ---
+    function formatTimestamp(isoString) {
+      if (!isoString) return "ー";
       const date = new Date(isoString);
       const options = {
         timeZone: "Asia/Tokyo",
@@ -225,8 +167,7 @@
       return new Intl.DateTimeFormat("ja-JP", options).format(date).replace(/\//g, "-").replace(",", "");
     }
 
-
-        function calculateElapsedTime(isoString) {
+    function calculateElapsedTime(isoString) {
       if (!isoString) return "";
       const start = new Date(isoString);
       const now = new Date();
@@ -238,96 +179,315 @@
       return hours > 0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
     }
 
-        function updateTableDisplays() {
+    // --- テーブル表示更新 ---
+    function updateTableDisplays() {
       Object.keys(tableCounts).forEach(tableNum => {
         const t = tableCounts[tableNum];
-        const currentCount = t.enter - t.exit;
+        const currentCount = (t.enter || 0) - (t.exit || 0);
         const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
         const status = currentCount > 0 ? "利用中" : "空席";
-        const timeText = formatTimestamp(timeToShow);
+        const timeText = timeToShow ? formatTimestamp(timeToShow) : "ー";
         const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
         const element = document.getElementById(`table${tableNum}-status`);
         if (element) {
-          element.textContent = `${status}（${timeText}${elapsed}）`;
+          element.textContent = `テーブル${tableNum}: ${status}（${timeText}${elapsed}）`;
         }
       });
     }
 
-        function countVisitors(snapshot) {
+    // --- 来訪カウントとテーブル更新（単一定義）---
+    function countVisitorsAndTables(snapshot) {
       let entries = 0;
       let exits = 0;
       let waiting = 0;
 
+      // 初期化: サンプルで14テーブル
       for (let i = 1; i <= 14; i++) {
-        tableCounts[i.toString()] = {
-          enter: 0,
-          exit: 0,
-          lastEnterTime: null
-        };
+        if (!tableCounts[i.toString()]) {
+          tableCounts[i.toString()] = { enter: 0, exit: 0, lastEnterTime: null };
+        } else {
+          tableCounts[i.toString()].enter = 0;
+          tableCounts[i.toString()].exit = 0;
+          tableCounts[i.toString()].lastEnterTime = tableCounts[i.toString()].lastEnterTime || null;
+        }
       }
 
       snapshot.forEach(doc => {
         const data = doc.data();
-        const table = data.table;
-        const timestamp = data.timestamp;
-        if (!table || !timestamp) return;
+        // ignore malformed documents
+        if (!data || !data.type) return;
+        const type = data.type;
+        const table = data.table; // 例: "1" や 1
+        const tsRaw = data.timestamp;
+        const tsDate = toDateFromTimestamp(tsRaw);
+        // カウント
+        if (type === "enter") entries++;
+        if (type === "exit") exits++;
+        if (type === "wait") waiting++;
 
-        if (data.type === "enter") entries++;
-        if (data.type === "exit") exits++;
-        if (data.type === "wait") waiting++;
-
-        if (tableCounts[table]) {
-          if (data.type === "enter") {
-            tableCounts[table].enter++;
-            if (!tableCounts[table].lastEnterTime || new Date(tableCounts[table].lastEnterTime) < new Date(timestamp)) {
-              tableCounts[table].lastEnterTime = timestamp;
+        // テーブルごとの集計（table がある場合のみ）
+        if (table !== undefined && table !== null) {
+          const key = String(table);
+          if (!tableCounts[key]) {
+            tableCounts[key] = { enter: 0, exit: 0, lastEnterTime: null };
+          }
+          if (type === "enter") {
+            tableCounts[key].enter = (tableCounts[key].enter || 0) + 1;
+            // lastEnterTime を新しい方で更新
+            const prev = tableCounts[key].lastEnterTime ? toDateFromTimestamp(tableCounts[key].lastEnterTime) : null;
+            if (!prev || (tsDate && tsDate > prev)) {
+              tableCounts[key].lastEnterTime = tsDate ? tsDate.toISOString() : tableCounts[key].lastEnterTime;
             }
           }
-          if (data.type === "exit") {
-            tableCounts[table].exit++;
+          if (type === "exit") {
+            tableCounts[key].exit = (tableCounts[key].exit || 0) + 1;
           }
         }
       });
 
-      document.getElementById("count").textContent = entries - exits;
+      // 表示更新
+      document.getElementById("count").textContent = Math.max(0, entries - exits);
       document.getElementById("entries").textContent = entries;
       document.getElementById("exits").textContent = exits;
       document.getElementById("waitingCount").textContent = waiting;
 
+      // 円グラフ更新（存在確認）
+      if (todayPieChart && todayPieChart.data && todayPieChart.data.datasets && todayPieChart.data.datasets[0]) {
+        todayPieChart.data.datasets[0].data = [entries, exits];
+        todayPieChart.update();
+      }
+
       updateTableDisplays();
     }
 
-    // メイン処理
-    window.onload = () => {
-      initializeCharts();
+    // --- 本日の時間別折れ線（入店のみ）---
+    function updateTodayLine(snapshot) {
+      const hours = Array(24).fill(0);
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!data) return;
+        if (data.type !== "enter") return;
+        const ts = toDateFromTimestamp(data.timestamp) || new Date();
+        const h = ts.getHours();
+        hours[h] = (hours[h] || 0) + 1;
+      });
+      if (todayLineChart && todayLineChart.data && todayLineChart.data.datasets) {
+        todayLineChart.data.datasets[0].data = hours;
+        todayLineChart.update();
+      }
+    }
+
+    // --- 過去30日間 推移 と 7日移動平均の生成 ---
+    async function loadPast30DaysAndMovingAvg() {
+      const snapshot = await db.collection("logs").get();
       const today = new Date();
       today.setHours(0,0,0,0);
 
-      db.collection("logs")
-        .where("timestamp", ">=", firebase.firestore.Timestamp.fromDate(today))
-        .onSnapshot(snapshot => { 
-          countVisitors(snapshot); 
-          updateTodayLine(snapshot);
-        });
+      const counts30 = Array(30).fill(0);
+      const labels = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        labels.push(`${d.getMonth()+1}/${d.getDate()}`);
+      }
 
-          const today = new Date();
-    today.setHours(0, 0, 0, 0); // 今日の0時
-
-    db.collection("logs")
-      .where("timestamp", ">=", today.toISOString())  // ← フィルタを追加！
-      .onSnapshot(countVisitors);
-
-  setInterval(updateTableDisplays, 600);
-
-
-      const menuButton = document.querySelector(".menu-button");
-      const drawer = document.querySelector(".drawer");
-      menuButton.addEventListener("click", () => {
-        drawer.classList.toggle("open");
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!data || data.type !== "enter") return;
+        const ts = toDateFromTimestamp(data.timestamp);
+        if (!ts) return;
+        const dayStart = new Date(ts);
+        dayStart.setHours(0,0,0,0);
+        const diff = Math.floor((today - dayStart) / (1000*60*60*24));
+        if (diff >= 0 && diff < 30) {
+          counts30[29 - diff] = (counts30[29 - diff] || 0) + 1;
+        }
       });
 
-      loadPast30Days();
-      loadWeekdayStats();
+      // activityLineChart 更新
+      if (activityLineChart) {
+        activityLineChart.data.labels = labels;
+        activityLineChart.data.datasets[0].data = counts30;
+        activityLineChart.update();
+      }
+
+      // 7日移動平均を計算
+      const windowSize = 7;
+      const moving = counts30.map((_, idx, arr) => {
+        const start = Math.max(0, idx - (windowSize - 1));
+        const slice = arr.slice(start, idx + 1);
+        const sum = slice.reduce((a,b)=>a+b, 0);
+        return +(sum / slice.length).toFixed(2);
+      });
+
+      if (movingAvgLineChart) {
+        movingAvgLineChart.data.labels = labels;
+        movingAvgLineChart.data.datasets[0].data = moving;
+        movingAvgLineChart.update();
+      }
+    }
+
+    // --- 曜日ごとの平均入店数（過去データから）---
+    async function loadWeekdayStats() {
+      const snapshot = await db.collection("logs").get();
+      const dayCounts = Array(7).fill(0); // 日〜土 の入店回数合計
+      const dayDays = {}; // 各曜日が何日分あるかを調べる（過去ログの日付をセットで持つ）
+      // dayDays[w] はセットでユニーク日を持つ
+      for (let i=0;i<7;i++) dayDays[i] = new Set();
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!data || data.type !== "enter") return;
+        const ts = toDateFromTimestamp(data.timestamp);
+        if (!ts) return;
+        const w = ts.getDay();
+        dayCounts[w] = (dayCounts[w] || 0) + 1;
+        const dayKey = ts.toISOString().slice(0,10); // YYYY-MM-DD
+        dayDays[w].add(dayKey);
+      });
+
+      const averages = dayCounts.map((count, w) => {
+        const days = dayDays[w].size || 1;
+        return +(count / days).toFixed(2);
+      });
+
+      if (weekdayBarChart) {
+        weekdayBarChart.data.datasets[0].data = averages;
+        weekdayBarChart.update();
+      }
+    }
+
+    // --- 過去30日から時間帯別平均を算出（hourlyBarChart） ---
+    async function loadHourlyAverages() {
+      const snapshot = await db.collection("logs").get();
+      // countsPerHour[hour] = total entries over period
+      const countsPerHour = Array(24).fill(0);
+      const daySet = new Set();
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!data || data.type !== "enter") return;
+        const ts = toDateFromTimestamp(data.timestamp);
+        if (!ts) return;
+        const hour = ts.getHours();
+        countsPerHour[hour] = (countsPerHour[hour] || 0) + 1;
+        daySet.add(ts.toISOString().slice(0,10));
+      });
+
+      const numDays = Math.max(1, daySet.size);
+      const averages = countsPerHour.map(c => +(c / numDays).toFixed(2));
+
+      if (hourlyBarChart) {
+        hourlyBarChart.data.datasets[0].data = averages;
+        hourlyBarChart.update();
+      }
+    }
+
+    // --- チャート初期化 ---
+    function initializeCharts() {
+      // todayLineChart (24時間)
+      const ctx1 = document.getElementById("todayLineChart").getContext("2d");
+      todayLineChart = new Chart(ctx1, {
+        type: "line",
+        data: {
+          labels: Array.from({length:24}, (_,i)=>`${i}時`),
+          datasets: [{ label:"入店数", data:Array(24).fill(0), borderColor:"#007bff", tension:0.3, fill:false, pointRadius:2 }]
+        },
+        options: { responsive:true, maintainAspectRatio:false }
+      });
+
+      // activityLineChart (過去30日)
+      const ctx2 = document.getElementById("activityLineChart").getContext("2d");
+      activityLineChart = new Chart(ctx2, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [{ label:"日別入店数", data:[], borderColor:"#28a745", tension:0.2, fill:true, backgroundColor:"rgba(40,167,69,0.08)" }]
+        },
+        options: { responsive:true, maintainAspectRatio:false }
+      });
+
+      // todayPieChart
+      const ctx3 = document.getElementById("todayPieChart").getContext("2d");
+      todayPieChart = new Chart(ctx3, {
+        type: "pie",
+        data: {
+          labels: ["入店","退店"],
+          datasets: [{ data:[0,0], backgroundColor:["#007bff","#dc3545"] }]
+        },
+        options: { responsive:true, maintainAspectRatio:false }
+      });
+
+      // weekdayBarChart
+      const ctx4 = document.getElementById("weekdayBarChart").getContext("2d");
+      weekdayBarChart = new Chart(ctx4, {
+        type: "bar",
+        data: {
+          labels:["日","月","火","水","木","金","土"],
+          datasets:[{ label:"平均入店数", data:Array(7).fill(0), backgroundColor:"#17a2b8" }]
+        },
+        options: { responsive:true, maintainAspectRatio:false }
+      });
+
+      // hourlyBarChart
+      const ctx5 = document.getElementById("hourlyBarChart").getContext("2d");
+      hourlyBarChart = new Chart(ctx5, {
+        type: "bar",
+        data: {
+          labels: Array.from({length:24}, (_,i)=>`${i}時`),
+          datasets: [{ label:"時間帯平均入店数", data:Array(24).fill(0), backgroundColor:"#ffc107" }]
+        },
+        options: { responsive:true, maintainAspectRatio:false }
+      });
+
+      // movingAvgLineChart
+      const ctx6 = document.getElementById("movingAvgLineChart").getContext("2d");
+      movingAvgLineChart = new Chart(ctx6, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [{ label:"7日移動平均", data:[], borderColor:"#6f42c1", tension:0.25, fill:false }]
+        },
+        options: { responsive:true, maintainAspectRatio:false }
+      });
+    }
+
+    // --- メイン処理 ---
+    window.onload = () => {
+      initializeCharts();
+
+      const today = new Date();
+      today.setHours(0,0,0,0);
+
+      // Firestore: 今日のログをリアルタイムで監視（timestamp >= 今日の0時）
+      // compat の Timestamp を利用してクエリする
+      const todayTimestamp = firebase.firestore.Timestamp.fromDate(today);
+      db.collection("logs")
+        .where("timestamp", ">=", todayTimestamp)
+        .onSnapshot(snapshot => {
+          // snapshot は QuerySnapshot
+          countVisitorsAndTables(snapshot);
+          updateTodayLine(snapshot);
+        }, err => {
+          console.error("今日のログ監視でエラー:", err);
+        });
+
+      // 過去データ系は一回取得してグラフを作成
+      loadPast30DaysAndMovingAvg().catch(e=>console.error(e));
+      loadWeekdayStats().catch(e=>console.error(e));
+      loadHourlyAverages().catch(e=>console.error(e));
+
+      // テーブル表示を定期更新（lastEnterTime の経過時間表示を更新するため）
+      setInterval(updateTableDisplays, 1000); // 1秒ごとに経過表示を更新
+
+      // menu-button / drawer がある場合のみイベント登録（UI によっては不要）
+      const menuButton = document.querySelector(".menu-button");
+      const drawer = document.querySelector(".drawer");
+      if (menuButton && drawer) {
+        menuButton.addEventListener("click", () => {
+          drawer.classList.toggle("open");
+        });
+      }
     };
   </script>
 </body>
