@@ -333,20 +333,69 @@
   window.onload = () => {
     initializeCharts();
 
-    const today = new Date();
-    today.setHours(0,0,0,0);
+// onSnapshot のクエリ修正
+const today = new Date();
+today.setHours(0,0,0,0);
 
-    db.collection("logs")
-      .where("timestamp", ">=", today.toISOString())
-      .onSnapshot(snapshot => { countVisitors(snapshot); updateCharts(); });
+db.collection("logs")
+  .where("timestamp", ">=", firebase.firestore.Timestamp.fromDate(today))
+  .onSnapshot(snapshot => { 
+    countVisitors(snapshot); 
+    updateCharts(); 
+  });
 
-    loadPast30Days();
+// loadPast30Days 修正版
+async function loadPast30Days() {
+  const snapshot = await db.collection("logs").get();
+  const today = new Date(); 
+  today.setHours(0,0,0,0);
 
-    setInterval(()=>{ updateTableDisplays(); updateCharts(); }, 600);
+  const counts30 = Array(30).fill(0);
+  const counts7 = Array(30).fill(0);
+  const counts1 = Array(30).fill(0);
+  const labels = [];
 
-    const menuButton = document.querySelector(".menu-button");
-    const drawer = document.querySelector(".drawer");
-    menuButton.addEventListener("click", ()=>drawer.classList.toggle("open"));
+  for(let i=29;i>=0;i--){
+    const d = new Date(today); 
+    d.setDate(today.getDate()-i);
+    labels.push(`${d.getMonth()+1}/${d.getDate()}`);
+  }
+
+  snapshot.forEach(doc=>{
+    const data = doc.data();
+    if(data.type!=="enter") return;
+
+    let ts = data.timestamp;
+    if(ts instanceof firebase.firestore.Timestamp){
+      ts = ts.toDate();
+    } else {
+      ts = new Date(ts); // stringやISO文字列のとき
+    }
+    ts.setHours(0,0,0,0);
+
+    const diff = Math.floor((today - ts)/(1000*60*60*24));
+    if(diff>=0 && diff<30) counts30[29-diff]++;
+  });
+
+  // 7日移動平均
+  for(let i=0;i<30;i++){
+    const start = Math.max(0, i-6);
+    const sum = counts30.slice(start,i+1).reduce((a,b)=>a+b,0);
+    counts7[i] = sum / (i-start+1);
+  }
+
+  // 当日だけ
+  counts1[29] = counts30[29];
+
+  activityLineChart.data.labels = labels;
+  activityLineChart.data.datasets[0].data = counts1;
+  activityLineChart.data.datasets[1].data = counts7;
+  activityLineChart.data.datasets[2].data = counts30;
+  activityLineChart.update();
+
+  document.getElementById("todayCount").textContent = counts1[29];
+}
+
   };
 </script>
 </head>
