@@ -76,7 +76,7 @@
     </div>
 
     <div class="card">
-      <h2>本日の入店数（時間別・折れ線）</h2>
+      <h2>本日の滞在人数（時間別・折れ線）</h2>
       <canvas id="todayLineChart"></canvas>
     </div>
 
@@ -86,7 +86,7 @@
     </div>
 
     <div class="card">
-      <h2>入店 vs 退店 (本日)</h2>
+      <h2>使用率（本日）</h2>
       <canvas id="todayPieChart"></canvas>
     </div>
 
@@ -244,13 +244,18 @@
         }
       });
 
-      document.getElementById("count").textContent = Math.max(0, entries - exits);
+      const currentInside = Object.values(tableCounts).reduce((acc, t) => acc + Math.max((t.enter || 0) - (t.exit || 0),0),0);
+      const totalTables = Object.keys(tableCounts).length;
+      const emptyTables = totalTables - currentInside;
+
+      document.getElementById("count").textContent = currentInside;
       document.getElementById("entries").textContent = entries;
       document.getElementById("exits").textContent = exits;
       document.getElementById("waitingCount").textContent = waiting;
 
       if (todayPieChart && todayPieChart.data && todayPieChart.data.datasets && todayPieChart.data.datasets[0]) {
-        todayPieChart.data.datasets[0].data = [entries, exits];
+        todayPieChart.data.datasets[0].data = [currentInside, emptyTables];
+        todayPieChart.data.labels = ["使用中", "空席"];
         todayPieChart.update();
       }
 
@@ -259,17 +264,33 @@
 
     function updateTodayLine(snapshot) {
       const hours = Array(24).fill(0);
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (!data) return;
-        if (data.type !== "enter") return;
-        const ts = toDateFromTimestamp(data.timestamp) || new Date();
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        if (ts < today) return; // 本日だけ
-        const h = ts.getHours();
-        hours[h] = (hours[h] || 0) + 1;
-      });
+      // 各時間ごとの滞在人数
+      for (let h = 0; h < 24; h++) {
+        let count = 0;
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (!data || !data.timestamp || !data.type) return;
+          const ts = toDateFromTimestamp(data.timestamp);
+          if (!ts) return;
+          const today = new Date();
+          today.setHours(0,0,0,0);
+          if (ts < today) return;
+
+          if (data.type === "enter") {
+            const table = data.table;
+            const enterTime = ts;
+            // 退店時間を探す
+            const exitDoc = snapshot.docs.find(d => {
+              const dData = d.data();
+              return dData.table === table && dData.type === "exit" && toDateFromTimestamp(dData.timestamp) > enterTime;
+            });
+            const exitTime = exitDoc ? toDateFromTimestamp(exitDoc.data().timestamp) : new Date(); // 未退店なら現在時刻
+            if (h >= enterTime.getHours() && h <= exitTime.getHours()) count++;
+          }
+        });
+        hours[h] = count;
+      }
+
       if (todayLineChart && todayLineChart.data && todayLineChart.data.datasets) {
         todayLineChart.data.datasets[0].data = hours;
         todayLineChart.update();
@@ -363,7 +384,7 @@
         type: 'line',
         data: {
           labels: Array.from({length:24}, (_,i)=>i+":00"),
-          datasets:[{label:"入店人数", data:Array(24).fill(0), borderColor:"blue", backgroundColor:"rgba(0,0,255,0.2)", tension:0.2}]
+          datasets:[{label:"滞在人数", data:Array(24).fill(0), borderColor:"blue", backgroundColor:"rgba(0,0,255,0.2)", tension:0.2}]
         }
       });
 
@@ -377,33 +398,33 @@
       todayPieChart = new Chart(ctxTodayPie,{
         type:"pie",
         data:{
-          labels:["入店","退店"],
+          labels:["使用中","空席"],
           datasets:[{data:[0,0], backgroundColor:["blue","red"]}]
         }
       });
 
       const ctxWeekday = document.getElementById("weekdayBarChart").getContext("2d");
-      weekdayBarChart = new Chart(ctxWeekday,{type:"bar", data:{labels:["日","月","火","水","木","金","土"], datasets:[{label:"平均入店数", data:Array(7).fill(0), backgroundColor:"orange"}]}});
+      weekdayBarChart = new Chart(ctxWeekday,{type:"bar", data:{labels:["日","月","火","水","木","金","土"], datasets:[{label:"平均入店数", data:Array(7).fill(0), backgroundColor:"orange"}]} });
 
       const ctxHourly = document.getElementById("hourlyBarChart").getContext("2d");
-      hourlyBarChart = new Chart(ctxHourly,{type:"bar", data:{labels:Array.from({length:24},(_,i)=>i+":00"), datasets:[{label:"平均入店数", data:Array(24).fill(0), backgroundColor:"purple"}]}});
+      hourlyBarChart = new Chart(ctxHourly,{type:"bar", data:{labels:Array.from({length:24}, (_,i)=>i+":00"), datasets:[{label:"平均入店数", data:Array(24).fill(0), backgroundColor:"purple"}]} });
 
       const ctxMoving = document.getElementById("movingAvgLineChart").getContext("2d");
-      movingAvgLineChart = new Chart(ctxMoving,{type:"line", data:{labels:[], datasets:[{label:"7日移動平均", data:[], borderColor:"teal", backgroundColor:"rgba(0,128,128,0.2)", tension:0.2}]}})
+      movingAvgLineChart = new Chart(ctxMoving,{type:"line", data:{labels:[], datasets:[{label:"7日移動平均", data:[], borderColor:"red", backgroundColor:"rgba(255,0,0,0.2)", tension:0.2}]} });
     }
 
-    async function refreshData() {
-      const snapshot = await db.collection("logs").orderBy("timestamp").get();
-      countVisitorsAndTables(snapshot);
-      updateTodayLine(snapshot);
-      loadPast30DaysAndMovingAvg();
-      loadWeekdayStats();
-      loadHourlyStats();
+    function subscribeRealtime() {
+      db.collection("logs").orderBy("timestamp","asc").onSnapshot(snapshot => {
+        countVisitorsAndTables(snapshot);
+        updateTodayLine(snapshot);
+      });
     }
 
     initCharts();
-    refreshData();
-    setInterval(refreshData, 30000); // 30秒ごとに更新
+    subscribeRealtime();
+    loadPast30DaysAndMovingAvg();
+    loadWeekdayStats();
+    loadHourlyStats();
   </script>
 </body>
 </html>
