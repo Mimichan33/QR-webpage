@@ -52,6 +52,12 @@
       font-weight:600;
       font-size:14px;
     }
+    iframe {
+      width: 100%;
+      height: 480px;
+      border: none;
+      border-radius: 12px;
+    }
   </style>
 </head>
 <body>
@@ -118,10 +124,16 @@
         <div id="table14-status" class="badge">テーブル14: 読み込み中</div>
       </div>
     </div>
+
+    <!-- 9番目：店内マップ -->
+    <div class="card">
+      <h2>店内マップ</h2>
+      <iframe src="https://github.com/Mimichan33/QR-webpage/blob/main/app/system/map.html"></iframe>
+    </div>
   </div>
 
   <script>
-    // Firebase 設定（提供済みのものを使用）
+    // Firebase 設定
     const firebaseConfig = {
       apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
       authDomain: "qr-visitor-log.firebaseapp.com",
@@ -136,23 +148,18 @@
     const tableCounts = {};
     let todayLineChart, activityLineChart, todayPieChart, weekdayBarChart, hourlyBarChart, movingAvgLineChart;
 
-    // --- 文字列 or Timestamp に対応した安全な変換 ---
-    function toDateFromTimestamp(value) {
-      if (!value) return null;
-      if (typeof value.toDate === "function") return value.toDate();
-      if (typeof value === "string") {
-        const d = new Date(value);
-        if (!isNaN(d.getTime())) return d;
-      }
-      if (value instanceof Date) return value;
-      return null;
+    function toDateFromTimestamp(maybeTs) {
+      if (!maybeTs) return null;
+      if (typeof maybeTs.toDate === "function") return maybeTs.toDate();
+      if (maybeTs instanceof Date) return maybeTs;
+      return new Date(maybeTs);
     }
 
     function formatTimestamp(isoString) {
       if (!isoString) return "ー";
       const date = new Date(isoString);
       const options = { timeZone: "Asia/Tokyo", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" };
-      return new Intl.DateTimeFormat("ja-JP", options).format(date).replace(/\//g,"-").replace(",","");
+      return new Intl.DateTimeFormat("ja-JP", options).format(date).replace(/\//g, "-").replace(",", "");
     }
 
     function calculateElapsedTime(isoString) {
@@ -164,7 +171,7 @@
       const minutes = Math.floor(diffMs / 60000);
       const hours = Math.floor(minutes / 60);
       const remainingMinutes = minutes % 60;
-      return hours > 0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
+      return hours>0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
     }
 
     function updateTableDisplays() {
@@ -172,86 +179,89 @@
         const t = tableCounts[tableNum];
         const currentCount = (t.enter || 0) - (t.exit || 0);
         const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
-        const status = currentCount > 0 ? "利用中" : "空席";
+        const status = currentCount>0 ? "利用中" : "空席";
         const timeText = timeToShow ? formatTimestamp(timeToShow) : "ー";
-        const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
+        const elapsed = currentCount>0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
         const element = document.getElementById(`table${tableNum}-status`);
-        if (element) element.textContent = `テーブル${tableNum}: ${status}（${timeText}${elapsed}）`;
+        if (element) {
+          element.textContent = `テーブル${tableNum}: ${status}（${timeText}${elapsed}）`;
+        }
       });
     }
 
     function countVisitorsAndTables(snapshot) {
-      let entries = 0, exits = 0, waiting = 0;
+      let entries=0, exits=0, waiting=0;
 
-      for (let i = 1; i <= 14; i++) {
-        if (!tableCounts[i]) tableCounts[i] = { enter:0, exit:0, lastEnterTime:null };
-        else { tableCounts[i].enter=0; tableCounts[i].exit=0; tableCounts[i].lastEnterTime=tableCounts[i].lastEnterTime || null; }
+      for(let i=1;i<=14;i++){
+        if(!tableCounts[i.toString()]) tableCounts[i.toString]={enter:0, exit:0, lastEnterTime:null};
+        else {tableCounts[i.toString()].enter=0; tableCounts[i.toString()].exit=0;}
       }
 
-      snapshot.forEach(doc => {
+      snapshot.forEach(doc=>{
         const data = doc.data();
-        if (!data || !data.type) return;
-        const type = data.type;
-        const table = data.table;
-        const ts = toDateFromTimestamp(data.timestamp);
-
-        if (type==="enter") entries++;
-        if (type==="exit") exits++;
-        if (type==="wait") waiting++;
-
-        if (table !== undefined && ts) {
-          const key = String(table);
-          if (!tableCounts[key]) tableCounts[key]={ enter:0, exit:0, lastEnterTime:null };
-          if (type==="enter") {
-            tableCounts[key].enter = (tableCounts[key].enter||0)+1;
-            const prev = tableCounts[key].lastEnterTime ? toDateFromTimestamp(tableCounts[key].lastEnterTime) : null;
-            if (!prev || ts > prev) tableCounts[key].lastEnterTime = ts.toISOString();
+        if(!data || !data.type) return;
+        const type=data.type;
+        const table=data.table;
+        const tsDate=toDateFromTimestamp(data.timestamp);
+        if(type==="enter") entries++;
+        if(type==="exit") exits++;
+        if(type==="wait") waiting++;
+        if(table!==undefined && table!==null){
+          const key=String(table);
+          if(!tableCounts[key]) tableCounts[key]={enter:0, exit:0, lastEnterTime:null};
+          if(type==="enter"){ 
+            tableCounts[key].enter=(tableCounts[key].enter||0)+1;
+            const prev = tableCounts[key].lastEnterTime? toDateFromTimestamp(tableCounts[key].lastEnterTime):null;
+            if(!prev || (tsDate && tsDate>prev)) tableCounts[key].lastEnterTime=tsDate? tsDate.toISOString():tableCounts[key].lastEnterTime;
           }
-          if (type==="exit") tableCounts[key].exit = (tableCounts[key].exit||0)+1;
+          if(type==="exit") tableCounts[key].exit=(tableCounts[key].exit||0)+1;
         }
       });
 
-      document.getElementById("count").textContent = Math.max(0, entries-exits);
-      document.getElementById("entries").textContent = entries;
-      document.getElementById("exits").textContent = exits;
-      document.getElementById("waitingCount").textContent = waiting;
+      document.getElementById("count").textContent=Math.max(0, entries-exits);
+      document.getElementById("entries").textContent=entries;
+      document.getElementById("exits").textContent=exits;
+      document.getElementById("waitingCount").textContent=waiting;
 
-      if (todayPieChart && todayPieChart.data && todayPieChart.data.datasets && todayPieChart.data.datasets[0]) {
-        todayPieChart.data.datasets[0].data = [entries, exits];
+      if(todayPieChart && todayPieChart.data && todayPieChart.data.datasets && todayPieChart.data.datasets[0]){
+        todayPieChart.data.datasets[0].data=[entries, exits];
         todayPieChart.update();
       }
 
       updateTableDisplays();
     }
 
-    function updateTodayLine(snapshot) {
-      const hours = Array(24).fill(0);
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (!data || data.type!=="enter") return;
-        const ts = toDateFromTimestamp(data.timestamp);
-        if (!ts) return;
-        const h = ts.getHours();
-        hours[h] = (hours[h]||0)+1;
+    function updateTodayLine(snapshot){
+      const hours=Array(24).fill(0);
+      snapshot.forEach(doc=>{
+        const data=doc.data();
+        if(!data) return;
+        if(data.type!=="enter") return;
+        const ts=toDateFromTimestamp(data.timestamp)||new Date();
+        const h=ts.getHours();
+        hours[h]=(hours[h]||0)+1;
       });
-      if (todayLineChart && todayLineChart.data && todayLineChart.data.datasets) {
-        todayLineChart.data.datasets[0].data = hours;
+      if(todayLineChart && todayLineChart.data && todayLineChart.data.datasets){
+        todayLineChart.data.datasets[0].data=hours;
         todayLineChart.update();
       }
     }
 
-    async function loadPast30DaysAndMovingAvg() {
+    async function loadPast30DaysAndMovingAvg(){
       const snapshot = await db.collection("logs").get();
-      const today = new Date(); today.setHours(0,0,0,0);
-
-      const counts30 = Array(30).fill(0);
-      const labels = [];
-      for(let i=29;i>=0;i--){ const d = new Date(today); d.setDate(today.getDate()-i); labels.push(`${d.getMonth()+1}/${d.getDate()}`); }
+      const today=new Date(); today.setHours(0,0,0,0);
+      const counts30=Array(30).fill(0);
+      const labels=[];
+      for(let i=29;i>=0;i--){
+        const d=new Date(today);
+        d.setDate(today.getDate()-i);
+        labels.push(`${d.getMonth()+1}/${d.getDate()}`);
+      }
 
       snapshot.forEach(doc=>{
         const data=doc.data();
-        if(!data||data.type!=="enter") return;
-        const ts = toDateFromTimestamp(data.timestamp);
+        if(!data || data.type!=="enter") return;
+        const ts=toDateFromTimestamp(data.timestamp);
         if(!ts) return;
         const dayStart=new Date(ts); dayStart.setHours(0,0,0,0);
         const diff=Math.floor((today-dayStart)/(1000*60*60*24));
@@ -260,85 +270,94 @@
 
       if(activityLineChart){ activityLineChart.data.labels=labels; activityLineChart.data.datasets[0].data=counts30; activityLineChart.update(); }
 
-      const moving = counts30.map((_, idx, arr)=>{
-        const start=Math.max(0,idx-6);
-        const slice=arr.slice(start, idx+1);
-        const sum=slice.reduce((a,b)=>a+b,0);
-        return +(sum/slice.length).toFixed(2);
-      });
-
+      const windowSize=7;
+      const moving=counts30.map((_,idx,arr)=>{const start=Math.max(0,idx-(windowSize-1));const slice=arr.slice(start,idx+1);const sum=slice.reduce((a,b)=>a+b,0);return +(sum/slice.length).toFixed(2);});
       if(movingAvgLineChart){ movingAvgLineChart.data.labels=labels; movingAvgLineChart.data.datasets[0].data=moving; movingAvgLineChart.update(); }
     }
 
-    async function loadWeekdayStats() {
+    async function loadWeekdayStats(){
       const snapshot = await db.collection("logs").get();
-      const dayCounts = Array(7).fill(0);
-      const dayDays = {}; for(let i=0;i<7;i++) dayDays[i]=new Set();
-
+      const dayCounts=Array(7).fill(0);
+      const dayDays={}; for(let i=0;i<7;i++) dayDays[i]=new Set();
       snapshot.forEach(doc=>{
-        const data=doc.data(); if(!data||data.type!=="enter") return;
+        const data=doc.data();
+        if(!data || data.type!=="enter") return;
         const ts=toDateFromTimestamp(data.timestamp); if(!ts) return;
-        const w=ts.getDay();
-        dayCounts[w]=(dayCounts[w]||0)+1;
+        const w=ts.getDay(); dayCounts[w]=(dayCounts[w]||0)+1;
         dayDays[w].add(ts.toISOString().slice(0,10));
       });
-
-      const averages=dayCounts.map((count,w)=>{ const days=dayDays[w].size||1; return +(count/days).toFixed(2); });
-      if(weekdayBarChart){ weekdayBarChart.data.datasets[0].data=averages; weekdayBarChart.update(); }
+      const averages=dayCounts.map((count,w)=>{const days=dayDays[w].size||1; return +(count/days).toFixed(2);});
+      if(weekdayBarChart){ weekdayBarChart.data.datasets[0].data=averages; weekdayBarChart.update();}
     }
 
-    async function loadHourlyAverages() {
+    async function loadHourlyAverages(){
       const snapshot = await db.collection("logs").get();
-      const countsPerHour = Array(24).fill(0);
-      const daySet = new Set();
-
+      const countsPerHour=Array(24).fill(0); const daySet=new Set();
       snapshot.forEach(doc=>{
-        const data=doc.data(); if(!data||data.type!=="enter") return;
-        const ts = toDateFromTimestamp(data.timestamp); if(!ts) return;
-        const hour=ts.getHours();
-        countsPerHour[hour]=(countsPerHour[hour]||0)+1;
+        const data=doc.data();
+        if(!data || data.type!=="enter") return;
+        const ts=toDateFromTimestamp(data.timestamp); if(!ts) return;
+        countsPerHour[ts.getHours()] = (countsPerHour[ts.getHours()]||0)+1;
         daySet.add(ts.toISOString().slice(0,10));
       });
-
       const numDays = Math.max(1, daySet.size);
       const averages = countsPerHour.map(c=>+(c/numDays).toFixed(2));
-      if(hourlyBarChart){ hourlyBarChart.data.datasets[0].data=averages; hourlyBarChart.update(); }
+      if(hourlyBarChart){ hourlyBarChart.data.datasets[0].data=averages; hourlyBarChart.update();}
     }
 
-    function initializeCharts() {
-      const ctx1=document.getElementById("todayLineChart").getContext("2d");
-      todayLineChart=new Chart(ctx1,{ type:"line", data:{ labels:Array.from({length:24},(_,i)=>`${i}時`), datasets:[{ label:"入店数", data:Array(24).fill(0), borderColor:"#007bff", tension:0.3, fill:false, pointRadius:2 }]}, options:{ responsive:true, maintainAspectRatio:false } });
-
-      const ctx2=document.getElementById("activityLineChart").getContext("2d");
-      activityLineChart=new Chart(ctx2,{ type:"line", data:{ labels:[], datasets:[{ label:"日別入店数", data:[], borderColor:"#28a745", tension:0.2, fill:true, backgroundColor:"rgba(40,167,69,0.08)"}]}, options:{ responsive:true, maintainAspectRatio:false }});
-
-      const ctx3=document.getElementById("todayPieChart").getContext("2d");
-      todayPieChart=new Chart(ctx3,{ type:"pie", data:{ labels:["入店","退店"], datasets:[{ data:[0,0], backgroundColor:["#007bff","#dc3545"] }] }, options:{ responsive:true, maintainAspectRatio:false }});
-
-      const ctx4=document.getElementById("weekdayBarChart").getContext("2d");
-      weekdayBarChart=new Chart(ctx4,{ type:"bar", data:{ labels:["日","月","火","水","木","金","土"], datasets:[{ label:"平均入店数", data:Array(7).fill(0), backgroundColor:"#17a2b8" }] }, options:{ responsive:true, maintainAspectRatio:false } });
-
-      const ctx5=document.getElementById("hourlyBarChart").getContext("2d");
-      hourlyBarChart=new Chart(ctx5,{ type:"bar", data:{ labels:Array.from({length:24},(_,i)=>`${i}時`), datasets:[{ label:"時間帯別平均入店数", data:Array(24).fill(0), backgroundColor:"#ffc107" }] }, options:{ responsive:true, maintainAspectRatio:false } });
-
-      const ctx6=document.getElementById("movingAvgLineChart").getContext("2d");
-      movingAvgLineChart=new Chart(ctx6,{ type:"line", data:{ labels:[], datasets:[{ label:"7日移動平均", data:[], borderColor:"#6f42c1", tension:0.3, fill:false }] }, options:{ responsive:true, maintainAspectRatio:false } });
-    }
-
-    function startRealtimeListeners() {
-      db.collection("logs").orderBy("timestamp").onSnapshot(snapshot=>{
-        countVisitorsAndTables(snapshot);
-        updateTodayLine(snapshot);
+    function initializeCharts(){
+      todayLineChart = new Chart(document.getElementById("todayLineChart").getContext("2d"), {
+        type:"line",
+        data:{ labels:Array.from({length:24},(_,i)=>`${i}時`), datasets:[{label:"入店数",data:Array(24).fill(0),borderColor:"#007bff",tension:0.3,fill:false,pointRadius:2}]},
+        options:{responsive:true, maintainAspectRatio:false}
+      });
+      activityLineChart = new Chart(document.getElementById("activityLineChart").getContext("2d"),{
+        type:"line",
+        data:{ labels:[], datasets:[{label:"日別入店数", data:[], borderColor:"#28a745", tension:0.2, fill:true, backgroundColor:"rgba(40,167,69,0.1)"}]},
+        options:{responsive:true, maintainAspectRatio:false}
+      });
+      todayPieChart = new Chart(document.getElementById("todayPieChart").getContext("2d"),{
+        type:"pie",
+        data:{labels:["入店","退店"],datasets:[{data:[0,0], backgroundColor:["#007bff","#dc3545"]}]},
+        options:{responsive:true, maintainAspectRatio:false}
+      });
+      weekdayBarChart = new Chart(document.getElementById("weekdayBarChart").getContext("2d"),{
+        type:"bar",
+        data:{labels:["日","月","火","水","木","金","土"],datasets:[{label:"平均入店数",data:Array(7).fill(0),backgroundColor:"#ffc107"}]},
+        options:{responsive:true, maintainAspectRatio:false}
+      });
+      hourlyBarChart = new Chart(document.getElementById("hourlyBarChart").getContext("2d"),{
+        type:"bar",
+        data:{labels:Array.from({length:24},(_,i)=>`${i}時`),datasets:[{label:"平均入店数",data:Array(24).fill(0),backgroundColor:"#17a2b8"}]},
+        options:{responsive:true, maintainAspectRatio:false}
+      });
+      movingAvgLineChart = new Chart(document.getElementById("movingAvgLineChart").getContext("2d"),{
+        type:"line",
+        data:{labels:[],datasets:[{label:"7日移動平均",data:[],borderColor:"#6f42c1",tension:0.2,fill:true,backgroundColor:"rgba(111,66,193,0.1)"}]},
+        options:{responsive:true, maintainAspectRatio:false}
       });
     }
 
-    window.onload = function(){
-      initializeCharts();
-      startRealtimeListeners();
-      loadPast30DaysAndMovingAvg();
-      loadWeekdayStats();
-      loadHourlyAverages();
-    };
+    initializeCharts();
+
+    // 今日の0時
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+
+    db.collection("logs").orderBy("timestamp").onSnapshot(snapshot=>{
+      // 今日のデータのみ
+      const todayDocs = snapshot.docs.filter(doc => {
+        const ts = toDateFromTimestamp(doc.data().timestamp);
+        return ts && ts >= todayStart;
+      });
+
+      countVisitorsAndTables({ forEach: f => todayDocs.forEach(f => f()) });
+      updateTodayLine({ forEach: f => todayDocs.forEach(f => f()) });
+    });
+
+    // 過去30日・移動平均・曜日別平均・時間帯平均
+    loadPast30DaysAndMovingAvg();
+    loadWeekdayStats();
+    loadHourlyAverages();
   </script>
 </body>
 </html>
