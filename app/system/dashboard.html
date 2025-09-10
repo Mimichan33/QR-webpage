@@ -42,9 +42,11 @@
 
     
     .stat {
-      font-size: 16px;
-      margin: 6px 0;
+    font-size: 22px;   
+    font-weight: bold; 
+    margin: 8px 0;
     }
+    
     canvas {
       max-width: 100%;
       height: 320px !important;
@@ -210,11 +212,17 @@
       <h2>本日の入退店数</h2>
       <div class="small-row">
         <p class="stat">現在店内人数: <span id="count">0</span></p>
+      </div>
+      <div class="small-row">
         <p class="stat">入店数: <span id="entries">0</span></p>
         <p class="stat">退店数: <span id="exits">0</span></p>
         <p class="stat">待機数: <span id="waitingCount">0</span></p>
       </div>
+    <div class="small-row">
+      <p class="stat">前日入店数: <span id="prevEntries">0</span></p>
+      <p class="stat">前日退店数: <span id="prevExits">0</span></p>
     </div>
+  </div>
 
     <div class="card">
       <h2>テーブル使用率</h2>
@@ -327,59 +335,85 @@
       });
     }
 
-    function countVisitorsAndTables(snapshot) {
-      let entries = 0;
-      let exits = 0;
-      let waiting = 0;
+async function countVisitorsAndTables(snapshot) {
+  let entries = 0;
+  let exits = 0;
+  let waiting = 0;
 
-      for (let i=1;i<=14;i++){
-        if(!tableCounts[i]) tableCounts[i]={enter:0, exit:0, lastEnterTime:null};
-        else { tableCounts[i].enter=0; tableCounts[i].exit=0; tableCounts[i].lastEnterTime=tableCounts[i].lastEnterTime||null;}
-      }
+  let prevEntries = 0;
+  let prevExits = 0;
 
-      snapshot.forEach(doc=>{
-        const data=doc.data();
-        if(!data || !data.type) return;
-        const type=data.type;
-        const table=data.table;
-        const tsRaw=data.timestamp;
-        const tsDate=toDateFromTimestamp(tsRaw);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-        const today=new Date(); today.setHours(0,0,0,0);
-        if(tsDate<today) return;
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
 
-        if(type==="enter") entries++;
-        if(type==="exit") exits++;
-        if(type==="wait") waiting++;
-
-        if(table!==undefined && table!==null){
-          const key=String(table);
-          if(!tableCounts[key]) tableCounts[key]={enter:0, exit:0, lastEnterTime:null};
-          if(type==="enter"){
-            tableCounts[key].enter=(tableCounts[key].enter||0)+1;
-            const prev = tableCounts[key].lastEnterTime?toDateFromTimestamp(tableCounts[key].lastEnterTime):null;
-            if(!prev || (tsDate && tsDate>prev)) tableCounts[key].lastEnterTime=tsDate?tsDate.toISOString():tableCounts[key].lastEnterTime;
-          }
-          if(type==="exit") tableCounts[key].exit=(tableCounts[key].exit||0)+1;
-        }
-      });
-
-      document.getElementById("count").textContent=Math.max(0, entries-exits);
-      document.getElementById("entries").textContent=entries;
-      document.getElementById("exits").textContent=exits;
-      document.getElementById("waitingCount").textContent=waiting;
-
-      // 使用率に変更
-      if(todayPieChart && todayPieChart.data && todayPieChart.data.datasets && todayPieChart.data.datasets[0]){
-        const occupied = Object.values(tableCounts).filter(t=>(t.enter||0)-(t.exit||0)>0).length;
-        const vacant = 14 - occupied;
-        todayPieChart.data.datasets[0].data = [occupied, vacant];
-        todayPieChart.data.labels = ["使用中","空席"];
-        todayPieChart.update();
-      }
-
-      updateTableDisplays();
+  // テーブル状態リセット
+  for (let i = 1; i <= 14; i++) {
+    if (!tableCounts[i]) {
+      tableCounts[i] = { enter: 0, exit: 0, lastEnterTime: null };
+    } else {
+      tableCounts[i].enter = 0;
+      tableCounts[i].exit = 0;
+      tableCounts[i].lastEnterTime = tableCounts[i].lastEnterTime || null;
     }
+  }
+
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (!data || !data.type) return;
+    const type = data.type;
+    const table = data.table;
+    const tsDate = toDateFromTimestamp(data.timestamp);
+
+    if (!tsDate) return;
+
+    if (tsDate >= today) {
+      if (type === "enter") entries++;
+      if (type === "exit") exits++;
+    } else if (tsDate >= yesterday && tsDate < today) {
+      if (type === "enter") prevEntries++;
+      if (type === "exit") prevExits++;
+    }
+
+    if (table !== undefined && table !== null) {
+      const key = String(table);
+      if (!tableCounts[key]) tableCounts[key] = { enter: 0, exit: 0, lastEnterTime: null };
+      if (type === "enter") {
+        tableCounts[key].enter++;
+        if (!tableCounts[key].lastEnterTime || tsDate > new Date(tableCounts[key].lastEnterTime)) {
+          tableCounts[key].lastEnterTime = tsDate.toISOString();
+        }
+      }
+      if (type === "exit") tableCounts[key].exit++;
+    }
+  });
+
+  // --- 待機数は logs ではなく queue コレクションから取得 ---
+  const queueSnap = await db.collection("queue").where("status", "==", "waiting").get();
+  waiting = queueSnap.size;
+
+  // DOM更新
+  document.getElementById("count").textContent = Math.max(0, entries - exits);
+  document.getElementById("entries").textContent = entries;
+  document.getElementById("exits").textContent = exits;
+  document.getElementById("waitingCount").textContent = waiting;
+
+  document.getElementById("prevEntries").textContent = prevEntries;
+  document.getElementById("prevExits").textContent = prevExits;
+
+  // 使用率更新
+  if (todayPieChart) {
+    const occupied = Object.values(tableCounts).filter(t => (t.enter || 0) - (t.exit || 0) > 0).length;
+    const vacant = 14 - occupied;
+    todayPieChart.data.datasets[0].data = [occupied, vacant];
+    todayPieChart.update();
+  }
+
+  updateTableDisplays();
+}
+
 
     function updateTodayLine(snapshot){
       const hours=Array(24).fill(0);
