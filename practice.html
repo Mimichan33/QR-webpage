@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>テーブル管理</title>
+  <meta charset="UTF-8">
+  <title>ダッシュボード</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Firebase compat -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+
+
     body {
       font-family: 'Helvetica Neue', sans-serif;
       margin: 0;
@@ -15,14 +23,63 @@
       color: #2c3e50;
       overflow-x: hidden;
     }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 20px;
+    }
+    
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+
+    
+    .stat {
+    font-size: 22px;   
+    font-weight: bold; 
+    margin: 8px 0;
+    }
+    
+    canvas {
+      max-width: 100%;
+      height: 320px !important;
+    }
+    .small-row {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .badge {
+      background:#eef;
+      padding:6px 10px;
+      border-radius:999px;
+      font-weight:600;
+      font-size:14px;
+    }
+    iframe {
+      width:100%;
+      height:600px;
+      border:none;
+      border-radius:16px;
+    }
 
     header {
       background-color: #2c3e50;
       color: white;
       position: relative;
+      margin-bottom: 0;
+      padding-bottom: 0; 
     }
 
-        .header-bar {
+    .header-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -48,6 +105,20 @@
     .header-links a:hover {
       text-decoration: underline;
     }
+
+    .full-width-section {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+
+  background: #e0f7da;
+  padding: 60px 0;
+  text-align: center;
+  margin-top: 0 !important; 
+}
 
     /* ハンバーガーメニュー */
     .menu-button {
@@ -111,53 +182,10 @@
       padding-bottom: 5px;
     }
 
-
-
-    h1 {
-      text-align: center;
-    }
-    .table-list, .usage-logs {
-      margin-top: 30px;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin-bottom: 40px;
-    }
-    th, td {
-      border: 1px solid #aaa;
-      padding: 10px;
-      text-align: center;
-    }
-    th {
-      background-color: #00796b;
-      color: white;
-    }
-    .occupied {
-      background-color: #ffccbc;
-    }
-    .vacant {
-      background-color: #c8e6c9;
-    }
-    /* 検索フォームのスタイル */
-    .search-filters {
-      margin-bottom: 10px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-    }
-
-    .search-filters input {
-      padding: 5px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      min-width: 120px;
-    }
   </style>
 </head>
 <body>
-  <header>
+      <header>
     <div class="menu-button">
       <span></span>
       <span></span>
@@ -166,528 +194,385 @@
     <div class="header-bar">
       <div class="header-title">　　　　　店内管理システム</div>
       <div class="header-links">
-        <a href="index.html">ログアウト</a>
+        <a href="start.html">ログアウト</a>
       </div>
     </div>
     <div class="drawer">
-      <a href="dashboard.html">ホーム</a>
+      <a href="/app/system/dashboard.html">ホーム</a>
       <a href="table.html">テーブル管理</a>
       <a href="histogram.html">混雑状況可視化</a>
       <a href="admin.html">順番待ち管理</a>
       <a href="generate.html">QRコード生成</a>
-
-
     </div>
   </header>
+  <h1>入店者ダッシュボード</h1>
 
-
-
-    <h1>テーブル管理画面</h1>
-
-  <!-- 統計セクション -->
-<section style="padding: 20px;">
-  <h2>統計概要</h2>
-
-  <!-- 円グラフ3つ横並び -->
-  <div style="display: flex; justify-content: space-around; gap: 20px; flex-wrap: wrap;">
-
-    <!-- 円グラフ①: 現在の使用状況 -->
-    <div style="background-color: #f0f8ff; padding: 15px; border-radius: 10px; text-align: center;">
-      <h3>現在の使用状況</h3>
-      <canvas id="usagePieChart" width="400" height="400"></canvas>
+  <div class="grid">
+    <div class="card">
+      <h2>本日の入退店数</h2>
+      <div class="small-row">
+        <p class="stat">現在店内人数: <span id="count">0</span></p>
+        <p class="stat">入店数: <span id="entries">0</span></p>
+        <p class="stat">退店数: <span id="exits">0</span></p>
+        <p class="stat">待機数: <span id="waitingCount">0</span></p>
+      </div>
+    <div class="small-row">
+      <p class="stat">前日入店数: <span id="prevEntries">0</span></p>
+      <p class="stat">前日退店数: <span id="prevExits">0</span></p>
     </div>
-
-    <!-- 円グラフ②: 各テーブルの使用回数 -->
-    <div style="background-color: #fff0f5; padding: 15px; border-radius: 10px; text-align: center;">
-      <h3>各テーブルの使用回数</h3>
-      <canvas id="countPieChart" width="400" height="400"></canvas>
-    </div>
-
-    <!-- 円グラフ③: 累計使用時間構成 -->
-    <div style="background-color: #f5fff0; padding: 15px; border-radius: 10px; text-align: center;">
-      <h3>累計使用時間構成</h3>
-      <canvas id="timePieChart" width="400" height="400"></canvas>
-    </div>
-
   </div>
 
-  <!-- 棒グラフ -->
-  <div style="margin-top: 40px; background-color: #f9f9f9; padding: 20px; border-radius: 10px;">
-    <h3>使用状況（回数・平均滞在時間）</h3>
-    <canvas id="barChart"></canvas>
-  </div>
-</section>
+    <div class="card">
+      <h2>テーブル使用率</h2>
+      <canvas id="todayPieChart"></canvas>
+    </div>
 
-
-
-
-  <div class="table-list">
-    <h2>テーブル一覧</h2>
-    <table id="tableStatusTable">
-      <thead>
-        <tr>
-          <th>テーブルID</th>
-          <th>状態</th>
-          <th>使用開始時刻</th>
-          <th>利用時間（分）</th>
-          <th>クリア</th>
-
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <div class="usage-logs">
-    <h2>利用履歴</h2>
-
-    <!-- 検索フォーム追加 -->
-    <div class="search-filters">
-      <div>
-        <label for="searchTableId">テーブルID:</label>
-        <input type="text" id="searchTableId" placeholder="テーブルIDを入力" />
-      </div>
-      <div>
-        <label for="searchDevice">デバイスタイプ（機種）:</label>
-        <input type="text" id="searchDevice" placeholder="例: iPhone" />
-      </div>
-      <div>
-        <label for="searchOSBrowser">OS / ブラウザ:</label>
-        <input type="text" id="searchOSBrowser" placeholder="例: iOS / Safari" />
-      </div>
-      <div>
-        <label for="searchStartDate">利用開始(YYYY-MM-DD):</label>
-        <input type="date" id="searchStartDate" />
-      </div>
-      <div>
-        <label for="searchEndDate">利用終了(YYYY-MM-DD):</label>
-        <input type="date" id="searchEndDate" />
-      </div>
-      <div>
-        <button id="clearFilters">クリア</button>
+          <div class="card">
+      <h2>テーブル状況</h2>
+      <div id="tablesContainer" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:8px;">
+        <div id="table1-status" class="badge">テーブル1: 読み込み中</div>
+        <div id="table2-status" class="badge">テーブル2: 読み込み中</div>
+        <div id="table3-status" class="badge">テーブル3: 読み込み中</div>
+        <div id="table4-status" class="badge">テーブル4: 読み込み中</div>
+        <div id="table5-status" class="badge">テーブル5: 読み込み中</div>
+        <div id="table6-status" class="badge">テーブル6: 読み込み中</div>
+        <div id="table7-status" class="badge">テーブル7: 読み込み中</div>
+        <div id="table8-status" class="badge">テーブル8: 読み込み中</div>
+        <div id="table9-status" class="badge">テーブル9: 読み込み中</div>
+        <div id="table10-status" class="badge">テーブル10: 読み込み中</div>
+        <div id="table11-status" class="badge">テーブル11: 読み込み中</div>
+        <div id="table12-status" class="badge">テーブル12: 読み込み中</div>
+        <div id="table13-status" class="badge">テーブル13: 読み込み中</div>
+        <div id="table14-status" class="badge">テーブル14: 読み込み中</div>
       </div>
     </div>
 
-    <table id="usageLogsTable">
-      <thead>
-        <tr>
-          <th>テーブルID</th>
-          <th>デバイスタイプ（機種）</th>
-          <th>OS / ブラウザ</th>
-          <th>利用開始</th>
-          <th>利用終了</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+    <div class="card">
+      <h2>本日　入店者数推移</h2>
+      <canvas id="todayLineChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>過去7日間 入店者数推移</h2>
+      <canvas id="past7DaysChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>過去30日間 入店者数推移</h2>
+      <canvas id="activityLineChart"></canvas>
+    </div>
 
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, doc, addDoc,setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
-  authDomain: "qr-visitor-log.firebaseapp.com",
-  projectId: "qr-visitor-log",
-  storageBucket: "qr-visitor-log.appspot.com",
-  messagingSenderId: "304250341939",
-  appId: "1:304250341939:web:b8d5b946590d1f852cf146"
-};
+      <div class="card">
+      <h2>曜日ごとの平均入店数</h2>
+      <canvas id="weekdayBarChart"></canvas>
+    </div>
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-let tableStatus = {};  
-let usagePieChart, countPieChart, timePieChart, barChart; 
-function drawCharts(logs) {
-  const usageCount = {};
-  const usageTime = {};
-  const tableStates = {};
-  const entryTimes = {};
+    <div class="card">
+      <h2>時間帯別 平均入店数（過去30日）</h2>
+      <canvas id="hourlyBarChart"></canvas>
+    </div>
 
-  // タイムスタンプ順に並び替え
-  logs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-  logs.forEach(log => {
-    const table = log.table;
-    const time = new Date(log.timestamp);
-    const type = log.type;
+      </div>
 
-    if (!usageCount[table]) usageCount[table] = 0;
-    if (!usageTime[table]) usageTime[table] = 0;
+    
 
-    if (type === "enter") {
-      if (!entryTimes[table]) {
-        entryTimes[table] = time;
-        usageCount[table]++;
-        tableStates[table] = "occupied";
-      }
-    } else if (type === "exit") {
-      if (entryTimes[table]) {
-        const duration = (time - entryTimes[table]) / 1000 / 60; // 分
-        usageTime[table] += duration;
-        delete entryTimes[table];
-        tableStates[table] = "vacant";
-      }
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJf3Z2Mg_J1uZ0kPa-sjcnLxs3BG4l5Ag",
+      authDomain: "qr-visitor-log.firebaseapp.com",
+      projectId: "qr-visitor-log",
+      storageBucket: "qr-visitor-log.appspot.com",
+      messagingSenderId: "304250341939",
+      appId: "1:304250341939:web:b8d5b946590d1f852cf146"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const tableCounts = {};
+    let todayLineChart, activityLineChart, todayPieChart, weekdayBarChart, hourlyBarChart, past7DaysChart;
+
+    function toDateFromTimestamp(maybeTs) {
+      if (!maybeTs) return null;
+      if (typeof maybeTs.toDate === "function") return maybeTs.toDate();
+      if (maybeTs instanceof Date) return maybeTs;
+      return new Date(maybeTs);
     }
-  });
 
-  const allTables = new Set([
-    ...Object.keys(usageCount),
-    ...Object.keys(usageTime),
-    ...Object.keys(tableStates)
-  ]);
-  const totalTables = allTables.size;
-  const occupiedCount = Object.values(tableStates).filter(s => s === "occupied").length;
-  const vacantCount = totalTables - occupiedCount;
+    function formatTimestamp(isoString) {
+      if (!isoString) return "ー";
+      const date = new Date(isoString);
+      const options = {timeZone:"Asia/Tokyo", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"};
+      return new Intl.DateTimeFormat("ja-JP", options).format(date).replace(/\//g,"-").replace(",", "");
+    }
 
-  // === Pie Chart 1: 現在の使用状況 ===
-  if (usagePieChart) {
-    usagePieChart.data.datasets[0].data = [occupiedCount, vacantCount];
-    usagePieChart.update();
-  } else {
-    usagePieChart = new Chart(document.getElementById("usagePieChart"), {
-      type: "pie",
-      data: {
-        labels: ["使用中", "空席"],
-        datasets: [{ data: [occupiedCount, vacantCount], backgroundColor: ["#ff9999", "#99ccff"] }]
-      }
-    });
+    function calculateElapsedTime(isoString) {
+      if (!isoString) return "";
+      const start = new Date(isoString);
+      const now = new Date();
+      const diffMs = now - start;
+      if (diffMs < 0) return "";
+      const minutes = Math.floor(diffMs/60000);
+      const hours = Math.floor(minutes/60);
+      const remainingMinutes = minutes%60;
+      return hours>0 ? `${hours}時間${remainingMinutes}分経過` : `${minutes}分経過`;
+    }
+
+    function updateTableDisplays() {
+      Object.keys(tableCounts).forEach(tableNum => {
+        const t = tableCounts[tableNum];
+        const currentCount = (t.enter || 0) - (t.exit || 0);
+        const timeToShow = currentCount > 0 ? t.lastEnterTime : null;
+        const status = currentCount > 0 ? "利用中" : "空席";
+        const timeText = timeToShow ? formatTimestamp(timeToShow) : "ー";
+        const elapsed = currentCount > 0 ? `｜${calculateElapsedTime(timeToShow)}` : "";
+        const element = document.getElementById(`table${tableNum}-status`);
+        if (element) element.textContent = `テーブル${tableNum}: ${status}（${timeText}${elapsed}）`;
+      });
+    }
+
+async function countVisitorsAndTables(snapshot) {
+  let entries = 0;
+  let exits = 0;
+  let waiting = 0;
+
+  let prevEntries = 0;
+  let prevExits = 0;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // テーブル状態リセット
+  for (let i = 1; i <= 14; i++) {
+    if (!tableCounts[i]) {
+      tableCounts[i] = { enter: 0, exit: 0, lastEnterTime: null };
+    } else {
+      tableCounts[i].enter = 0;
+      tableCounts[i].exit = 0;
+      tableCounts[i].lastEnterTime = tableCounts[i].lastEnterTime || null;
+    }
   }
 
-  // === Pie Chart 2: 使用回数 ===
-  if (countPieChart) {
-    countPieChart.data.labels = Object.keys(usageCount);
-    countPieChart.data.datasets[0].data = Object.values(usageCount);
-    countPieChart.update();
-  } else {
-    countPieChart = new Chart(document.getElementById("countPieChart"), {
-      type: "pie",
-      data: {
-        labels: Object.keys(usageCount),
-        datasets: [{
-          data: Object.values(usageCount),
-          backgroundColor: Object.keys(usageCount).map((_, i) =>
-            `hsl(${(i * 50) % 360}, 60%, 70%)`
-          )
-        }]
-      }
-    });
-  }
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (!data || !data.type) return;
+    const type = data.type;
+    const table = data.table;
+    const tsDate = toDateFromTimestamp(data.timestamp);
 
-  // === Pie Chart 3: 使用時間 ===
-  if (timePieChart) {
-    timePieChart.data.labels = Object.keys(usageTime);
-    timePieChart.data.datasets[0].data = Object.values(usageTime);
-    timePieChart.update();
-  } else {
-    timePieChart = new Chart(document.getElementById("timePieChart"), {
-      type: "pie",
-      data: {
-        labels: Object.keys(usageTime),
-        datasets: [{
-          data: Object.values(usageTime),
-          backgroundColor: Object.keys(usageTime).map((_, i) =>
-            `hsl(${(i * 50 + 180) % 360}, 60%, 70%)`
-          )
-        }]
-      }
-    });
-  }
+    if (!tsDate) return;
 
-  // === Bar Chart ===
-  const barLabels = Object.keys(usageCount);
-  const countData = Object.values(usageCount);
-  const avgTimeData = barLabels.map(t => usageCount[t] > 0 ? usageTime[t] / usageCount[t] : 0);
+    if (tsDate >= today) {
+      if (type === "enter") entries++;
+      if (type === "exit") exits++;
+    } else if (tsDate >= yesterday && tsDate < today) {
+      if (type === "enter") prevEntries++;
+      if (type === "exit") prevExits++;
+    }
 
-  if (barChart) {
-    barChart.data.labels = barLabels;
-    barChart.data.datasets[0].data = countData;
-    barChart.data.datasets[1].data = avgTimeData;
-    barChart.update();
-  } else {
-    barChart = new Chart(document.getElementById("barChart"), {
-      type: "bar",
-      data: {
-        labels: barLabels,
-        datasets: [
-          { label: "使用回数", data: countData, backgroundColor: "#66b3ff" },
-          { label: "平均滞在時間（分）", data: avgTimeData, backgroundColor: "#ffcc66" }
-        ]
-      },
-      options: { responsive: true, scales: { y: { beginAtZero: true } } }
-    });
-  }
-}
-
-// ---- Firestore リアルタイム更新でグラフも更新 ----
-onSnapshot(query(collection(db, "logs"), orderBy("timestamp")), snapshot => {
-  allLogs = [];
-  snapshot.forEach(doc => allLogs.push(doc.data()));
-  filterAndDisplayLogs();
-  drawCharts(allLogs); // ✅ ここでリアルタイム更新
-});
-
-
-
-
-
-    onSnapshot(query(collection(db, "logs"), orderBy("timestamp")), snapshot => {
-
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const tableId = data.table;
-      const deviceId = data.device;
-      const timestamp = new Date(data.timestamp);
-      const type = data.type;
-
-      if (!tableStatus[tableId]) {
-        tableStatus[tableId] = { status: "vacant", startTime: null, deviceId: null };
-      }
-
+    if (table !== undefined && table !== null) {
+      const key = String(table);
+      if (!tableCounts[key]) tableCounts[key] = { enter: 0, exit: 0, lastEnterTime: null };
       if (type === "enter") {
-        tableStatus[tableId] = { status: "occupied", startTime: timestamp, deviceId };
-      } else if (type === "exit" && tableStatus[tableId].status === "occupied") {
-        tableStatus[tableId] = { status: "vacant", startTime: null, deviceId: null };
-      }
-    });
-
-    const tbody = document.querySelector("#tableStatusTable tbody");
-    tbody.innerHTML = "";
-
-    for (const [tableId, info] of Object.entries(tableStatus)) {
-      const tr = document.createElement("tr");
-      tr.dataset.tableId = tableId;
-      tr.className = info.status === "occupied" ? "occupied" : "vacant";
-
-      const duration = info.status === "occupied" && info.startTime
-        ? Math.floor((new Date() - info.startTime) / 60000)
-        : "-";
-
-      tr.innerHTML = `
-        <td>${tableId}</td>
-        <td>${info.status === "occupied" ? "使用中" : "空席"}</td>
-        <td>${info.startTime ? info.startTime.toLocaleString() : "-"}</td>
-        <td class="usage-time">${duration}</td>
-        <td>
-      ${info.status === "occupied" 
-        ? `<button onclick="forceExit('${tableId}', '${info.deviceId}')">強制退出</button>`
-        : "-"
-      }
-    </td>
-      `;
-      tbody.appendChild(tr);
-    }
-  });
-
-  // 利用時間を1分ごとに更新
-  function updateUsageTime() {
-    const now = new Date();
-    for (const [tableId, info] of Object.entries(tableStatus)) {
-      if (info.status === "occupied" && info.startTime) {
-        const duration = Math.floor((now - info.startTime) / 60000);
-        const row = document.querySelector(`#tableStatusTable tbody tr[data-table-id="${tableId}"]`);
-        if (row) {
-          row.querySelector(".usage-time").textContent = duration;
+        tableCounts[key].enter++;
+        if (!tableCounts[key].lastEnterTime || tsDate > new Date(tableCounts[key].lastEnterTime)) {
+          tableCounts[key].lastEnterTime = tsDate.toISOString();
         }
       }
-    }
-  }
-  setInterval(updateUsageTime, 60000);
-
-  function parseDeviceInfo(ua) {
-    ua = ua.toLowerCase();
-    let device = "不明";
-    let os = "不明";
-    let browser = "不明";
-
-    if (ua.includes("iphone")) {
-      device = guessIphoneModel(ua);
-      os = "iOS";
-    } else if (ua.includes("ipad")) {
-      device = "iPad";
-      os = "iOS";
-    } else if (ua.includes("android")) {
-      device = guessAndroidModel(ua);
-      os = "Android";
-    } else if (ua.includes("windows")) {
-      device = "Windows PC";
-      os = "Windows";
-    } else if (ua.includes("macintosh")) {
-      device = "Mac";
-      os = "macOS";
-    }
-
-    if (ua.includes("chrome")) {
-      browser = "Chrome";
-    } else if (ua.includes("safari") && !ua.includes("chrome")) {
-      browser = "Safari";
-    } else if (ua.includes("firefox")) {
-      browser = "Firefox";
-    } else if (ua.includes("edg")) {
-      browser = "Edge";
-    }
-
-    return {
-      device,
-      os,
-      browser
-    };
-  }
-
-  function guessIphoneModel(ua) {
-    return "iPhone端末";
-  }
-
-  function guessAndroidModel(ua) {
-    const match = ua.match(/android.*build\/([a-z0-9\-]+)/i);
-    if (match && match[1]) {
-      return `Android (${match[1]})`;
-    }
-    return "Android端末";
-  }
-
-
-// --- フィルタ検索とリアルタイムログ取得部分 ---
-
-let allLogs = []; // 全ログ保存用
-
-// 検索フォームの各要素を取得
-const searchTableId = document.getElementById("searchTableId");
-const searchDevice = document.getElementById("searchDevice");
-const searchOSBrowser = document.getElementById("searchOSBrowser");
-const searchStartDate = document.getElementById("searchStartDate");
-const searchEndDate = document.getElementById("searchEndDate");
-const clearFilters = document.getElementById("clearFilters");
-
-function filterAndDisplayLogs() {
-  const tableIdFilter = searchTableId.value.trim().toLowerCase();
-  const deviceFilter = searchDevice.value.trim().toLowerCase();
-  const osBrowserFilter = searchOSBrowser.value.trim().toLowerCase();
-  const startDateFilter = searchStartDate.value;
-  const endDateFilter = searchEndDate.value;
-
-  const tbody = document.querySelector("#usageLogsTable tbody");
-  tbody.innerHTML = "";
-
-  const usageMap = {};
-
-  allLogs.forEach(log => {
-    const key = `${log.table}_${log.device}`;
-    const time = new Date(log.timestamp);
-
-    if (!usageMap[key]) usageMap[key] = { table: log.table, device: log.device };
-
-    if (log.type === "enter") {
-      usageMap[key].start = time;
-    } else if (log.type === "exit") {
-      usageMap[key].end = time;
+      if (type === "exit") tableCounts[key].exit++;
     }
   });
 
-  Object.values(usageMap)
-    .filter(log => log.start && log.end)
-    .filter(log => {
-      if (tableIdFilter && !log.table.toLowerCase().includes(tableIdFilter)) return false;
+  // --- 待機数は logs ではなく queue コレクションから取得 ---
+  const queueSnap = await db.collection("queue").where("status", "==", "waiting").get();
+  waiting = queueSnap.size;
 
-      if (deviceFilter) {
-        const deviceName = parseDeviceInfo(log.device).device.toLowerCase();
-        if (!deviceName.includes(deviceFilter)) return false;
-      }
+  // DOM更新
+  document.getElementById("count").textContent = Math.max(0, entries - exits);
+  document.getElementById("entries").textContent = entries;
+  document.getElementById("exits").textContent = exits;
+  document.getElementById("waitingCount").textContent = waiting;
 
-      if (osBrowserFilter) {
-        const info = parseDeviceInfo(log.device);
-        const osBrowser = (info.os + " / " + info.browser).toLowerCase();
-        if (!osBrowser.includes(osBrowserFilter)) return false;
-      }
+  document.getElementById("prevEntries").textContent = prevEntries;
+  document.getElementById("prevExits").textContent = prevExits;
 
-      if (startDateFilter) {
-        const startDate = new Date(startDateFilter + "T00:00:00");
-        if (log.start < startDate) return false;
-      }
+  // 使用率更新
+  if (todayPieChart) {
+    const occupied = Object.values(tableCounts).filter(t => (t.enter || 0) - (t.exit || 0) > 0).length;
+    const vacant = 14 - occupied;
+    todayPieChart.data.datasets[0].data = [occupied, vacant];
+    todayPieChart.update();
+  }
 
-      if (endDateFilter) {
-        const endDate = new Date(endDateFilter + "T23:59:59");
-        if (log.end > endDate) return false;
-      }
-
-      return true;
-    })
-    .forEach(log => {
-      const tr = document.createElement("tr");
-      const deviceInfo = parseDeviceInfo(log.device);
-      tr.innerHTML = `
-        <td>${log.table}</td>
-        <td>${deviceInfo.device}</td>
-        <td>${deviceInfo.os} / ${deviceInfo.browser}</td>
-        <td>${log.start.toLocaleString()}</td>
-        <td>${log.end.toLocaleString()}</td>
-      `;
-      tbody.appendChild(tr);
-    });
+  updateTableDisplays();
 }
 
-clearFilters.addEventListener("click", () => {
-  searchTableId.value = "";
-  searchDevice.value = "";
-  searchOSBrowser.value = "";
-  searchStartDate.value = "";
-  searchEndDate.value = "";
-  filterAndDisplayLogs();
+
+    function updateTodayLine(snapshot){
+      const hours=Array(24).fill(0);
+      snapshot.forEach(doc=>{
+        const data=doc.data();
+        if(!data || !data.type) return;
+        if(data.type!=="enter") return;
+        const ts=toDateFromTimestamp(data.timestamp)||new Date();
+        const today=new Date(); today.setHours(0,0,0,0);
+        if(ts<today) return;
+        const h=ts.getHours();
+        hours[h] = (hours[h]||0)+1;
+      });
+      if(todayLineChart && todayLineChart.data && todayLineChart.data.datasets){
+        todayLineChart.data.datasets[0].data=hours;
+        todayLineChart.update();
+      }
+    }
+
+    async function loadPast30Days(){
+      const snapshot=await db.collection("logs").get();
+      const today=new Date(); today.setHours(0,0,0,0);
+      const counts30=Array(30).fill(0);
+      const labels=[];
+      for(let i=29;i>=0;i--){
+        const d=new Date(today); d.setDate(today.getDate()-i);
+        labels.push(`${d.getMonth()+1}/${d.getDate()}`);
+      }
+
+      snapshot.forEach(doc=>{
+        const data=doc.data();
+        if(!data || data.type!=="enter") return;
+        const ts=toDateFromTimestamp(data.timestamp);
+        if(!ts) return;
+        const dayStart=new Date(ts); dayStart.setHours(0,0,0,0);
+        const diff=Math.floor((today-dayStart)/(1000*60*60*24));
+        if(diff>=0 && diff<30) counts30[29-diff]=(counts30[29-diff]||0)+1;
+      });
+
+      if(activityLineChart){
+        activityLineChart.data.labels=labels;
+        activityLineChart.data.datasets[0].data=counts30;
+        activityLineChart.update();
+      }
+    }
+
+    async function loadWeekdayStats(){
+      const snapshot=await db.collection("logs").get();
+      const weekdayCounts=Array(7).fill(0);
+      snapshot.forEach(doc=>{
+        const data=doc.data();
+        if(!data || data.type!=="enter") return;
+        const ts=toDateFromTimestamp(data.timestamp);
+        if(!ts) return;
+        const day=ts.getDay();
+        weekdayCounts[day]=(weekdayCounts[day]||0)+1;
+      });
+      if(weekdayBarChart) { weekdayBarChart.data.datasets[0].data=weekdayCounts; weekdayBarChart.update();}
+    }
+
+    async function loadHourlyStats(){
+      const snapshot=await db.collection("logs").get();
+      const hourlyCounts=Array(24).fill(0);
+      snapshot.forEach(doc=>{
+        const data=doc.data();
+        if(!data || data.type!=="enter") return;
+        const ts=toDateFromTimestamp(data.timestamp);
+        if(!ts) return;
+        const h=ts.getHours();
+        hourlyCounts[h]=(hourlyCounts[h]||0)+1;
+      });
+      if(hourlyBarChart){hourlyBarChart.data.datasets[0].data=hourlyCounts; hourlyBarChart.update();}
+    }
+
+    async function loadPast7Days(){
+      const snapshot=await db.collection("logs").get();
+      const today=new Date(); today.setHours(0,0,0,0);
+      const labels=[], counts7=[];
+      for(let i=6;i>=0;i--){
+        const d=new Date(today); d.setDate(today.getDate()-i);
+        labels.push(`${d.getMonth()+1}/${d.getDate()}`);
+        counts7.push(0);
+      }
+
+      snapshot.forEach(doc=>{
+        const data=doc.data();
+        if(!data || data.type!=="enter") return;
+        const ts=toDateFromTimestamp(data.timestamp);
+        if(!ts) return;
+        const dayStart=new Date(ts); dayStart.setHours(0,0,0,0);
+        const diff=Math.floor((today-dayStart)/(1000*60*60*24));
+        if(diff>=0 && diff<7) counts7[6-diff]=(counts7[6-diff]||0)+1;
+      });
+
+      if(past7DaysChart){
+        past7DaysChart.data.labels=labels;
+        past7DaysChart.data.datasets[0].data=counts7;
+        past7DaysChart.update();
+      }
+    }
+
+    function initCharts(){
+      const ctxToday=document.getElementById("todayLineChart").getContext("2d");
+      todayLineChart=new Chart(ctxToday,{
+        type:"line",
+        data:{labels:Array.from({length:24},(_,i)=>i+":00"), datasets:[{label:"滞在人数", data:Array(24).fill(0), borderColor:"blue", backgroundColor:"rgba(0,0,255,0.2)", tension:0.2}]}
+      });
+
+      const ctxActivity=document.getElementById("activityLineChart").getContext("2d");
+      activityLineChart=new Chart(ctxActivity,{
+        type:"line",
+        data:{labels:[], datasets:[{label:"過去30日入店数", data:[], borderColor:"green", backgroundColor:"rgba(0,255,0,0.2)", tension:0.2}]}
+      });
+
+      const ctxTodayPie=document.getElementById("todayPieChart").getContext("2d");
+      todayPieChart=new Chart(ctxTodayPie,{
+        type:"pie",
+        data:{labels:["使用中","空席"], datasets:[{data:[0,14], backgroundColor:["red","blue"]}]}
+      });
+
+      const ctxWeekday=document.getElementById("weekdayBarChart").getContext("2d");
+      weekdayBarChart=new Chart(ctxWeekday,{
+        type:"bar",
+        data:{labels:["日","月","火","水","木","金","土"], datasets:[{label:"平均入店数", data:Array(7).fill(0), backgroundColor:"orange"}]}
+      });
+
+      const ctxHourly=document.getElementById("hourlyBarChart").getContext("2d");
+      hourlyBarChart=new Chart(ctxHourly,{
+        type:"bar",
+        data:{labels:Array.from({length:24},(_,i)=>i+":00"), datasets:[{label:"平均入店数", data:Array(24).fill(0), backgroundColor:"purple"}]}
+      });
+
+      const ctxPast7=document.getElementById("past7DaysChart").getContext("2d");
+      past7DaysChart=new Chart(ctxPast7,{
+        type:"line",
+        data:{labels:[], datasets:[{label:"過去7日入店数", data:[], borderColor:"teal", backgroundColor:"rgba(0,128,128,0.2)", tension:0.2}]}
+      });
+    }
+
+    async function refreshData(){
+      const snapshot=await db.collection("logs").orderBy("timestamp").get();
+      countVisitorsAndTables(snapshot);
+      updateTodayLine(snapshot);
+      loadPast30Days();
+      loadWeekdayStats();
+      loadHourlyStats();
+      loadPast7Days();
+    }
+
+    window.onload=()=>{
+      initCharts();
+      refreshData();
+      setInterval(refreshData, 60000);
+    };
+
+    const menuButton = document.querySelector(".menu-button");
+const drawer = document.querySelector(".drawer");
+menuButton.addEventListener("click", () => {
+  drawer.classList.toggle("open");
 });
-
-[searchTableId, searchDevice, searchOSBrowser, searchStartDate, searchEndDate].forEach(input => {
-  input.addEventListener("input", filterAndDisplayLogs);
-});
-
-
-
-
-window.forceExit = async function(tableId, deviceId) {
-  if (!confirm(`テーブル ${tableId} を強制退出させますか？`)) return;
-
-  try {
-    // 1. logs に exit を追加
-    await addDoc(collection(db, "logs"), {
-      table: tableId,
-      device: deviceId,
-      type: "exit",
-      timestamp: new Date().toISOString()
-    });
-
-    // 2. tables の状態を vacant に更新
-    await setDoc(doc(db, "tables", tableId), {
-      status: "vacant"
-    });
-
-    alert("強制退出しました");
-
-  } catch (err) {
-    console.error("強制退出エラー:", err);
-    alert("強制退出に失敗しました");
-  }
-};
-
-
-
-onSnapshot(query(collection(db, "logs"), orderBy("timestamp")), snapshot => {
-  allLogs = [];
-  snapshot.forEach(doc => {
-    allLogs.push(doc.data());
-  });
-  filterAndDisplayLogs();
-});
-
-// ハンバーガーメニュー動作
-window.onload = () => {
-  const menuButton = document.querySelector(".menu-button");
-  const drawer = document.querySelector(".drawer");
-  menuButton.addEventListener("click", () => {
-    drawer.classList.toggle("open");
-  });
-};
-
-</script>
+  </script>
 </body>
+
 </html>
