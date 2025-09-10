@@ -299,11 +299,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 let tableStatus = {};  
-
-async function drawCharts() {
-  const logsSnapshot = await getDocs(collection(db, "logs"));
-  const logs = logsSnapshot.docs.map(doc => doc.data());
-
+let usagePieChart, countPieChart, timePieChart, barChart; 
+function drawCharts(logs) {
   const usageCount = {};
   const usageTime = {};
   const tableStates = {};
@@ -336,95 +333,102 @@ async function drawCharts() {
     }
   });
 
-  // Pie Chart 1: 全体の使用状況（修正済み）
   const allTables = new Set([
     ...Object.keys(usageCount),
     ...Object.keys(usageTime),
     ...Object.keys(tableStates)
   ]);
   const totalTables = allTables.size;
-  const occupiedCount = Object.values(tableStates).filter(state => state === "occupied").length;
+  const occupiedCount = Object.values(tableStates).filter(s => s === "occupied").length;
   const vacantCount = totalTables - occupiedCount;
 
-  new Chart(document.getElementById("usagePieChart"), {
-    type: "pie",
-    data: {
-      labels: ["使用中", "空席"],
-      datasets: [{
-        data: [occupiedCount, vacantCount],
-        backgroundColor: ["#ff9999", "#99ccff"]
-      }]
-    }
-  });
+  // === Pie Chart 1: 現在の使用状況 ===
+  if (usagePieChart) {
+    usagePieChart.data.datasets[0].data = [occupiedCount, vacantCount];
+    usagePieChart.update();
+  } else {
+    usagePieChart = new Chart(document.getElementById("usagePieChart"), {
+      type: "pie",
+      data: {
+        labels: ["使用中", "空席"],
+        datasets: [{ data: [occupiedCount, vacantCount], backgroundColor: ["#ff9999", "#99ccff"] }]
+      }
+    });
+  }
 
-  // Pie Chart 2: 使用中テーブル構成（使用回数）
-  new Chart(document.getElementById("countPieChart"), {
-    type: "pie",
-    data: {
-      labels: Object.keys(usageCount),
-      datasets: [{
-        data: Object.values(usageCount),
-        backgroundColor: Object.keys(usageCount).map((_, i) =>
-          `hsl(${(i * 50) % 360}, 60%, 70%)`
-        )
-      }]
-    }
-  });
+  // === Pie Chart 2: 使用回数 ===
+  if (countPieChart) {
+    countPieChart.data.labels = Object.keys(usageCount);
+    countPieChart.data.datasets[0].data = Object.values(usageCount);
+    countPieChart.update();
+  } else {
+    countPieChart = new Chart(document.getElementById("countPieChart"), {
+      type: "pie",
+      data: {
+        labels: Object.keys(usageCount),
+        datasets: [{
+          data: Object.values(usageCount),
+          backgroundColor: Object.keys(usageCount).map((_, i) =>
+            `hsl(${(i * 50) % 360}, 60%, 70%)`
+          )
+        }]
+      }
+    });
+  }
 
-  // Pie Chart 3: 使用時間構成（累計時間）
-  new Chart(document.getElementById("timePieChart"), {
-    type: "pie",
-    data: {
-      labels: Object.keys(usageTime),
-      datasets: [{
-        data: Object.values(usageTime),
-        backgroundColor: Object.keys(usageTime).map((_, i) =>
-          `hsl(${(i * 50 + 180) % 360}, 60%, 70%)`
-        )
-      }]
-    }
-  });
+  // === Pie Chart 3: 使用時間 ===
+  if (timePieChart) {
+    timePieChart.data.labels = Object.keys(usageTime);
+    timePieChart.data.datasets[0].data = Object.values(usageTime);
+    timePieChart.update();
+  } else {
+    timePieChart = new Chart(document.getElementById("timePieChart"), {
+      type: "pie",
+      data: {
+        labels: Object.keys(usageTime),
+        datasets: [{
+          data: Object.values(usageTime),
+          backgroundColor: Object.keys(usageTime).map((_, i) =>
+            `hsl(${(i * 50 + 180) % 360}, 60%, 70%)`
+          )
+        }]
+      }
+    });
+  }
 
-  // Bar Chart: 使用回数＋平均使用時間
+  // === Bar Chart ===
   const barLabels = Object.keys(usageCount);
   const countData = Object.values(usageCount);
-  const avgTimeData = barLabels.map(t =>
-    usageCount[t] > 0 ? usageTime[t] / usageCount[t] : 0
-  );
+  const avgTimeData = barLabels.map(t => usageCount[t] > 0 ? usageTime[t] / usageCount[t] : 0);
 
-  new Chart(document.getElementById("barChart"), {
-    type: "bar",
-    data: {
-      labels: barLabels,
-      datasets: [
-        {
-          label: "使用回数",
-          data: countData,
-          backgroundColor: "#66b3ff"
-        },
-        {
-          label: "平均滞在時間（分）",
-          data: avgTimeData,
-          backgroundColor: "#ffcc66"
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: "top" },
-        title: {
-          display: false
-        }
+  if (barChart) {
+    barChart.data.labels = barLabels;
+    barChart.data.datasets[0].data = countData;
+    barChart.data.datasets[1].data = avgTimeData;
+    barChart.update();
+  } else {
+    barChart = new Chart(document.getElementById("barChart"), {
+      type: "bar",
+      data: {
+        labels: barLabels,
+        datasets: [
+          { label: "使用回数", data: countData, backgroundColor: "#66b3ff" },
+          { label: "平均滞在時間（分）", data: avgTimeData, backgroundColor: "#ffcc66" }
+        ]
       },
-      scales: {
-        y: { beginAtZero: true }
-      }
-    }
-  });
+      options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+  }
 }
 
-drawCharts();
+// ---- Firestore リアルタイム更新でグラフも更新 ----
+onSnapshot(query(collection(db, "logs"), orderBy("timestamp")), snapshot => {
+  allLogs = [];
+  snapshot.forEach(doc => allLogs.push(doc.data()));
+  filterAndDisplayLogs();
+  drawCharts(allLogs); // ✅ ここでリアルタイム更新
+});
+
 
 
 
