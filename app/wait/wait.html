@@ -167,6 +167,8 @@
     let myDocId = null;
     let myIndex = -1;
     let ticketMap = {};
+    let avgStayTimeMinutes = 10;
+
 
     setTimeout(() => {
       $('#loadingLabel').text("Completion!");
@@ -185,6 +187,37 @@
       });
       myDocId = docRef.id;
     }
+
+    // ✅ 新しく追加
+function calculateAverages() {
+  db.collection("logs").onSnapshot(snapshot => {
+    const logs = snapshot.docs.map(doc => doc.data());
+    logs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    const sessions = {};
+    const durations = [];
+
+    logs.forEach(log => {
+      const key = log.device + "_" + log.table;
+      const time = new Date(log.timestamp);
+      if (log.type === "enter") {
+        sessions[key] = time;
+      } else if (log.type === "exit" && sessions[key]) {
+        const duration = (time - sessions[key]) / 1000; // 秒
+        if (duration > 0 && duration < 60 * 60 * 5) {
+          durations.push(duration);
+        }
+        delete sessions[key];
+      }
+    });
+
+    if (durations.length > 0) {
+      const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
+      avgStayTimeMinutes = Math.max(1, Math.round(avg / 60)); 
+      console.log("平均滞在時間（分）:", avgStayTimeMinutes);
+    }
+  });
+}
+
 
     function submitEmail() {
       const email = document.getElementById("emailInput").value.trim();
@@ -233,7 +266,7 @@
 
         myIndex = ticketMap[myDocId];
         const peopleAhead = waitingList.filter(doc => ticketMap[doc.id] < myIndex).length;
-        const estimated = (peopleAhead * 10) + 10;
+        const estimated = (peopleAhead + 1) * avgStayTimeMinutes;
 
         document.getElementById("ticketNumber").textContent = `番号札:  No. ${myIndex}`;
 
@@ -244,18 +277,15 @@
           peopleAheadElement.textContent = `${peopleAhead}人`;
         }
 
-        document.getElementById("estimatedTime").innerHTML = `
-          約${estimated}分<br>
-          <div style="margin-top: 10px; font-size: 14px; color: #c0392b;">
-            <br>※5分以内に来店しない場合、キャンセルされます<br>
-            <span style="font-size:13px;">*Your spot will be cancelled if you don't arrive within 5 minutes.</span>
-          </div>
-        `;
+        document.getElementById("estimatedTime").innerHTML = `約${estimated}分<br>`;
+
+
       });
     }
 
     window.onload = async () => {
       await registerQueue();
+      calculateAverages(); 
       watchQueue();
     };
   </script>
