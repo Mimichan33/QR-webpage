@@ -124,20 +124,21 @@
           }
         });
       }
+      if (data.status === "enter_scanned" && !displayed) {
+  displayed = true;
 
-      if (data.status === "vacant" && !displayed) {
-        displayed = true;
-        statusEl.style.display = "none";
-        qrcodeCanvas.style.display = "none";
-        explanationEl.style.display = "none";
-        loadingEl.style.display = "block";
+  statusEl.style.display = "none";
+  qrcodeCanvas.style.display = "none";
+  explanationEl.style.display = "none";
+  loadingEl.style.display = "block";
 
-        await docRef.delete();
+  await docRef.delete();
 
-        setTimeout(() => {
-          window.location.href = `menu.html?table=${table}`;
-        }, 3000);
-      }
+  setTimeout(() => {
+    window.location.href = `menu.html?table=${table}`;
+  }, 3000);
+}
+
     });
   </script>
 </body>
