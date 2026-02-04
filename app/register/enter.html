@@ -200,6 +200,14 @@ if (!token || !table) {
           });
           localStorage.setItem("entered", "true");
 
+          await db
+  .collection("display_queue")
+  .doc(`table_${table}`)
+  .update({
+    status: "scanned"
+  });
+
+
 
           // ローディング表示開始
           $(document).ready(function () {
@@ -240,6 +248,7 @@ if (!token || !table) {
 
 </body>
 </html>
+
 
 
 
