@@ -115,7 +115,7 @@
         return;
       }
 
-      if (data.status === "waiting") {
+      if (data.status === "enter_waiting") {
         QRCode.toCanvas(qrcodeCanvas, data.url, (err) => {
           if (!err) {
             qrcodeCanvas.style.display = "block";
