@@ -125,7 +125,7 @@
         });
       }
 
-      if (data.status === "scanned") {
+      if (data.status === "vacant" && !displayed) {
         displayed = true;
         statusEl.style.display = "none";
         qrcodeCanvas.style.display = "none";
